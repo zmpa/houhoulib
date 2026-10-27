@@ -1095,6 +1095,7 @@ function Talis:Window(config)
 	end)
 
 	shell.Visible = false
+	Talis.ActiveWindow = window
 	if config.Open ~= false then
 		task.delay(0.15, function() setOpen(true) end)
 	end
