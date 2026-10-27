@@ -174,7 +174,8 @@ end
 
 local function Theme(object, key, prop)
 	Talis.Themed[object] = { key, prop or defaultProp(object) }
-	object[Talis.Themed[object][2]] = Talis.Theme[key]
+	local value = Talis.Theme[key]
+	if value ~= nil then object[Talis.Themed[object][2]] = value end
 	return object
 end
 
@@ -446,15 +447,15 @@ end
 function Talis:MoveTooltip(input)
 	if not self.Tooltip or not self.Tooltip.Visible then return end
 	local size = viewport()
-	local width = self.Tooltip.AbsoluteSize.X
+	local wth = self.Tooltip.AbsoluteSize.X
 	local x = input.Position.X + 16
 	local y = input.Position.Y + 20
-	if x + width + 8 > size.X then x = input.Position.X - width - 12 end
+	if x + wth + 8 > size.X then x = input.Position.X - wth - 12 end
 	if y + 26 > size.Y then y = input.Position.Y - 28 end
 	self.Tooltip.Position = UDim2.fromOffset(x, y)
 end
 
-function Talis:HideTooltip()
+function Talis:HeTooltip()
 	if self.Tooltip then self.Tooltip.Visible = false end
 end
 
@@ -466,8 +467,8 @@ local function parentGui(gui)
 	if type(gethui) == "function" then
 		if pcall(function() gui.Parent = gethui() end) and gui.Parent then return end
 	end
-	if type(get_hidden_gui) == "function" then
-		if pcall(function() gui.Parent = get_hidden_gui() end) and gui.Parent then return end
+	if type(get_hden_gui) == "function" then
+		if pcall(function() gui.Parent = get_hden_gui() end) and gui.Parent then return end
 	end
 	local ok = pcall(function() gui.Parent = cloneref(game:GetService("CoreGui")) end)
 	if not ok or not gui.Parent then
@@ -480,7 +481,12 @@ function Talis:Window(config)
 
 	local theme = config.Theme
 	if type(theme) == "string" then self:ApplyTheme(theme) end
-	if config.Accent then self.Theme.Accent = config.Accent end
+	if config.Accent then
+		local base = {}
+		for key, value in next, self.Theme do base[key] = value end
+		base.Accent = config.Accent
+		self:ApplyTheme(base)
+	end
 
 	local radius = config.Radius == nil and 8 or config.Radius
 	local background = config.Background or {}
@@ -493,7 +499,7 @@ function Talis:Window(config)
 		Subtitle = config.Subtitle or ("v" .. self.Version),
 		ToggleKey = config.ToggleKey or Enum.KeyCode.RightShift,
 		Size = config.Size or UDim2.fromOffset(680, 440),
-		CloseBehavior = config.CloseBehavior or "hide",
+		CloseBehavior = config.CloseBehavior or "he",
 		Fonts = self.Fonts,
 		Theme = self.Theme,
 	}
@@ -1059,6 +1065,10 @@ function Talis:Window(config)
 		end
 		table.clear(Talis.Instances)
 		table.clear(Talis.Themed)
+		table.clear(Talis.Options)
+		table.clear(Talis.Rainbows)
+		Talis.Tooltip = nil
+		self.ActivePopup = nil
 		if Talis.ActiveWindow == self then
 			Talis.ActiveWindow = nil
 			Talis.NotifLayer = nil
@@ -1806,7 +1816,13 @@ local function buildDropdown(section, spec, multi)
 	Connect(pill.MouseEnter, function() Tween(pillStroke, 0.12, { Transparency = 0.3 }) end)
 	Connect(pill.MouseLeave, function() Tween(pillStroke, 0.12, { Transparency = 0.6 }) end)
 
-	option:Set(spec.Value, true)
+	if spec.Value ~= nil then
+		option:Set(spec.Value, true)
+	elseif not multi and values[1] then
+		option:Set(values[1].Name, true)
+	else
+		option:Set(nil, true)
+	end
 	if spec.Tip then section:Tooltip(row, spec.Tip) end
 	return option
 end
@@ -1999,8 +2015,10 @@ Talis.Builders.Keybind = function(section, spec)
 					option:Set("NONE")
 				elseif input.KeyCode == Enum.KeyCode.Escape then
 					option.Listening = false
-				else
+				elseif not table.find(option.Blacklist, input.KeyCode.Name) then
 					option:Set(input.KeyCode.Name)
+				else
+					return
 				end
 			elseif input.UserInputType == Enum.UserInputType.MouseButton1
 				or input.UserInputType == Enum.UserInputType.MouseButton2
@@ -2688,7 +2706,7 @@ Talis.Window = function(self, config)
 end
 
 Talis.Overlay = {
-	Enabled = typeof(Drawing) == "table" and typeof(Drawing.new) == "function",
+	Enabled = (type(Drawing) == "table" or type(Drawing) == "userdata") and pcall(function() return Drawing.new end),
 	Objects = {},
 	Connections = {},
 }
@@ -2709,7 +2727,7 @@ local function handle(object)
 	return {
 		Object = object,
 		Set = function(_, props)
-			for key, value in next, props do
+			for key, value in next, props or {} do
 				pcall(function() object[key] = value end)
 			end
 		end,
