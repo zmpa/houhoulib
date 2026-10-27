@@ -493,6 +493,7 @@ function Talis:Window(config)
 	local window = {
 		Tabs = {},
 		TabButtons = {},
+		TabMeta = {},
 		Open = false,
 		Minimized = false,
 		Title = config.Title or "Talis",
@@ -827,19 +828,19 @@ function Talis:Window(config)
 		if self.Current == tab then return end
 		if self.Current then
 			self.Current.Page.Visible = false
-			local previous = self.TabButtons[self.Current]
+			local previous = self.TabMeta[self.Current]
 			if previous then
-				Tween(previous.Pill, 0.14, { BackgroundTransparency = 1 })
-				Tween(previous.Mark, 0.14, { BackgroundTransparency = 1 })
-				previous.Label.TextColor3 = self.Theme.Muted
+				if previous.Pill then Tween(previous.Pill, 0.14, { BackgroundTransparency = 1 }) end
+				if previous.Mark then Tween(previous.Mark, 0.14, { BackgroundTransparency = 1 }) end
+				if previous.Label then previous.Label.TextColor3 = self.Theme.Muted end
 			end
 		end
 		self.Current = tab
-		local button = self.TabButtons[tab]
-		if button then
-			Tween(button.Pill, 0.14, { BackgroundTransparency = 0.72 })
-			Tween(button.Mark, 0.14, { BackgroundTransparency = 0 })
-			button.Label.TextColor3 = self.Theme.Text
+		local meta = self.TabMeta[tab]
+		if meta then
+			if meta.Pill then Tween(meta.Pill, 0.14, { BackgroundTransparency = 0.72 }) end
+			if meta.Mark then Tween(meta.Mark, 0.14, { BackgroundTransparency = 0 }) end
+			if meta.Label then meta.Label.TextColor3 = self.Theme.Text end
 		end
 		tab.Page.Visible = true
 	end
@@ -880,6 +881,7 @@ function Talis:Window(config)
 		label.Position = UDim2.new(0, 14, 0, 0)
 		label.Size = UDim2.new(1, -22, 1, 0)
 
+		self.TabMeta[tab] = { Pill = pill, Mark = mark, Label = label }
 		button.Pill = pill
 		button.Mark = mark
 		button.Label = label
