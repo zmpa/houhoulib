@@ -264,6 +264,7 @@ function Talis:ApplyTheme(name)
 	local theme = type(name) == "table" and name or self.Themes[name]
 	if not theme then return end
 	self.Theme = theme
+	if self.ActiveWindow then self.ActiveWindow.Theme = theme end
 	for object, info in next, self.Themed do
 		if object.Parent == nil and object.ClassName ~= "ScreenGui" then
 			self.Themed[object] = nil
@@ -416,7 +417,7 @@ function Talis:Notify(config)
 end
 
 function Talis:Tooltip(text, input)
-	local root = self.Root
+	local root = self.ActiveWindow and self.ActiveWindow.Root
 	if not root then return end
 	if not self.Tooltip then
 		self.Tooltip = New("TextLabel", {
@@ -494,6 +495,7 @@ function Talis:Window(config)
 		Size = config.Size or UDim2.fromOffset(680, 440),
 		CloseBehavior = config.CloseBehavior or "hide",
 		Fonts = self.Fonts,
+		Theme = self.Theme,
 	}
 
 	local gui = New("ScreenGui", {
@@ -1097,7 +1099,11 @@ function Talis:Window(config)
 	shell.Visible = false
 	Talis.ActiveWindow = window
 	if config.Open ~= false then
-		task.delay(0.15, function() setOpen(true) end)
+		opened = true
+		window.Open = true
+		shell.Visible = true
+		shell.Size = UDim2.fromOffset(0, 0)
+		Tween(shell, 0.22, { Size = window.Size }, Enum.EasingStyle.Quint)
 	end
 
 	return window
