@@ -1,7 +1,24 @@
+--[[
+	Talis UI Library
+	Version: 0.2.0
+
+	Changes in this build:
+	  * Fixed Colorpicker:Set accepting a Color3 (was using Color3.toHSV, now :ToHSV()).
+	  * Added window:GetScale().
+	  * Mouse keybinds now include MouseButton4 / MouseButton5 (side buttons).
+	  * Automatic, consistent row spacing everywhere (no more overlap). Adjustable.
+	  * window:SetSpacing(n) and per-element Margin support.
+	  * window:SetBackgroundImage(url) -> works with catbox.moe / any direct PNG-JPG link
+	    via getcustomasset, plus rbxassetid:// and numeric ids.
+	  * Built-in Settings page (Appearance, Background, Behavior, Configs, About)
+	    with its own flags, separate from your script's configs. Auto-saves to talis/ui.json.
+]]
+
 local Talis = {}
-Talis.Version = "0.1.0"
+Talis.Version = "0.2.0"
 Talis.Animations = true
 Talis.Root = "talis"
+Talis.Spacing = 6
 
 Talis.Flags = {}
 Talis.FlagListeners = {}
@@ -12,6 +29,21 @@ Talis.Connections = {}
 Talis.Notifications = {}
 Talis.Builders = {}
 Talis.Themes = {}
+Talis.ImageCache = {}
+
+Talis.UISettings = {
+	Theme = "Huohuo",
+	Accent = nil,
+	Background = "",
+	BackgroundOpacity = 0.85,
+	Scrim = 0.45,
+	Scale = 1,
+	Spacing = 6,
+	Animations = true,
+	ToggleKey = "RightShift",
+	Watermark = false,
+	WatermarkText = "talis",
+}
 
 local cloneref = cloneref or clonereference or function(Object) return Object end
 local Players = cloneref(game:GetService("Players"))
@@ -31,6 +63,8 @@ local FS = {
 	delete = type(delfile) == "function",
 }
 FS.ok = FS.read and FS.write and FS.exists and FS.folder and FS.list
+
+local getasset = rawget(getfenv(), "getcustomasset") or rawget(getfenv(), "getsynasset")
 
 local SEP = "/"
 if FS.folder then
@@ -278,7 +312,6 @@ local function viewport()
 	return camera and camera.ViewportSize or Vector2.new(1280, 720)
 end
 
--- TextService:GetTextSize only accepts Enum.Font, not a Font object.
 local function measure(text, size, font)
 	local ok, bounds = pcall(function()
 		local params = Instance.new("GetTextBoundsParams")
@@ -291,6 +324,68 @@ local function measure(text, size, font)
 	if ok and bounds then return bounds end
 	return Vector2.new(#text * size * 0.55, size)
 end
+
+--[[ IMAGE LOADING ]]
+-- Roblox can only show rbxasset* images. For an http(s) link we download the
+-- bytes, save them to disk and hand back a getcustomasset() path. Cached per URL.
+
+local function httpBody(url)
+	local callers = {}
+	if type(request) == "function" then callers[#callers + 1] = request end
+	if type(http_request) == "function" then callers[#callers + 1] = http_request end
+	if type(syn) == "table" and type(syn.request) == "function" then callers[#callers + 1] = syn.request end
+	for index = 1, #callers do
+		local ok, res = pcall(callers[index], { Url = url, Method = "GET" })
+		if ok and type(res) == "table" and res.Body and #res.Body > 0 then return res.Body end
+	end
+	local ok, body = pcall(function() return game:HttpGet(url) end)
+	if ok and type(body) == "string" and #body > 0 then return body end
+	return nil
+end
+
+function Talis:LoadImage(source, name)
+	if source == nil or source == "" then return "" end
+	if type(source) == "number" then return "rbxassetid://" .. tostring(source) end
+	source = tostring(source)
+	if source:match("^rbxasset") or source:match("^rbxthumb") then return source end
+	if source:match("^%d+$") then return "rbxassetid://" .. source end
+	if self.ImageCache[source] then return self.ImageCache[source] end
+	if not (FS.ok and type(getasset) == "function") then return source end
+
+	local dir = path(self.Root, "images")
+	pcall(function()
+		if not isfolder(self.Root) then makefolder(self.Root) end
+		if not isfolder(dir) then makefolder(dir) end
+	end)
+
+	local body = httpBody(source)
+	if not body then return source end
+
+	local ext
+	if body:sub(1, 4) == "\137PNG" then
+		ext = "png"
+	elseif body:sub(1, 3) == "\255\216\255" then
+		ext = "jpg"
+	else
+		return source
+	end
+
+	local tag = string.gsub(body:sub(1, 64), "[^%w]", "")
+	local file = path(dir, (name or "image") .. "_" .. #body .. "_" .. tag .. "." .. ext)
+	if not isfile(file) then
+		local ok = pcall(writefile, file, body)
+		if not ok then return source end
+	end
+
+	local ok, asset = pcall(getasset, file)
+	if ok and asset then
+		self.ImageCache[source] = asset
+		return asset
+	end
+	return source
+end
+
+--[[ THEME + FLAGS ]]
 
 function Talis:ApplyTheme(name)
 	local theme = type(name) == "table" and name or self.Themes[name]
@@ -532,6 +627,8 @@ function Talis:Window(config)
 		Tabs = {},
 		TabButtons = {},
 		TabMeta = {},
+		SpacingTargets = {},
+		Spacing = config.Spacing or Talis.Spacing,
 		Open = false,
 		Minimized = false,
 		Title = config.Title or "Talis",
@@ -837,23 +934,66 @@ function Talis:Window(config)
 
 	function window:SetBackground(spec)
 		spec = type(spec) == "table" and spec or { Image = spec }
-		image.Image = spec.Image or ""
+		local source = spec.Image
+		if source ~= nil and source ~= "" then
+			source = Talis:LoadImage(source, "background")
+		end
+		image.Image = source or ""
 		image.ImageTransparency = spec.Transparency or 0.15
 		image.ScaleType = spec.ScaleType or Enum.ScaleType.Crop
 		scrim.BackgroundTransparency = spec.Scrim or 0.45
-		local has = spec.Image ~= nil and spec.Image ~= ""
+		local has = source ~= nil and source ~= ""
 		image.Visible = has
 		scrim.Visible = has
 		fade.Visible = has
 		shell.BackgroundTransparency = has and 0.42 or 0.05
 	end
 
+	-- Friendly alias: accepts a URL, an asset id or a number.
+	function window:SetBackgroundImage(source, opts)
+		opts = opts or {}
+		self:SetBackground({
+			Image = source,
+			Transparency = opts.Transparency or 0.15,
+			Scrim = opts.Scrim or 0.45,
+			ScaleType = opts.ScaleType or Enum.ScaleType.Crop,
+		})
+	end
+
 	function window:SetScale(value)
 		scale.Scale = value
 	end
 
+	function window:GetScale()
+		return scale.Scale
+	end
+
+	function window:SetSpacing(value)
+		value = tonumber(value) or 0
+		self.Spacing = value
+		for index = 1, #self.SpacingTargets do
+			local entry = self.SpacingTargets[index]
+			if entry.Layout.Parent then
+				entry.Layout.Padding = UDim.new(0, value * (entry.Factor or 1))
+			end
+		end
+	end
+
+	function window:GetSpacing()
+		return self.Spacing
+	end
+
 	function window:SetToggleKey(key)
 		self.ToggleKey = key
+	end
+
+	function window:SetAccent(color)
+		if typeof(color) == "string" then color = Color3.fromHex(color) end
+		local base = {}
+		for key, value in next, Talis.Theme do base[key] = value end
+		base.Accent = color
+		Talis:ApplyTheme(base)
+		self.Theme = Talis.Theme
 	end
 
 	function window:Tooltip(text, input)
@@ -940,11 +1080,12 @@ function Talis:Window(config)
 			Visible = false,
 			Parent = body,
 		})
-		New("UIListLayout", {
-			Padding = UDim.new(0, 4),
+		local pageLayout = New("UIListLayout", {
+			Padding = UDim.new(0, (self.Spacing or Talis.Spacing) + 2),
 			SortOrder = Enum.SortOrder.LayoutOrder,
 			Parent = page,
 		})
+		self.SpacingTargets[#self.SpacingTargets + 1] = { Layout = pageLayout, Factor = 1.34 }
 		Pad(page, 16, 18, 18, 18)
 		tab.Page = page
 
@@ -973,12 +1114,14 @@ function Talis:Window(config)
 				LayoutOrder = #page:GetChildren(),
 				Parent = page,
 			})
-			New("UIListLayout", {
-				Padding = UDim.new(0, 3),
+			local groupLayout = New("UIListLayout", {
+				Padding = UDim.new(0, owner.Spacing or Talis.Spacing),
 				SortOrder = Enum.SortOrder.LayoutOrder,
 				Parent = group,
 			})
+			owner.SpacingTargets[#owner.SpacingTargets + 1] = { Layout = groupLayout, Factor = 1 }
 			section.Group = group
+			section.Layout = groupLayout
 
 			if section.Name ~= "" then
 				local head = New("Frame", {
@@ -1008,9 +1151,12 @@ function Talis:Window(config)
 				end
 			end
 
-			function section:Row(height, name, desc)
+			-- Margin adds extra breathing room below a row so nothing ever overlaps.
+			function section:Row(height, name, desc, margin)
+				local base = height or 30
+				local extra = margin or 0
 				local row = New("Frame", {
-					Size = UDim2.new(1, 0, 0, height or 30),
+					Size = UDim2.new(1, 0, 0, base + extra),
 					BackgroundTransparency = 1,
 					LayoutOrder = self:Next(),
 					Parent = group,
@@ -1018,7 +1164,7 @@ function Talis:Window(config)
 				local info = { row = row, section = self }
 				if name then
 					local label = Text(row, name, 13, self.Window.Fonts.Regular, "Text")
-					label.Size = UDim2.new(1, -120, 0, desc and 15 or 30)
+					label.Size = UDim2.new(1, -120, 0, desc and 15 or base)
 					label.Position = UDim2.new(0, 0, 0, 0)
 					label.TextYAlignment = desc and Enum.TextYAlignment.Top or Enum.TextYAlignment.Center
 					info.label = label
@@ -1073,7 +1219,7 @@ function Talis:Window(config)
 
 	function window:Watermark(text)
 		if self.Mark then
-			self.Mark.Text = tostring(text)
+			self.Mark.Text = "  " .. tostring(text)
 			return self.Mark
 		end
 		local mark = New("TextLabel", {
@@ -1166,7 +1312,7 @@ end
 Talis.Builders.Toggle = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
 	local window = section.Window
-	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc)
+	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc, spec.Margin)
 
 	local track = New("Frame", {
 		Size = UDim2.fromOffset(34, 18),
@@ -1227,14 +1373,15 @@ end
 
 Talis.Builders.Button = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
+	local margin = spec.Margin or 0
 	local row = New("Frame", {
-		Size = UDim2.new(1, 0, 0, 28),
+		Size = UDim2.new(1, 0, 0, 28 + margin),
 		BackgroundTransparency = 1,
 		LayoutOrder = section:Next(),
 		Parent = section.Group,
 	})
 	local button = New("TextButton", {
-		Size = UDim2.new(1, 0, 1, 0),
+		Size = UDim2.new(1, 0, 1, -margin),
 		BackgroundColor3 = Talis.Theme.Raised,
 		BackgroundTransparency = spec.Primary and 0 or 0.35,
 		BorderSizePixel = 0,
@@ -1288,26 +1435,33 @@ end
 
 Talis.Builders.Label = function(section, spec)
 	spec = type(spec) == "table" and spec or { Text = tostring(spec) }
+	local margin = spec.Margin or 0
 	local row = New("Frame", {
-		Size = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.new(1, 0, 0, margin),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 		LayoutOrder = section:Next(),
 		Parent = section.Group,
 	})
+	New("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Parent = row })
 	local label = Text(row, spec.Text or "", spec.Size or 12, Talis.Fonts.Regular, spec.Color or "Muted")
 	label.Size = UDim2.new(1, 0, 0, 0)
 	label.AutomaticSize = Enum.AutomaticSize.Y
 	label.TextWrapped = true
 	label.RichText = spec.Rich ~= false
 	label.TextYAlignment = Enum.TextYAlignment.Top
+	label.LayoutOrder = 1
+	if margin > 0 then
+		New("Frame", { Size = UDim2.new(1, 0, 0, margin), BackgroundTransparency = 1, LayoutOrder = 2, Parent = row })
+	end
 	return label
 end
 
 Talis.Builders.Header = function(section, spec)
 	spec = type(spec) == "table" and spec or { Text = tostring(spec) }
+	local margin = spec.Margin or 0
 	local row = New("Frame", {
-		Size = UDim2.new(1, 0, 0, 0),
+		Size = UDim2.new(1, 0, 0, margin),
 		AutomaticSize = Enum.AutomaticSize.Y,
 		BackgroundTransparency = 1,
 		LayoutOrder = section:Next(),
@@ -1322,6 +1476,9 @@ Talis.Builders.Header = function(section, spec)
 		desc.Size = UDim2.new(1, 0, 0, 14)
 		desc.LayoutOrder = 2
 	end
+	if margin > 0 then
+		New("Frame", { Size = UDim2.new(1, 0, 0, margin), BackgroundTransparency = 1, LayoutOrder = 3, Parent = row })
+	end
 	return row
 end
 
@@ -1329,7 +1486,7 @@ Talis.Builders.Divider = function(section, spec)
 	spec = type(spec) == "table" and spec or { Text = tostring(spec or "") }
 	local hasText = spec.Text ~= nil and spec.Text ~= ""
 	local row = New("Frame", {
-		Size = UDim2.new(1, 0, 0, hasText and 20 or 10),
+		Size = UDim2.new(1, 0, 0, (hasText and 20 or 10) + (spec.Margin or 0)),
 		BackgroundTransparency = 1,
 		LayoutOrder = section:Next(),
 		Parent = section.Group,
@@ -1361,7 +1518,6 @@ end
 Talis.Rainbows = {}
 Talis.RainbowHue = 0
 
--- Not registered in Talis.Connections: window:Destroy() would otherwise kill it for good.
 RunService.RenderStepped:Connect(function()
 	if #Talis.Rainbows == 0 then return end
 	Talis.RainbowHue = (os.clock() * 0.06) % 1
@@ -1557,7 +1713,7 @@ Talis.Builders.Slider = function(section, spec)
 	local unit = spec.Unit or ""
 	local value = math.clamp(tonumber(spec.Value) or min, min, max)
 
-	local row, info = section:Row(spec.Desc and 46 or 36, spec.Name, spec.Desc)
+	local row, info = section:Row(spec.Desc and 46 or 36, spec.Name, spec.Desc, spec.Margin)
 	if info.label then info.label.Size = UDim2.new(0.6, -8, 0, 15) end
 
 	local valueBox = New("TextBox", {
@@ -1693,7 +1849,7 @@ local function buildDropdown(section, spec, multi)
 		selected[tostring(spec.Value or (values[1] and values[1].Name) or "")] = true
 	end
 
-	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc)
+	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc, spec.Margin)
 	if info.label then info.label.Size = UDim2.new(0.45, -8, 0, 15) end
 
 	local pill = New("TextButton", {
@@ -1889,7 +2045,7 @@ end
 Talis.Builders.Input = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
 	local window = section.Window
-	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc)
+	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc, spec.Margin)
 	if info.label then info.label.Size = UDim2.new(0.4, -8, 0, 15) end
 
 	local field = New("Frame", {
@@ -1966,7 +2122,7 @@ local DEFAULT_BLACKLIST = { "W", "A", "S", "D", "Slash", "Tab", "Backspace", "Es
 Talis.Builders.Keybind = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
 	local window = section.Window
-	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc)
+	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc, spec.Margin)
 	if info.label then info.label.Size = UDim2.new(0.5, -8, 0, 15) end
 
 	local mode = spec.Mode == "Hold" and "Hold" or "Toggle"
@@ -2002,7 +2158,7 @@ Talis.Builders.Keybind = function(section, spec)
 		Callback = spec.Callback or function() end,
 		Value = value,
 		Mode = mode,
-		Mouse = spec.Mouse == true,
+		Mouse = spec.Mouse ~= false,
 		Blacklist = spec.Blacklist or DEFAULT_BLACKLIST,
 		Listening = false,
 		Pressed = false,
@@ -2056,6 +2212,14 @@ Talis.Builders.Keybind = function(section, spec)
 		return input.UserInputType.Name == option.Value
 	end
 
+	local MOUSE_BUTTONS = {
+		[Enum.UserInputType.MouseButton1] = true,
+		[Enum.UserInputType.MouseButton2] = true,
+		[Enum.UserInputType.MouseButton3] = true,
+		[Enum.UserInputType.MouseButton4] = true,
+		[Enum.UserInputType.MouseButton5] = true,
+	}
+
 	Connect(UIS.InputBegan, function(input, processed)
 		if processed then return end
 		if option.Listening then
@@ -2069,9 +2233,7 @@ Talis.Builders.Keybind = function(section, spec)
 				else
 					return
 				end
-			elseif option.Mouse and (input.UserInputType == Enum.UserInputType.MouseButton1
-				or input.UserInputType == Enum.UserInputType.MouseButton2
-				or input.UserInputType == Enum.UserInputType.MouseButton3) then
+			elseif option.Mouse and MOUSE_BUTTONS[input.UserInputType] then
 				option:Set(input.UserInputType.Name)
 			else
 				return
@@ -2111,7 +2273,7 @@ end
 Talis.Builders.Colorpicker = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
 	local window = section.Window
-	local row, info = section:Row(30, spec.Name, spec.Desc)
+	local row, info = section:Row(30, spec.Name, spec.Desc, spec.Margin)
 	if info.label then info.label.Size = UDim2.new(0.6, -8, 0, 15) end
 
 	local swatch = New("TextButton", {
@@ -2163,7 +2325,7 @@ Talis.Builders.Colorpicker = function(section, spec)
 
 	function option:Set(value, silent)
 		if typeof(value) == "Color3" then
-			local h, s, v = Color3.toHSV(value)
+			local h, s, v = value:ToHSV()
 			self.Value[1], self.Value[2], self.Value[3] = h, s, v
 		elseif type(value) == "table" then
 			for index = 1, 5 do
@@ -2457,7 +2619,7 @@ end
 
 Talis.Builders.Progress = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
-	local row, info = section:Row(38, spec.Name, spec.Desc)
+	local row, info = section:Row(38, spec.Name, spec.Desc, spec.Margin)
 	if info.label then info.label.Size = UDim2.new(0.75, -8, 0, 15) end
 
 	local percent = Text(row, "0%", 11, Talis.Fonts.Mono, "Muted", Enum.TextXAlignment.Right)
@@ -2621,6 +2783,31 @@ function Talis:ApplyAutoload()
 	return false
 end
 
+--[[ UI SETTINGS PERSISTENCE (separate from script configs) ]]
+
+function Talis:SaveUISettings()
+	if not FS.ok then return end
+	pcall(function()
+		if not isfolder(self.Root) then makefolder(self.Root) end
+		writefile(path(self.Root, "ui.json"), HttpService:JSONEncode(self.UISettings))
+	end)
+end
+
+function Talis:LoadUISettings()
+	if not FS.ok then return end
+	pcall(function()
+		local file = path(self.Root, "ui.json")
+		if not isfile(file) then return end
+		local data = HttpService:JSONDecode(readfile(file))
+		if type(data) ~= "table" then return end
+		for key, value in next, data do
+			if self.UISettings[key] ~= nil or key == "Accent" then
+				self.UISettings[key] = value
+			end
+		end
+	end)
+end
+
 local function configSection(window, tab)
 	local section = tab:Section({ Name = "Configs" })
 	local status = Text(section.Group, "no configs", 11, Talis.Fonts.Regular, "Faint")
@@ -2754,8 +2941,246 @@ Talis.Window = function(self, config)
 		return configSection(self, tab)
 	end
 
+	function window:ApplyLook()
+		local theme = Talis.Themes[Talis.UISettings.Theme] or Talis.Themes.Huohuo
+		local base = {}
+		for key, value in next, theme do base[key] = value end
+		if Talis.UISettings.Accent then
+			local ok, color = pcall(Color3.fromHex, Talis.UISettings.Accent)
+			if ok then base.Accent = color end
+		end
+		Talis:ApplyTheme(base)
+		self.Theme = Talis.Theme
+	end
+
 	return window
 end
+
+--[[ BUILT-IN SETTINGS PAGE ]]
+
+function Talis:BuildSettings(window)
+	if window.SettingsTab then return window.SettingsTab end
+	local ui = self.UISettings
+	local tab = window:Tab({ Name = "Settings" })
+	window.SettingsTab = tab
+
+	-- Appearance
+	local look = tab:Section({ Name = "Appearance" })
+
+	local themeNames = {}
+	for name in next, Talis.Themes do themeNames[#themeNames + 1] = name end
+	table.sort(themeNames)
+
+	look:Dropdown({
+		Name = "Theme",
+		Values = themeNames,
+		Value = ui.Theme,
+		IgnoreFlag = true,
+		Callback = function(value)
+			ui.Theme = value
+			window:ApplyLook()
+			Talis:SaveUISettings()
+		end,
+	})
+
+	look:Colorpicker({
+		Name = "Accent",
+		Value = ui.Accent and Color3.fromHex(ui.Accent) or Talis.Theme.Accent,
+		IgnoreFlag = true,
+		Callback = function(_, color)
+			ui.Accent = color:ToHex()
+			window:ApplyLook()
+			Talis:SaveUISettings()
+		end,
+	})
+
+	look:Slider({
+		Name = "UI Scale",
+		Min = 50, Max = 150, Step = 5, Unit = "%",
+		Value = math.floor((ui.Scale or 1) * 100),
+		IgnoreFlag = true,
+		Callback = function(value)
+			ui.Scale = value / 100
+			window:SetScale(ui.Scale)
+			Talis:SaveUISettings()
+		end,
+	})
+
+	look:Slider({
+		Name = "Row Spacing",
+		Desc = "Gap between every row",
+		Min = 0, Max = 20, Step = 1, Unit = "px",
+		Value = ui.Spacing,
+		IgnoreFlag = true,
+		Callback = function(value)
+			ui.Spacing = value
+			window:SetSpacing(value)
+			Talis:SaveUISettings()
+		end,
+	})
+
+	look:Toggle({
+		Name = "Animations",
+		Value = ui.Animations,
+		IgnoreFlag = true,
+		Callback = function(value)
+			ui.Animations = value
+			Talis.Animations = value
+			Talis:SaveUISettings()
+		end,
+	})
+
+	-- Background
+	local bg = tab:Section({ Name = "Background" })
+
+	local urlInput = bg:Input({
+		Name = "Image Link",
+		Value = ui.Background,
+		Placeholder = "https://files.catbox.moe/x.png",
+		IgnoreFlag = true,
+	})
+
+	local function applyBackground()
+		ui.Background = urlInput:Get()
+		if ui.Background == "" then
+			window:SetBackground({ Image = "" })
+		else
+			window:SetBackground({
+				Image = ui.Background,
+				Transparency = 1 - (ui.BackgroundOpacity or 0.85),
+				Scrim = ui.Scrim,
+			})
+		end
+		Talis:SaveUISettings()
+	end
+
+	bg:Button({ Name = "Apply Background", Primary = true, Callback = applyBackground })
+
+	bg:Button({
+		Name = "Clear Background",
+		Callback = function()
+			urlInput:Set("")
+			ui.Background = ""
+			window:SetBackground({ Image = "" })
+			Talis:SaveUISettings()
+		end,
+	})
+
+	bg:Slider({
+		Name = "Background Opacity",
+		Min = 0, Max = 100, Step = 5, Unit = "%",
+		Value = math.floor((ui.BackgroundOpacity or 0.85) * 100),
+		IgnoreFlag = true,
+		Callback = function(value)
+			ui.BackgroundOpacity = value / 100
+			if window.Image then window.Image.ImageTransparency = 1 - ui.BackgroundOpacity end
+			Talis:SaveUISettings()
+		end,
+	})
+
+	bg:Slider({
+		Name = "Darken",
+		Desc = "Keeps text readable over the image",
+		Min = 0, Max = 90, Step = 5, Unit = "%",
+		Value = math.floor((ui.Scrim or 0.45) * 100),
+		IgnoreFlag = true,
+		Callback = function(value)
+			ui.Scrim = value / 100
+			if window.Scrim then window.Scrim.BackgroundTransparency = ui.Scrim end
+			Talis:SaveUISettings()
+		end,
+	})
+
+	-- Behavior
+	local behavior = tab:Section({ Name = "Behavior" })
+
+	behavior:Keybind({
+		Name = "Toggle Menu",
+		Value = ui.ToggleKey,
+		Mouse = false,
+		IgnoreFlag = true,
+		Callback = function(value)
+			ui.ToggleKey = value
+			local ok, key = pcall(function() return Enum.KeyCode[value] end)
+			if ok and key then window:SetToggleKey(key) end
+			Talis:SaveUISettings()
+		end,
+	})
+
+	behavior:Input({
+		Name = "Watermark Text",
+		Value = ui.WatermarkText,
+		IgnoreFlag = true,
+		Callback = function(value)
+			ui.WatermarkText = value
+			window:Watermark(value)
+			Talis:SaveUISettings()
+		end,
+	})
+
+	behavior:Toggle({
+		Name = "Watermark",
+		Value = ui.Watermark,
+		IgnoreFlag = true,
+		Callback = function(value)
+			ui.Watermark = value
+			if value then
+				window:Watermark(ui.WatermarkText)
+			elseif window.Mark then
+				window.Mark.Visible = false
+			end
+			if value and window.Mark then window.Mark.Visible = true end
+			Talis:SaveUISettings()
+		end,
+	})
+
+	-- Configs (script settings) + About
+	window:ConfigSection(tab)
+
+	local about = tab:Section({ Name = "About" })
+	about:Label({ Text = "Talis v" .. self.Version .. "\nTheme: " .. ui.Theme .. "\nUI settings save to talis/ui.json" })
+
+	return tab
+end
+
+Talis:LoadUISettings()
+Talis.Animations = Talis.UISettings.Animations
+
+local finalWindow = Talis.Window
+
+Talis.Window = function(self, config)
+	config = type(config) == "table" and config or {}
+	local window = finalWindow(self, config)
+
+	-- Apply saved look + behaviour
+	window:ApplyLook()
+	window:SetScale(Talis.UISettings.Scale or 1)
+	window:SetSpacing(Talis.UISettings.Spacing or Talis.Spacing)
+	Talis.Animations = Talis.UISettings.Animations
+
+	if Talis.UISettings.Background ~= "" then
+		window:SetBackground({
+			Image = Talis.UISettings.Background,
+			Transparency = 1 - (Talis.UISettings.BackgroundOpacity or 0.85),
+			Scrim = Talis.UISettings.Scrim,
+		})
+	end
+
+	if Talis.UISettings.Watermark then
+		window:Watermark(Talis.UISettings.WatermarkText)
+	end
+
+	local ok, key = pcall(function() return Enum.KeyCode[Talis.UISettings.ToggleKey] end)
+	if ok and key then window:SetToggleKey(key) end
+
+	if config.Settings ~= false then
+		self:BuildSettings(window)
+	end
+
+	return window
+end
+
+Talis.CreateWindow = Talis.Window
 
 Talis.Overlay = {
 	Enabled = (type(Drawing) == "table" or type(Drawing) == "userdata") and pcall(function() return Drawing.new end),
@@ -2788,8 +3213,6 @@ local function handle(object)
 		end,
 	}
 end
-
--- Drawing.Transparency is opacity (1 = fully visible, 0 = invisible), so the defaults below are 1.
 
 function Talis.Overlay:Circle(props)
 	props = props or {}
