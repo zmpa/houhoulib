@@ -1,21 +1,20 @@
 --[[
 	Talis UI Library
-	Version: 0.2.1
+	Version: 0.2.2
 
-	Changes in this build:
-	  * Fixed MouseButton4/5 crash (Enum.UserInputType lookup) - mouse binds now
-	    match by name, so any "MouseButton*" works on any Roblox version.
-	  * Fixed Colorpicker:Set accepting a Color3 (was Color3.toHSV, now :ToHSV()).
-	  * Added window:GetScale().
-	  * Automatic, consistent row spacing everywhere. Adjustable via SetSpacing/Margin.
-	  * window:SetBackgroundImage(url) -> works with catbox.moe / any direct PNG-JPG link
-	    via getcustomasset, plus rbxassetid:// and numeric ids.
-	  * Built-in Settings page (Appearance, Background, Behavior, Configs, About)
-	    with its own flags, separate from your script's configs. Auto-saves to talis/ui.json.
+	Changes:
+	  * GetScale returns the exact value (UIScale is float32 and was losing precision).
+	  * Watermark uses UIPadding instead of leading spaces.
+	  * Background from config is processed (catbox works) and recorded in window.BackgroundSource.
+	  * A config Background beats a saved one.
+	  * MouseButton1-5 match by name (no enum crash).
+	  * Colorpicker:Set uses :ToHSV().
+	  * Automatic spacing + window:SetSpacing/Margin.
+	  * Built-in Settings page (UI-only flags, saves to talis/ui.json).
 ]]
 
 local Talis = {}
-Talis.Version = "0.2.1"
+Talis.Version = "0.2.2"
 Talis.Animations = true
 Talis.Root = "talis"
 Talis.Spacing = 6
@@ -336,8 +335,6 @@ local function measure(text, size, font)
 end
 
 --[[ IMAGE LOADING ]]
--- Roblox can only show rbxasset* images. For an http(s) link we download the
--- bytes, save them to disk and hand back a getcustomasset() path. Cached per URL.
 
 local function httpBody(url)
 	local callers = {}
@@ -639,6 +636,8 @@ function Talis:Window(config)
 		TabMeta = {},
 		SpacingTargets = {},
 		Spacing = config.Spacing or Talis.Spacing,
+		ScaleValue = config.Scale or 1,
+		BackgroundSource = background.Image,
 		Open = false,
 		Minimized = false,
 		Title = config.Title or "Talis",
@@ -695,14 +694,18 @@ function Talis:Window(config)
 	})
 	window.Backdrop = backdrop
 
+	local initialImage = background.Image
+	if initialImage ~= nil and initialImage ~= "" then
+		initialImage = self:LoadImage(initialImage, "background")
+	end
 	local image = New("ImageLabel", {
 		Name = "Image",
 		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundTransparency = 1,
-		Image = background.Image or "",
+		Image = initialImage or "",
 		ImageTransparency = background.Transparency or 0.15,
 		ScaleType = background.ScaleType or Enum.ScaleType.Crop,
-		Visible = background.Image ~= nil,
+		Visible = initialImage ~= nil and initialImage ~= "",
 		Parent = backdrop,
 	})
 	window.Image = image
@@ -713,7 +716,7 @@ function Talis:Window(config)
 		BackgroundColor3 = self.Theme.Scrim,
 		BackgroundTransparency = background.Scrim or 0.45,
 		BorderSizePixel = 0,
-		Visible = background.Image ~= nil,
+		Visible = initialImage ~= nil and initialImage ~= "",
 		Parent = backdrop,
 	})
 	Theme(scrim, "Scrim", "BackgroundColor3")
@@ -725,7 +728,7 @@ function Talis:Window(config)
 		BackgroundColor3 = Color3.new(1, 1, 1),
 		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
-		Visible = background.Image ~= nil,
+		Visible = initialImage ~= nil and initialImage ~= "",
 		Parent = backdrop,
 	})
 	New("UIGradient", {
@@ -945,6 +948,7 @@ function Talis:Window(config)
 	function window:SetBackground(spec)
 		spec = type(spec) == "table" and spec or { Image = spec }
 		local source = spec.Image
+		self.BackgroundSource = source
 		if source ~= nil and source ~= "" then
 			source = Talis:LoadImage(source, "background")
 		end
@@ -970,11 +974,13 @@ function Talis:Window(config)
 	end
 
 	function window:SetScale(value)
+		value = tonumber(value) or 1
+		self.ScaleValue = value
 		scale.Scale = value
 	end
 
 	function window:GetScale()
-		return scale.Scale
+		return self.ScaleValue or scale.Scale
 	end
 
 	function window:SetSpacing(value)
@@ -1226,25 +1232,28 @@ function Talis:Window(config)
 	end
 
 	function window:Watermark(text)
+		text = tostring(text)
 		if self.Mark then
-			self.Mark.Text = "  " .. tostring(text)
+			self.Mark.Text = text
+			self.Mark.Size = UDim2.fromOffset(measure(text, 12, self.Fonts.Semibold).X + 24, 22)
 			return self.Mark
 		end
 		local mark = New("TextLabel", {
 			Position = UDim2.new(0, 14, 0, 14),
-			Size = UDim2.fromOffset(measure(tostring(text), 12, self.Fonts.Semibold).X + 22, 22),
+			Size = UDim2.fromOffset(measure(text, 12, self.Fonts.Semibold).X + 24, 22),
 			BackgroundColor3 = self.Theme.Raised,
 			BackgroundTransparency = 0.15,
 			BorderSizePixel = 0,
-			Text = "  " .. tostring(text),
+			Text = text,
 			TextSize = 12,
 			FontFace = self.Fonts.Semibold,
-			TextXAlignment = Enum.TextXAlignment.Left,
+			TextXAlignment = Enum.TextXAlignment.Center,
 			ZIndex = 70,
 			Parent = self.Root,
 		})
 		Corner(mark, 4)
 		Stroke(mark, "Accent", 1, 0.7)
+		Pad(mark, 0, 12, 0, 12)
 		Theme(mark, "Text", "TextColor3")
 		Theme(mark, "Raised", "BackgroundColor3")
 		self.Mark = mark
@@ -2964,7 +2973,6 @@ function Talis:BuildSettings(window)
 	local tab = window:Tab({ Name = "Settings" })
 	window.SettingsTab = tab
 
-	-- Appearance
 	local look = tab:Section({ Name = "Appearance" })
 
 	local themeNames = {}
@@ -3030,7 +3038,6 @@ function Talis:BuildSettings(window)
 		end,
 	})
 
-	-- Background
 	local bg = tab:Section({ Name = "Background" })
 
 	local urlInput = bg:Input({
@@ -3091,7 +3098,6 @@ function Talis:BuildSettings(window)
 		end,
 	})
 
-	-- Behavior
 	local behavior = tab:Section({ Name = "Behavior" })
 
 	behavior:Keybind({
@@ -3132,7 +3138,6 @@ function Talis:BuildSettings(window)
 		end,
 	})
 
-	-- Configs (script settings) + About
 	window:ConfigSection(tab)
 
 	local about = tab:Section({ Name = "About" })
@@ -3155,12 +3160,15 @@ Talis.Window = function(self, config)
 	window:SetSpacing(Talis.UISettings.Spacing or Talis.Spacing)
 	Talis.Animations = Talis.UISettings.Animations
 
-	if Talis.UISettings.Background ~= "" then
+	local hasConfigBg = config.Background and config.Background.Image ~= nil and config.Background.Image ~= ""
+	if not hasConfigBg and Talis.UISettings.Background ~= "" then
 		window:SetBackground({
 			Image = Talis.UISettings.Background,
 			Transparency = 1 - (Talis.UISettings.BackgroundOpacity or 0.85),
 			Scrim = Talis.UISettings.Scrim,
 		})
+	elseif hasConfigBg then
+		window.BackgroundSource = config.Background.Image
 	end
 
 	if Talis.UISettings.Watermark then
