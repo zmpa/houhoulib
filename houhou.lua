@@ -278,6 +278,7 @@ local function viewport()
 	return camera and camera.ViewportSize or Vector2.new(1280, 720)
 end
 
+-- TextService:GetTextSize only accepts Enum.Font, not a Font object.
 local function measure(text, size, font)
 	local ok, bounds = pcall(function()
 		local params = Instance.new("GetTextBoundsParams")
@@ -851,10 +852,6 @@ function Talis:Window(config)
 		scale.Scale = value
 	end
 
-	function window:GetScale()
-		return scale.Scale
-	end
-
 	function window:SetToggleKey(key)
 		self.ToggleKey = key
 	end
@@ -1011,10 +1008,9 @@ function Talis:Window(config)
 				end
 			end
 
-			function section:Row(height, name, desc, margin)
-				local totalHeight = (height or 30) + (margin or 0)
+			function section:Row(height, name, desc)
 				local row = New("Frame", {
-					Size = UDim2.new(1, 0, 0, totalHeight),
+					Size = UDim2.new(1, 0, 0, height or 30),
 					BackgroundTransparency = 1,
 					LayoutOrder = self:Next(),
 					Parent = group,
@@ -1022,7 +1018,7 @@ function Talis:Window(config)
 				local info = { row = row, section = self }
 				if name then
 					local label = Text(row, name, 13, self.Window.Fonts.Regular, "Text")
-					label.Size = UDim2.new(1, -120, 0, desc and 15 or totalHeight)
+					label.Size = UDim2.new(1, -120, 0, desc and 15 or 30)
 					label.Position = UDim2.new(0, 0, 0, 0)
 					label.TextYAlignment = desc and Enum.TextYAlignment.Top or Enum.TextYAlignment.Center
 					info.label = label
@@ -1170,7 +1166,7 @@ end
 Talis.Builders.Toggle = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
 	local window = section.Window
-	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc, spec.Margin)
+	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc)
 
 	local track = New("Frame", {
 		Size = UDim2.fromOffset(34, 18),
@@ -1232,13 +1228,13 @@ end
 Talis.Builders.Button = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
 	local row = New("Frame", {
-		Size = UDim2.new(1, 0, 0, 28 + (spec.Margin or 0)),
+		Size = UDim2.new(1, 0, 0, 28),
 		BackgroundTransparency = 1,
 		LayoutOrder = section:Next(),
 		Parent = section.Group,
 	})
 	local button = New("TextButton", {
-		Size = UDim2.new(1, 0, 1, -(spec.Margin or 0)),
+		Size = UDim2.new(1, 0, 1, 0),
 		BackgroundColor3 = Talis.Theme.Raised,
 		BackgroundTransparency = spec.Primary and 0 or 0.35,
 		BorderSizePixel = 0,
@@ -1305,10 +1301,6 @@ Talis.Builders.Label = function(section, spec)
 	label.TextWrapped = true
 	label.RichText = spec.Rich ~= false
 	label.TextYAlignment = Enum.TextYAlignment.Top
-	if spec.Margin then
-		row.Size = UDim2.new(1, 0, 0, spec.Margin)
-		label.Size = UDim2.new(1, 0, 1, 0)
-	end
 	return label
 end
 
@@ -1323,7 +1315,7 @@ Talis.Builders.Header = function(section, spec)
 	})
 	New("UIListLayout", { Padding = UDim.new(0, 2), SortOrder = Enum.SortOrder.LayoutOrder, Parent = row })
 	local title = Text(row, spec.Text or "", 15, Talis.Fonts.Bold, "Text")
-	title.Size = UDim2.new(1, 0, 0, 20 + (spec.Margin or 0))
+	title.Size = UDim2.new(1, 0, 0, 20)
 	title.LayoutOrder = 1
 	if spec.Desc then
 		local desc = Text(row, spec.Desc, 11, Talis.Fonts.Regular, "Faint")
@@ -1337,7 +1329,7 @@ Talis.Builders.Divider = function(section, spec)
 	spec = type(spec) == "table" and spec or { Text = tostring(spec or "") }
 	local hasText = spec.Text ~= nil and spec.Text ~= ""
 	local row = New("Frame", {
-		Size = UDim2.new(1, 0, 0, (hasText and 20 or 10) + (spec.Margin or 0)),
+		Size = UDim2.new(1, 0, 0, hasText and 20 or 10),
 		BackgroundTransparency = 1,
 		LayoutOrder = section:Next(),
 		Parent = section.Group,
@@ -1369,6 +1361,7 @@ end
 Talis.Rainbows = {}
 Talis.RainbowHue = 0
 
+-- Not registered in Talis.Connections: window:Destroy() would otherwise kill it for good.
 RunService.RenderStepped:Connect(function()
 	if #Talis.Rainbows == 0 then return end
 	Talis.RainbowHue = (os.clock() * 0.06) % 1
@@ -1564,7 +1557,7 @@ Talis.Builders.Slider = function(section, spec)
 	local unit = spec.Unit or ""
 	local value = math.clamp(tonumber(spec.Value) or min, min, max)
 
-	local row, info = section:Row(spec.Desc and 46 or 36, spec.Name, spec.Desc, spec.Margin)
+	local row, info = section:Row(spec.Desc and 46 or 36, spec.Name, spec.Desc)
 	if info.label then info.label.Size = UDim2.new(0.6, -8, 0, 15) end
 
 	local valueBox = New("TextBox", {
@@ -1700,7 +1693,7 @@ local function buildDropdown(section, spec, multi)
 		selected[tostring(spec.Value or (values[1] and values[1].Name) or "")] = true
 	end
 
-	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc, spec.Margin)
+	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc)
 	if info.label then info.label.Size = UDim2.new(0.45, -8, 0, 15) end
 
 	local pill = New("TextButton", {
@@ -1896,7 +1889,7 @@ end
 Talis.Builders.Input = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
 	local window = section.Window
-	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc, spec.Margin)
+	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc)
 	if info.label then info.label.Size = UDim2.new(0.4, -8, 0, 15) end
 
 	local field = New("Frame", {
@@ -1973,7 +1966,7 @@ local DEFAULT_BLACKLIST = { "W", "A", "S", "D", "Slash", "Tab", "Backspace", "Es
 Talis.Builders.Keybind = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
 	local window = section.Window
-	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc, spec.Margin)
+	local row, info = section:Row(spec.Desc and 40 or 30, spec.Name, spec.Desc)
 	if info.label then info.label.Size = UDim2.new(0.5, -8, 0, 15) end
 
 	local mode = spec.Mode == "Hold" and "Hold" or "Toggle"
@@ -2009,7 +2002,7 @@ Talis.Builders.Keybind = function(section, spec)
 		Callback = spec.Callback or function() end,
 		Value = value,
 		Mode = mode,
-		Mouse = spec.Mouse ~= false,
+		Mouse = spec.Mouse == true,
 		Blacklist = spec.Blacklist or DEFAULT_BLACKLIST,
 		Listening = false,
 		Pressed = false,
@@ -2076,13 +2069,9 @@ Talis.Builders.Keybind = function(section, spec)
 				else
 					return
 				end
-			elseif option.Mouse and (
-				input.UserInputType == Enum.UserInputType.MouseButton1 or
-				input.UserInputType == Enum.UserInputType.MouseButton2 or
-				input.UserInputType == Enum.UserInputType.MouseButton3 or
-				input.UserInputType == Enum.UserInputType.MouseButton4 or
-				input.UserInputType == Enum.UserInputType.MouseButton5
-			) then
+			elseif option.Mouse and (input.UserInputType == Enum.UserInputType.MouseButton1
+				or input.UserInputType == Enum.UserInputType.MouseButton2
+				or input.UserInputType == Enum.UserInputType.MouseButton3) then
 				option:Set(input.UserInputType.Name)
 			else
 				return
@@ -2122,7 +2111,7 @@ end
 Talis.Builders.Colorpicker = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
 	local window = section.Window
-	local row, info = section:Row(30, spec.Name, spec.Desc, spec.Margin)
+	local row, info = section:Row(30, spec.Name, spec.Desc)
 	if info.label then info.label.Size = UDim2.new(0.6, -8, 0, 15) end
 
 	local swatch = New("TextButton", {
@@ -2174,7 +2163,7 @@ Talis.Builders.Colorpicker = function(section, spec)
 
 	function option:Set(value, silent)
 		if typeof(value) == "Color3" then
-			local h, s, v = value:ToHSV()
+			local h, s, v = Color3.toHSV(value)
 			self.Value[1], self.Value[2], self.Value[3] = h, s, v
 		elseif type(value) == "table" then
 			for index = 1, 5 do
@@ -2468,7 +2457,7 @@ end
 
 Talis.Builders.Progress = function(section, spec)
 	spec = type(spec) == "table" and spec or { Name = tostring(spec) }
-	local row, info = section:Row(38, spec.Name, spec.Desc, spec.Margin)
+	local row, info = section:Row(38, spec.Name, spec.Desc)
 	if info.label then info.label.Size = UDim2.new(0.75, -8, 0, 15) end
 
 	local percent = Text(row, "0%", 11, Talis.Fonts.Mono, "Muted", Enum.TextXAlignment.Right)
@@ -2799,6 +2788,8 @@ local function handle(object)
 		end,
 	}
 end
+
+-- Drawing.Transparency is opacity (1 = fully visible, 0 = invisible), so the defaults below are 1.
 
 function Talis.Overlay:Circle(props)
 	props = props or {}
