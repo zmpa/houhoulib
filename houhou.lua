@@ -5515,7 +5515,7 @@ function Talis:ApplyTemplate(tab, name)
 
 	if name == "Server" then
 		local section = tab:Section({ Name = "Server" })
-		local info = section:Info({ Name = "Players", Value = tostring(#Players:GetPlayers())) })
+		local info = section:Info({ Name = "Players", Value = tostring(#Players:GetPlayers()) })
 		section:Info({ Name = "Place Id", Value = tostring(game.PlaceId) })
 		section:Info({ Name = "Job Id", Value = tostring(game.JobId):sub(1, 12) .. "..." })
 		section:Button({
