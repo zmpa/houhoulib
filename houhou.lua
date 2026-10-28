@@ -1,20 +1,26 @@
 --[[
 	Talis UI Library
-	Version: 0.2.2
+	Version: 0.2.3
 
-	Changes:
-	  * GetScale returns the exact value (UIScale is float32 and was losing precision).
+	Changes in 0.2.3:
+	  * Real Lucide icons for close / minimise / chevron / check / resize arrow
+	    (the unicode glyphs showed as missing-glyph boxes).
+	  * Resize grip is now a ↘ arrow that brightens on hover.
+	  * UIScale moved onto the shell so the window grows from its own centre
+	    instead of sliding toward the top-left when scaled.
+
+	Earlier:
+	  * GetScale returns the exact value (UIScale is float32).
 	  * Watermark uses UIPadding instead of leading spaces.
-	  * Background from config is processed (catbox works) and recorded in window.BackgroundSource.
-	  * A config Background beats a saved one.
+	  * Config background is processed (catbox works) and recorded.
 	  * MouseButton1-5 match by name (no enum crash).
 	  * Colorpicker:Set uses :ToHSV().
-	  * Automatic spacing + window:SetSpacing/Margin.
+	  * Automatic spacing + window:SetSpacing / Margin.
 	  * Built-in Settings page (UI-only flags, saves to talis/ui.json).
 ]]
 
 local Talis = {}
-Talis.Version = "0.2.2"
+Talis.Version = "0.2.3"
 Talis.Animations = true
 Talis.Root = "talis"
 Talis.Spacing = 6
@@ -97,6 +103,14 @@ Talis.Glyphs = {
 	check = "\u{2713}",
 	dot = "\u{2022}",
 	arrow = "\u{203A}",
+}
+
+Talis.Icons = {
+	close = "rbxassetid://116396312853810",
+	min = "rbxassetid://95070996149109",
+	chevron = "rbxassetid://71457658246709",
+	check = "rbxassetid://86817768619372",
+	arrow = "rbxassetid://72764732196403",
 }
 
 Talis.Themes.Huohuo = {
@@ -299,6 +313,18 @@ local function Text(parent, value, size, font, key, align)
 	})
 	Theme(label, key or "Text", "TextColor3")
 	return label
+end
+
+local function Icon(parent, name, size, key)
+	local icon = New("ImageLabel", {
+		BackgroundTransparency = 1,
+		Image = Talis.Icons[name] or "",
+		Size = UDim2.fromOffset(size or 12, size or 12),
+		ImageColor3 = Talis.Theme[key or "Muted"],
+		Parent = parent,
+	})
+	Theme(icon, key or "Muted", "ImageColor3")
+	return icon
 end
 
 local function isPress(input)
@@ -666,9 +692,6 @@ function Talis:Window(config)
 		Parent = gui,
 	})
 
-	local scale = New("UIScale", { Scale = config.Scale or 1, Parent = window.Root })
-	window.Scale = scale
-
 	local shell = New("Frame", {
 		Name = "Shell",
 		AnchorPoint = Vector2.new(0.5, 0.5),
@@ -684,6 +707,11 @@ function Talis:Window(config)
 	local shellStroke = Stroke(shell, "Stroke", 1, 0.55)
 	Theme(shell, "Surface", "BackgroundColor3")
 	window.Shell = shell
+
+	-- UIScale lives on the shell (not the full-screen root) so scaling grows the
+	-- window from its own centre instead of dragging it toward the top-left corner.
+	local scale = New("UIScale", { Scale = config.Scale or 1, Parent = shell })
+	window.Scale = scale
 
 	local backdrop = New("Frame", {
 		Name = "Backdrop",
@@ -758,7 +786,7 @@ function Talis:Window(config)
 	subtitle.Position = UDim2.new(0, 0, 0, 0)
 	subtitle.Size = UDim2.new(1, -74, 1, 0)
 
-	local function headerButton(glyph, offset)
+	local function headerButton(iconName, offset)
 		local button = New("TextButton", {
 			Size = UDim2.fromOffset(22, 22),
 			AnchorPoint = Vector2.new(1, 0.5),
@@ -766,28 +794,28 @@ function Talis:Window(config)
 			BackgroundColor3 = self.Theme.Raised,
 			BackgroundTransparency = 1,
 			BorderSizePixel = 0,
-			Text = glyph,
-			TextSize = 12,
-			FontFace = self.Fonts.Regular,
+			Text = "",
 			AutoButtonColor = false,
 			Parent = header,
 		})
 		Corner(button, 4)
-		Theme(button, "Muted", "TextColor3")
 		Theme(button, "Raised", "BackgroundColor3")
+		local icon = Icon(button, iconName, 12, "Muted")
+		icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		icon.Position = UDim2.new(0.5, 0, 0.5, 0)
 		Connect(button.MouseEnter, function()
 			Tween(button, 0.12, { BackgroundTransparency = 0.6 })
-			button.TextColor3 = self.Theme.Text
+			icon.ImageColor3 = self.Theme.Text
 		end)
 		Connect(button.MouseLeave, function()
 			Tween(button, 0.12, { BackgroundTransparency = 1 })
-			button.TextColor3 = self.Theme.Muted
+			icon.ImageColor3 = self.Theme.Muted
 		end)
 		return button
 	end
 
-	local minButton = headerButton(self.Glyphs.min, -40)
-	local closeButton = headerButton(self.Glyphs.close, -14)
+	local minButton = headerButton("min", -40)
+	local closeButton = headerButton("close", -14)
 
 	local rail = New("Frame", {
 		Name = "Rail",
@@ -849,21 +877,17 @@ function Talis:Window(config)
 		Name = "Grip",
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, 0, 1, 0),
-		Size = UDim2.fromOffset(16, 16),
+		Size = UDim2.fromOffset(20, 20),
 		BackgroundTransparency = 1,
 		Text = "",
 		AutoButtonColor = false,
 		Parent = shell,
 	})
-	local gripMark = New("Frame", {
-		Size = UDim2.fromOffset(6, 6),
-		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -5, 1, -5),
-		BackgroundColor3 = self.Theme.Faint,
-		BorderSizePixel = 0,
-		Parent = grip,
-	})
-	Theme(gripMark, "Faint", "BackgroundColor3")
+	local gripMark = Icon(grip, "arrow", 13, "Faint")
+	gripMark.AnchorPoint = Vector2.new(1, 1)
+	gripMark.Position = UDim2.new(1, -3, 1, -3)
+	Connect(grip.MouseEnter, function() gripMark.ImageColor3 = self.Theme.Muted end)
+	Connect(grip.MouseLeave, function() gripMark.ImageColor3 = self.Theme.Faint end)
 
 	local opened = false
 
@@ -895,11 +919,10 @@ function Talis:Window(config)
 	end)
 	Connect(UIS.InputChanged, function(input)
 		if not dragging or not isMove(input) then return end
-		local factor = scale.Scale
-		local delta = (input.Position - dragStart) / factor
-		local screen = viewport() / factor
-		local width = shell.AbsoluteSize.X / factor
-		local height = shell.AbsoluteSize.Y / factor
+		local delta = input.Position - dragStart
+		local screen = viewport()
+		local width = shell.AbsoluteSize.X
+		local height = shell.AbsoluteSize.Y
 		local x = dragOrigin.X.Scale * screen.X + dragOrigin.X.Offset + delta.X
 		local y = dragOrigin.Y.Scale * screen.Y + dragOrigin.Y.Offset + delta.Y
 		x = math.clamp(x, 80 - width / 2, screen.X - 80 + width / 2)
@@ -915,14 +938,15 @@ function Talis:Window(config)
 		if not isPress(input) or window.Minimized then return end
 		resizing = true
 		resizeStart = input.Position
-		resizeOrigin = shell.AbsoluteSize / scale.Scale
+		resizeOrigin = shell.AbsoluteSize
 	end)
 	Connect(UIS.InputChanged, function(input)
 		if not resizing or not isMove(input) then return end
-		local delta = (input.Position - resizeStart) / scale.Scale
-		local width = math.max(420, resizeOrigin.X + delta.X)
-		local height = math.max(280, resizeOrigin.Y + delta.Y)
-		shell.Size = UDim2.fromOffset(width, height)
+		local factor = scale.Scale
+		local delta = input.Position - resizeStart
+		local absWidth = math.max(420 * factor, resizeOrigin.X + delta.X)
+		local absHeight = math.max(280 * factor, resizeOrigin.Y + delta.Y)
+		shell.Size = UDim2.fromOffset(absWidth / factor, absHeight / factor)
 		window.Size = shell.Size
 	end)
 	Connect(UIS.InputEnded, function(input)
@@ -1889,10 +1913,9 @@ local function buildDropdown(section, spec, multi)
 	pillText.Size = UDim2.new(1, -30, 1, 0)
 	pillText.TextTruncate = Enum.TextTruncate.AtEnd
 
-	local chevron = Text(pill, Talis.Glyphs.chevron, 10, Talis.Fonts.Regular, "Faint", Enum.TextXAlignment.Right)
+	local chevron = Icon(pill, "chevron", 12, "Faint")
 	chevron.AnchorPoint = Vector2.new(1, 0.5)
 	chevron.Position = UDim2.new(1, -8, 0.5, 0)
-	chevron.Size = UDim2.new(0, 12, 1, 0)
 
 	local option = {
 		Type = multi and "MultiDropdown" or "Dropdown",
@@ -2003,10 +2026,9 @@ local function buildDropdown(section, spec, multi)
 			label.TextTruncate = Enum.TextTruncate.AtEnd
 			local tick
 			if on then
-				tick = Text(item, Talis.Glyphs.check, 11, Talis.Fonts.Semibold, "Accent", Enum.TextXAlignment.Right)
+				tick = Icon(item, "check", 12, "Accent")
 				tick.AnchorPoint = Vector2.new(1, 0.5)
 				tick.Position = UDim2.new(1, -8, 0.5, 0)
-				tick.Size = UDim2.new(0, 12, 1, 0)
 			end
 			Connect(item.MouseEnter, function() Tween(item, 0.1, { BackgroundTransparency = 0.7 }) end)
 			Connect(item.MouseLeave, function() Tween(item, 0.1, { BackgroundTransparency = 1 }) end)
@@ -2015,10 +2037,9 @@ local function buildDropdown(section, spec, multi)
 					selected[entry.Name] = not selected[entry.Name]
 					if selected[entry.Name] then
 						if not tick then
-							tick = Text(item, Talis.Glyphs.check, 11, Talis.Fonts.Semibold, "Accent", Enum.TextXAlignment.Right)
+							tick = Icon(item, "check", 12, "Accent")
 							tick.AnchorPoint = Vector2.new(1, 0.5)
 							tick.Position = UDim2.new(1, -8, 0.5, 0)
-							tick.Size = UDim2.new(0, 12, 1, 0)
 						end
 						tick.Visible = true
 					elseif tick then
