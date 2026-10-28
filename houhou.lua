@@ -16,6 +16,15 @@
 	  * Patch/Restore, Track, Loop, OnEject, OnReset, Eject
 	  * LockAll/UnlockAll, GetElement, Errors panel, KeySystem, Templates
 	  * Rounder outer corners, adjustable live
+
+	1.0.0 fixes:
+	  * Server template had a stray ")" that killed the whole chunk
+	  * SetFont called a RequestRebuild that did not exist
+	  * Button:OnClick referenced rawCallbackSetter before it was declared
+	  * Dialog passed an InputObject to IsAncestorOf
+	  * KeySystem prompted when the key was already saved (inverted)
+	  * sub:Section() parented into the tab page instead of the subtab page
+	  * Theme_API.OnChanged listeners were never fired
 ]]
 
 local Talis = {}
@@ -141,6 +150,7 @@ Talis.Fonts = {
 function Talis:SetFont(name)
 	local family = self.FontFamilies[name]
 	if not family then return end
+	self.FontFamilyName = name
 	self.Fonts = {
 		Regular = Font.new(family, Enum.FontWeight.Medium),
 		Semibold = Font.new(family, Enum.FontWeight.SemiBold),
@@ -150,6 +160,18 @@ function Talis:SetFont(name)
 	if self.ActiveWindow then
 		self.ActiveWindow.Fonts = self.Fonts
 		self:RequestRebuild()
+	end
+end
+
+function Talis:RequestRebuild()
+	local family = self.FontFamilies[self.FontFamilyName] or self.FontFamilies.Default
+	for index = 1, #self.Instances do
+		local instance = self.Instances[index]
+		if instance.Parent and (instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox")) then
+			local weight = Enum.FontWeight.Medium
+			pcall(function() weight = instance.FontFace.Weight end)
+			instance.FontFace = Font.new(family, weight)
+		end
 	end
 end
 
@@ -624,6 +646,9 @@ function Talis:ApplyTheme(name)
 		local picker = self.Rainbows[index]
 		if picker.Panel then picker.Panel() end
 	end
+	for index = 1, #self.ThemeListeners do
+		pcall(self.ThemeListeners[index], self.Theme)
+	end
 end
 
 function Talis:RegisterTheme(name, colors)
@@ -684,6 +709,7 @@ end
 
 function Talis.Theme_API.OnChanged(fn)
 	Talis.ThemeListeners[#Talis.ThemeListeners + 1] = fn
+	return fn
 end
 
 function Talis.Theme_API.Export()
@@ -1267,11 +1293,6 @@ function Talis:Dialog(config)
 	end
 
 	if config.Dismissable ~= false then
-		Connect(overlay.InputBegan, function(input)
-			if input.UserInputType == Enum.UserInputType.MouseButton1 and not box:IsAncestorOf(input) then
-				-- fall through
-			end
-		end)
 		local dismiss = New("TextButton", {
 			Size = UDim2.new(1, 0, 1, 0),
 			BackgroundTransparency = 1,
@@ -1281,7 +1302,6 @@ function Talis:Dialog(config)
 			Parent = overlay,
 		})
 		Connect(dismiss.MouseButton1Click, close)
-		box.ZIndex = 121
 	end
 
 	playSound("open")
@@ -2405,11 +2425,11 @@ function Talis:Window(config)
 			end
 		end
 
-		function tab:Section(sectionSpec)
+		function tab:Section(sectionSpec, parentPage)
 			sectionSpec = type(sectionSpec) == "table" and sectionSpec or { Name = tostring(sectionSpec) }
 			local owner = tab.Window
 
-			local parent = page
+			local parent = parentPage or page
 			if sectionSpec.Side then
 				if not tab.Columns then
 					tab.Columns = New("Frame", {
@@ -2417,7 +2437,7 @@ function Talis:Window(config)
 						AutomaticSize = Enum.AutomaticSize.Y,
 						BackgroundTransparency = 1,
 						LayoutOrder = #page:GetChildren(),
-						Parent = page,
+						Parent = parent,
 					})
 					New("UIListLayout", {
 						FillDirection = Enum.FillDirection.Horizontal,
@@ -2754,19 +2774,14 @@ function Talis:Window(config)
 				for index = 1, #tab.SubTabs do
 					local other = tab.SubTabs[index]
 					other.Page.Visible = other == sub
-					other.Button.TextColor3 = other == sub and self.Theme.Text or self.Theme.Muted
+					other.Button.TextColor3 = other == sub and self.Window.Theme.Text or self.Window.Theme.Muted
 					other.Button.BackgroundTransparency = other == sub and 0.15 or 0.4
 				end
 			end
 
-			sub.Section = function(subSelf, sectionSpec)
-				local fakeTab = { Name = tab.Name, Window = self, Sections = {}, Page = subPage, SubStrip = nil, Tabs = tab.Tabs, TabMeta = tab.TabMeta, Button = tab.Button, Columns = tab.Columns, LeftColumn = tab.LeftColumn, RightColumn = tab.RightColumn, Order = 0, Visible = true }
-				-- reuse tab's Section via a proxy
-				local proxy = setmetatable({}, { __index = tab })
-				proxy.Page = subPage
-				proxy.Name = sub.Name
-				proxy.Sections = subSelf.Sections
-				local section = tab.Section(sectionSpec)
+			function sub:Section(sectionSpec)
+				local section = tab.Section(sectionSpec, subPage)
+				sub.Sections[#sub.Sections + 1] = section
 				return section
 			end
 
@@ -3320,7 +3335,7 @@ Talis.Builders.Button = function(section, spec)
 	end
 
 	function option:OnClick(fn)
-		rawCallbackSetter(option, fn)
+		option.SetCallback(fn)
 	end
 
 	option.Destroy = function(self)
@@ -3329,10 +3344,6 @@ Talis.Builders.Button = function(section, spec)
 
 	if spec.Tip then section:Tooltip(row, spec.Tip) end
 	return option
-end
-
-local function rawCallbackSetter(option, fn)
-	option.SetCallback(fn)
 end
 
 Talis.Builders.Label = function(section, spec)
@@ -4067,7 +4078,7 @@ Talis.Builders.Keybind = function(section, spec)
 		section = section, Callback = spec.Callback or function() end,
 		Value = value, Mode = mode, Mouse = spec.Mouse ~= false,
 		Blacklist = spec.Blacklist or DEFAULT_BLACKLIST,
-		Listening = false, Pressed = false, Toggled = false, Default = "NONE",
+		Listening = false, Pressed = false, Toggled = false, Default = value,
 	}
 	Register(option)
 	Decorate(option, info, window)
@@ -4780,8 +4791,8 @@ Talis.Builders.PlayerList = function(section, spec)
 	end
 
 	option:Refresh()
-	Players.PlayerAdded:Connect(function() option:Refresh() end)
-	Players.PlayerRemoving:Connect(function() option:Refresh() end)
+	Connect(Players.PlayerAdded, function() option:Refresh() end)
+	Connect(Players.PlayerRemoving, function() option:Refresh() end)
 
 	return option
 end
@@ -4793,7 +4804,10 @@ function Talis:UIKit(window)
 	ui.Window = window
 	ui.Theme = Talis.Theme
 	ui.Accent = function() return Talis.Theme.Accent end
-	ui.Frame = function(props) props = props or {} props.Parent = props.Parent or nil return New("Frame", props) end
+	ui.Frame = function(props)
+		props = props or {}
+		return New("Frame", props)
+	end
 	ui.Text = function(props)
 		props = props or {}
 		local label = New("TextLabel", props)
@@ -4941,6 +4955,9 @@ function Talis:ApplyConfigData(data)
 			if option.Set then pcall(option.Set, option, value, true) else self:SetFlag(flag, value) end
 		end
 	end
+	if type(data.Extra) == "table" then
+		self.ConfigExtra = data.Extra
+	end
 	return true
 end
 
@@ -5067,6 +5084,7 @@ function Talis:SetWatermark(config)
 	config = config or {}
 	local window = self.ActiveWindow
 	if not window then return end
+
 	self.UISettings.WatermarkText = config.Text or self.UISettings.WatermarkText
 	self.UISettings.Watermark = config.Visible ~= false
 
@@ -5130,6 +5148,7 @@ end
 function Talis:Keystrokes(enabled)
 	local window = self.ActiveWindow
 	if not window then return end
+
 	self.UISettings.Keystrokes = enabled ~= false
 	if enabled == false then
 		if window.KeyDisplay then window.KeyDisplay.Visible = false end
@@ -5187,6 +5206,7 @@ end
 function Talis:KeybindList(enabled)
 	local window = self.ActiveWindow
 	if not window then return end
+
 	self.UISettings.KeybindList = enabled ~= false
 	if not window.KeyList then
 		local holder = New("Frame", {
@@ -5223,7 +5243,6 @@ function Talis:KeybindList(enabled)
 		end
 		window.KeyListRebuild = rebuild
 		rebuild()
-		Talis:Loop(rebuild, 1)
 	end
 	window.KeyList.Visible = enabled ~= false
 end
@@ -5257,7 +5276,6 @@ function Talis:Particles(style)
 
 	if not window.ParticleLoop then
 		window.ParticleLoop = true
-		local speeds = {}
 		Talis:Loop(function(dt)
 			if not window.Particles or not window.Particles.Parent then return end
 			for index = 1, #(window.ParticleObjects or {}) do
@@ -5370,12 +5388,12 @@ function Talis:KeySystem(config)
 	local passed = true
 	for index = 1, #keys do
 		local key = tostring(keys[index]):lower()
-		local ok = pcall(function()
+		local missing = pcall(function()
 			if not isfile(path(self.Root, "keys.json")) then return end
 			local data = HttpService:JSONDecode(readfile(path(self.Root, "keys.json")))
-			if type(data) == "table" and data[key] then error("skip") end
+			if type(data) == "table" and data[key] then error("saved") end
 		end)
-		if not ok then
+		if missing then
 			passed = false
 			window:Prompt({
 				Title = "Key System",
@@ -5475,7 +5493,7 @@ function Talis:ApplyTemplate(tab, name)
 
 	if name == "Extras" then
 		local section = tab:Section({ Name = "Overlays" })
-		local crosshair
+		local crosshair, crosshair2
 		section:Toggle({
 			Name = "Crosshair", Flag = "tpl_cross",
 			Callback = function(on)
