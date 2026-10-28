@@ -173,9 +173,26 @@ local function New(class, props, parent)
 end
 
 local function Theme(object, key, prop)
-	Talis.Themed[object] = { key, prop or defaultProp(object) }
+	prop = prop or defaultProp(object)
+	local entries = Talis.Themed[object]
+	if not entries then
+		entries = {}
+		Talis.Themed[object] = entries
+	end
+	local found
+	for index = 1, #entries do
+		if entries[index][2] == prop then
+			found = entries[index]
+			break
+		end
+	end
+	if found then
+		found[1] = key
+	else
+		entries[#entries + 1] = { key, prop }
+	end
 	local value = Talis.Theme[key]
-	if value ~= nil then object[Talis.Themed[object][2]] = value end
+	if value ~= nil then object[prop] = value end
 	return object
 end
 
@@ -261,18 +278,39 @@ local function viewport()
 	return camera and camera.ViewportSize or Vector2.new(1280, 720)
 end
 
+-- TextService:GetTextSize only accepts Enum.Font, not a Font object.
+local function measure(text, size, font)
+	local ok, bounds = pcall(function()
+		local params = Instance.new("GetTextBoundsParams")
+		params.Text = text
+		params.Font = font
+		params.Size = size
+		params.Width = 1e6
+		return TextService:GetTextBoundsAsync(params)
+	end)
+	if ok and bounds then return bounds end
+	return Vector2.new(#text * size * 0.55, size)
+end
+
 function Talis:ApplyTheme(name)
 	local theme = type(name) == "table" and name or self.Themes[name]
 	if not theme then return end
 	self.Theme = theme
 	if self.ActiveWindow then self.ActiveWindow.Theme = theme end
-	for object, info in next, self.Themed do
+	for object, entries in next, self.Themed do
 		if object.Parent == nil and object.ClassName ~= "ScreenGui" then
 			self.Themed[object] = nil
 		else
-			local value = theme[info[1]]
-			if value then object[info[2]] = value end
+			for index = 1, #entries do
+				local value = theme[entries[index][1]]
+				if value then object[entries[index][2]] = value end
+			end
 		end
+	end
+	local active = self.ActiveWindow
+	if active and active.Current then
+		local meta = active.TabMeta[active.Current]
+		if meta and meta.Label then meta.Label.TextColor3 = theme.Text end
 	end
 end
 
@@ -420,8 +458,8 @@ end
 function Talis:Tooltip(text, input)
 	local root = self.ActiveWindow and self.ActiveWindow.Root
 	if not root then return end
-	if not self.Tooltip then
-		self.Tooltip = New("TextLabel", {
+	if not self.TooltipLabel then
+		self.TooltipLabel = New("TextLabel", {
 			BackgroundColor3 = self.Theme.Raised,
 			BackgroundTransparency = 0.04,
 			BorderSizePixel = 0,
@@ -433,30 +471,30 @@ function Talis:Tooltip(text, input)
 			Visible = false,
 			Parent = root,
 		})
-		Corner(self.Tooltip, 4)
-		Stroke(self.Tooltip, "Stroke", 1, 0.5)
-		Theme(self.Tooltip, "Text", "TextColor3")
-		Theme(self.Tooltip, "Raised", "BackgroundColor3")
+		Corner(self.TooltipLabel, 4)
+		Stroke(self.TooltipLabel, "Stroke", 1, 0.5)
+		Theme(self.TooltipLabel, "Text", "TextColor3")
+		Theme(self.TooltipLabel, "Raised", "BackgroundColor3")
 	end
-	self.Tooltip.Text = tostring(text)
-	self.Tooltip.Size = UDim2.fromOffset(TextService:GetTextSize(tostring(text), 12, self.Fonts.Regular, Vector2.new(1e6, 1e6)).X + 16, 22)
-	self.Tooltip.Visible = true
+	self.TooltipLabel.Text = tostring(text)
+	self.TooltipLabel.Size = UDim2.fromOffset(measure(tostring(text), 12, self.Fonts.Regular).X + 16, 22)
+	self.TooltipLabel.Visible = true
 	self:MoveTooltip(input)
 end
 
 function Talis:MoveTooltip(input)
-	if not self.Tooltip or not self.Tooltip.Visible then return end
+	if not self.TooltipLabel or not self.TooltipLabel.Visible then return end
 	local size = viewport()
-	local wth = self.Tooltip.AbsoluteSize.X
+	local wth = self.TooltipLabel.AbsoluteSize.X
 	local x = input.Position.X + 16
 	local y = input.Position.Y + 20
 	if x + wth + 8 > size.X then x = input.Position.X - wth - 12 end
 	if y + 26 > size.Y then y = input.Position.Y - 28 end
-	self.Tooltip.Position = UDim2.fromOffset(x, y)
+	self.TooltipLabel.Position = UDim2.fromOffset(x, y)
 end
 
-function Talis:HeTooltip()
-	if self.Tooltip then self.Tooltip.Visible = false end
+function Talis:HideTooltip()
+	if self.TooltipLabel then self.TooltipLabel.Visible = false end
 end
 
 local function parentGui(gui)
@@ -467,8 +505,8 @@ local function parentGui(gui)
 	if type(gethui) == "function" then
 		if pcall(function() gui.Parent = gethui() end) and gui.Parent then return end
 	end
-	if type(get_hden_gui) == "function" then
-		if pcall(function() gui.Parent = get_hden_gui() end) and gui.Parent then return end
+	if type(get_hidden_gui) == "function" then
+		if pcall(function() gui.Parent = get_hidden_gui() end) and gui.Parent then return end
 	end
 	local ok = pcall(function() gui.Parent = cloneref(game:GetService("CoreGui")) end)
 	if not ok or not gui.Parent then
@@ -480,7 +518,7 @@ function Talis:Window(config)
 	config = type(config) == "table" and config or {}
 
 	local theme = config.Theme
-	if type(theme) == "string" then self:ApplyTheme(theme) end
+	if theme ~= nil then self:ApplyTheme(theme) end
 	if config.Accent then
 		local base = {}
 		for key, value in next, self.Theme do base[key] = value end
@@ -500,7 +538,7 @@ function Talis:Window(config)
 		Subtitle = config.Subtitle or ("v" .. self.Version),
 		ToggleKey = config.ToggleKey or Enum.KeyCode.RightShift,
 		Size = config.Size or UDim2.fromOffset(680, 440),
-		CloseBehavior = config.CloseBehavior or "he",
+		CloseBehavior = config.CloseBehavior or "hide",
 		Fonts = self.Fonts,
 		Theme = self.Theme,
 	}
@@ -577,7 +615,8 @@ function Talis:Window(config)
 	local fade = New("Frame", {
 		Name = "Fade",
 		Size = UDim2.new(1, 0, 1, 0),
-		BackgroundTransparency = 1,
+		BackgroundColor3 = Color3.new(1, 1, 1),
+		BackgroundTransparency = 0,
 		BorderSizePixel = 0,
 		Visible = background.Image ~= nil,
 		Parent = backdrop,
@@ -746,11 +785,16 @@ function Talis:Window(config)
 	end)
 	Connect(UIS.InputChanged, function(input)
 		if not dragging or not isMove(input) then return end
-		local delta = input.Position - dragStart
-		local size = viewport()
-		local x = math.clamp(dragOrigin.X.Offset + delta.X, -(shell.AbsoluteSize.X - 80), size.X - 80)
-		local y = math.clamp(dragOrigin.Y.Offset + delta.Y, 0, size.Y - 44)
-		shell.Position = UDim2.new(0.5, x, 0.5, y)
+		local factor = scale.Scale
+		local delta = (input.Position - dragStart) / factor
+		local screen = viewport() / factor
+		local width = shell.AbsoluteSize.X / factor
+		local height = shell.AbsoluteSize.Y / factor
+		local x = dragOrigin.X.Scale * screen.X + dragOrigin.X.Offset + delta.X
+		local y = dragOrigin.Y.Scale * screen.Y + dragOrigin.Y.Offset + delta.Y
+		x = math.clamp(x, 80 - width / 2, screen.X - 80 + width / 2)
+		y = math.clamp(y, height / 2, screen.Y - 44 + height / 2)
+		shell.Position = UDim2.fromOffset(x, y)
 	end)
 	Connect(UIS.InputEnded, function(input)
 		if isPress(input) then dragging = false end
@@ -758,14 +802,14 @@ function Talis:Window(config)
 
 	local resizing, resizeStart, resizeOrigin
 	Connect(grip.InputBegan, function(input)
-		if not isPress(input) then return end
+		if not isPress(input) or window.Minimized then return end
 		resizing = true
 		resizeStart = input.Position
-		resizeOrigin = shell.AbsoluteSize
+		resizeOrigin = shell.AbsoluteSize / scale.Scale
 	end)
 	Connect(UIS.InputChanged, function(input)
 		if not resizing or not isMove(input) then return end
-		local delta = input.Position - resizeStart
+		local delta = (input.Position - resizeStart) / scale.Scale
 		local width = math.max(420, resizeOrigin.X + delta.X)
 		local height = math.max(280, resizeOrigin.Y + delta.Y)
 		shell.Size = UDim2.fromOffset(width, height)
@@ -882,9 +926,6 @@ function Talis:Window(config)
 		label.Size = UDim2.new(1, -22, 1, 0)
 
 		self.TabMeta[tab] = { Pill = pill, Mark = mark, Label = label }
-		button.Pill = pill
-		button.Mark = mark
-		button.Label = label
 		tab.Button = button
 
 		local page = New("ScrollingFrame", {
@@ -921,7 +962,8 @@ function Talis:Window(config)
 
 		function tab:Section(sectionSpec)
 			sectionSpec = type(sectionSpec) == "table" and sectionSpec or { Name = tostring(sectionSpec) }
-			local section = { Name = sectionSpec.Name or "", Tab = tab, Window = self, Options = {}, Order = 0 }
+			local owner = tab.Window
+			local section = { Name = sectionSpec.Name or "", Tab = tab, Window = owner, Options = {}, Order = 0 }
 
 			local group = New("Frame", {
 				Size = UDim2.new(1, 0, 0, 0),
@@ -945,7 +987,7 @@ function Talis:Window(config)
 					LayoutOrder = 0,
 					Parent = group,
 				})
-				local headText = Text(head, string.upper(section.Name), 10, self.Fonts.Semibold, "Faint")
+				local headText = Text(head, string.upper(section.Name), 10, owner.Fonts.Semibold, "Faint")
 				headText.Size = UDim2.new(1, 0, 1, 0)
 				headText.Position = UDim2.new(0, 0, 0, 6)
 				local headLine = Hairline(head, "Hairline", 0.5)
@@ -1036,7 +1078,7 @@ function Talis:Window(config)
 		end
 		local mark = New("TextLabel", {
 			Position = UDim2.new(0, 14, 0, 14),
-			Size = UDim2.fromOffset(TextService:GetTextSize(tostring(text), 12, self.Fonts.Semibold, Vector2.new(1e6, 1e6)).X + 22, 22),
+			Size = UDim2.fromOffset(measure(tostring(text), 12, self.Fonts.Semibold).X + 22, 22),
 			BackgroundColor3 = self.Theme.Raised,
 			BackgroundTransparency = 0.15,
 			BorderSizePixel = 0,
@@ -1069,7 +1111,7 @@ function Talis:Window(config)
 		table.clear(Talis.Themed)
 		table.clear(Talis.Options)
 		table.clear(Talis.Rainbows)
-		Talis.Tooltip = nil
+		Talis.TooltipLabel = nil
 		self.ActivePopup = nil
 		if Talis.ActiveWindow == self then
 			Talis.ActiveWindow = nil
@@ -1297,7 +1339,7 @@ Talis.Builders.Divider = function(section, spec)
 	if hasText then
 		local upper = string.upper(tostring(spec.Text))
 		local label = Text(row, " " .. upper .. " ", 10, Talis.Fonts.Semibold, "Faint")
-		label.Size = UDim2.fromOffset(TextService:GetTextSize(upper, 10, Talis.Fonts.Semibold, Vector2.new(1e6, 1e6)).X + 12, 20)
+		label.Size = UDim2.fromOffset(measure(upper, 10, Talis.Fonts.Semibold).X + 12, 20)
 		label.Position = UDim2.new(0.5, 0, 0, 0)
 		label.AnchorPoint = Vector2.new(0.5, 0)
 		label.BackgroundColor3 = Talis.Theme.Surface
@@ -1319,7 +1361,8 @@ end
 Talis.Rainbows = {}
 Talis.RainbowHue = 0
 
-Connect(RunService.RenderStepped, function()
+-- Not registered in Talis.Connections: window:Destroy() would otherwise kill it for good.
+RunService.RenderStepped:Connect(function()
 	if #Talis.Rainbows == 0 then return end
 	Talis.RainbowHue = (os.clock() * 0.06) % 1
 	for index = 1, #Talis.Rainbows do
@@ -1329,8 +1372,11 @@ Connect(RunService.RenderStepped, function()
 end)
 
 local function decimals(step)
-	if step >= 1 then return 0 end
-	return math.clamp(math.ceil(-math.log10(step)), 0, 6)
+	local places = 0
+	while places < 6 and math.abs(step * 10 ^ places - math.floor(step * 10 ^ places + 0.5)) > 1e-6 do
+		places = places + 1
+	end
+	return places
 end
 
 local function format(value, places)
@@ -1584,8 +1630,9 @@ Talis.Builders.Slider = function(section, spec)
 	function option:Set(input, silent)
 		local v = tonumber(input)
 		if not v then v = self.Min end
-		v = math.floor(v / self.Step + 0.5) * self.Step
+		v = self.Min + math.floor((v - self.Min) / self.Step + 0.5) * self.Step
 		v = math.clamp(v, self.Min, self.Max)
+		v = tonumber(format(v, places)) or v
 		self.Value = v
 		local alpha = ratio(v)
 		fill.Size = UDim2.new(alpha, 0, 1, 0)
@@ -1905,8 +1952,8 @@ Talis.Builders.Input = function(section, spec)
 		if spec.NumbersOnly then
 			box.Text = tostring(tonumber(box.Text) or 0)
 		end
-		option:Set(box.Text)
-		if enterPressed then option.Callback(option.Value, true) end
+		option:Set(box.Text, true)
+		option.Callback(option.Value, enterPressed or nil)
 	end)
 
 	Talis:SetFlag(option.Flag, option.Value)
@@ -2003,10 +2050,10 @@ Talis.Builders.Keybind = function(section, spec)
 	end)
 
 	local function matches(input)
-		if option.Mouse then
-			return input.UserInputType.Name == option.Value
+		if input.UserInputType == Enum.UserInputType.Keyboard then
+			return input.KeyCode.Name == option.Value
 		end
-		return input.UserInputType == Enum.UserInputType.Keyboard and input.KeyCode.Name == option.Value
+		return input.UserInputType.Name == option.Value
 	end
 
 	Connect(UIS.InputBegan, function(input, processed)
@@ -2022,9 +2069,9 @@ Talis.Builders.Keybind = function(section, spec)
 				else
 					return
 				end
-			elseif input.UserInputType == Enum.UserInputType.MouseButton1
+			elseif option.Mouse and (input.UserInputType == Enum.UserInputType.MouseButton1
 				or input.UserInputType == Enum.UserInputType.MouseButton2
-				or input.UserInputType == Enum.UserInputType.MouseButton3 then
+				or input.UserInputType == Enum.UserInputType.MouseButton3) then
 				option:Set(input.UserInputType.Name)
 			else
 				return
@@ -2090,7 +2137,10 @@ Talis.Builders.Colorpicker = function(section, spec)
 		Callback = spec.Callback or function() end,
 		Value = { 0.15, 0.7, 0.85, 1, false },
 	}
-	if type(spec.Value) == "table" then
+	if typeof(spec.Value) == "Color3" then
+		local h, s, v = spec.Value:ToHSV()
+		option.Value[1], option.Value[2], option.Value[3] = h, s, v
+	elseif type(spec.Value) == "table" then
 		for index = 1, 5 do
 			if spec.Value[index] ~= nil then option.Value[index] = spec.Value[index] end
 		end
@@ -2240,8 +2290,8 @@ Talis.Builders.Colorpicker = function(section, spec)
 		})
 		New("UIGradient", {
 			Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0),
-				NumberSequenceKeypoint.new(1, 1),
+				NumberSequenceKeypoint.new(0, 1),
+				NumberSequenceKeypoint.new(1, 0),
 			}),
 			Parent = alphaGrad,
 		})
@@ -2739,11 +2789,13 @@ local function handle(object)
 	}
 end
 
+-- Drawing.Transparency is opacity (1 = fully visible, 0 = invisible), so the defaults below are 1.
+
 function Talis.Overlay:Circle(props)
 	props = props or {}
 	props.Color = props.Color or Talis.Theme.Accent
 	props.Thickness = props.Thickness or 1
-	props.Transparency = props.Transparency or 0.2
+	props.Transparency = props.Transparency or 1
 	props.Filled = props.Filled == true
 	props.NumSides = props.NumSides or 48
 	return handle(self:New("Circle", props))
@@ -2753,7 +2805,7 @@ function Talis.Overlay:Line(props)
 	props = props or {}
 	props.Color = props.Color or Talis.Theme.Accent
 	props.Thickness = props.Thickness or 1
-	props.Transparency = props.Transparency or 0.2
+	props.Transparency = props.Transparency or 1
 	return handle(self:New("Line", props))
 end
 
@@ -2763,7 +2815,7 @@ function Talis.Overlay:Text(props)
 	props.Size = props.Size or 13
 	props.Center = props.Center ~= false
 	props.Outline = props.Outline ~= false
-	props.Transparency = props.Transparency or 0.1
+	props.Transparency = props.Transparency or 1
 	return handle(self:New("Text", props))
 end
 
@@ -2771,7 +2823,7 @@ function Talis.Overlay:Square(props)
 	props = props or {}
 	props.Color = props.Color or Talis.Theme.Accent
 	props.Thickness = props.Thickness or 1
-	props.Transparency = props.Transparency or 0.2
+	props.Transparency = props.Transparency or 1
 	props.Filled = props.Filled == true
 	return handle(self:New("Square", props))
 end
@@ -2780,7 +2832,7 @@ function Talis.Overlay:Quad(props)
 	props = props or {}
 	props.Color = props.Color or Talis.Theme.Accent
 	props.Thickness = props.Thickness or 1
-	props.Transparency = props.Transparency or 0.2
+	props.Transparency = props.Transparency or 1
 	props.Filled = props.Filled == true
 	return handle(self:New("Quad", props))
 end
@@ -2802,7 +2854,7 @@ end
 
 function Talis.Overlay:Remove(object)
 	if not object then return end
-	if object.Object then object = object.Object end
+	if type(object) == "table" and object.Object then object = object.Object end
 	for index = #self.Objects, 1, -1 do
 		if self.Objects[index] == object then
 			table.remove(self.Objects, index)
