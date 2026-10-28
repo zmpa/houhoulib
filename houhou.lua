@@ -1,13 +1,13 @@
 --[[
 	Talis UI Library
-	Version: 0.2.0
+	Version: 0.2.1
 
 	Changes in this build:
-	  * Fixed Colorpicker:Set accepting a Color3 (was using Color3.toHSV, now :ToHSV()).
+	  * Fixed MouseButton4/5 crash (Enum.UserInputType lookup) - mouse binds now
+	    match by name, so any "MouseButton*" works on any Roblox version.
+	  * Fixed Colorpicker:Set accepting a Color3 (was Color3.toHSV, now :ToHSV()).
 	  * Added window:GetScale().
-	  * Mouse keybinds now include MouseButton4 / MouseButton5 (side buttons).
-	  * Automatic, consistent row spacing everywhere (no more overlap). Adjustable.
-	  * window:SetSpacing(n) and per-element Margin support.
+	  * Automatic, consistent row spacing everywhere. Adjustable via SetSpacing/Margin.
 	  * window:SetBackgroundImage(url) -> works with catbox.moe / any direct PNG-JPG link
 	    via getcustomasset, plus rbxassetid:// and numeric ids.
 	  * Built-in Settings page (Appearance, Background, Behavior, Configs, About)
@@ -15,7 +15,7 @@
 ]]
 
 local Talis = {}
-Talis.Version = "0.2.0"
+Talis.Version = "0.2.1"
 Talis.Animations = true
 Talis.Root = "talis"
 Talis.Spacing = 6
@@ -64,7 +64,12 @@ local FS = {
 }
 FS.ok = FS.read and FS.write and FS.exists and FS.folder and FS.list
 
-local getasset = rawget(getfenv(), "getcustomasset") or rawget(getfenv(), "getsynasset")
+local getasset
+if type(getcustomasset) == "function" then
+	getasset = getcustomasset
+elseif type(getsynasset) == "function" then
+	getasset = getsynasset
+end
 
 local SEP = "/"
 if FS.folder then
@@ -305,6 +310,11 @@ end
 local function isMove(input)
 	local t = input.UserInputType
 	return t == Enum.UserInputType.MouseMovement or t == Enum.UserInputType.Touch
+end
+
+-- Any "MouseButton1".."MouseButton5" works, even where the enum member is missing.
+local function isMouseButton(input)
+	return tostring(input.UserInputType.Name):match("^MouseButton") ~= nil
 end
 
 local function viewport()
@@ -949,7 +959,6 @@ function Talis:Window(config)
 		shell.BackgroundTransparency = has and 0.42 or 0.05
 	end
 
-	-- Friendly alias: accepts a URL, an asset id or a number.
 	function window:SetBackgroundImage(source, opts)
 		opts = opts or {}
 		self:SetBackground({
@@ -1151,7 +1160,6 @@ function Talis:Window(config)
 				end
 			end
 
-			-- Margin adds extra breathing room below a row so nothing ever overlaps.
 			function section:Row(height, name, desc, margin)
 				local base = height or 30
 				local extra = margin or 0
@@ -2212,14 +2220,6 @@ Talis.Builders.Keybind = function(section, spec)
 		return input.UserInputType.Name == option.Value
 	end
 
-	local MOUSE_BUTTONS = {
-		[Enum.UserInputType.MouseButton1] = true,
-		[Enum.UserInputType.MouseButton2] = true,
-		[Enum.UserInputType.MouseButton3] = true,
-		[Enum.UserInputType.MouseButton4] = true,
-		[Enum.UserInputType.MouseButton5] = true,
-	}
-
 	Connect(UIS.InputBegan, function(input, processed)
 		if processed then return end
 		if option.Listening then
@@ -2233,7 +2233,7 @@ Talis.Builders.Keybind = function(section, spec)
 				else
 					return
 				end
-			elseif option.Mouse and MOUSE_BUTTONS[input.UserInputType] then
+			elseif option.Mouse and isMouseButton(input) then
 				option:Set(input.UserInputType.Name)
 			else
 				return
@@ -3126,10 +3126,8 @@ function Talis:BuildSettings(window)
 			ui.Watermark = value
 			if value then
 				window:Watermark(ui.WatermarkText)
-			elseif window.Mark then
-				window.Mark.Visible = false
 			end
-			if value and window.Mark then window.Mark.Visible = true end
+			if window.Mark then window.Mark.Visible = value end
 			Talis:SaveUISettings()
 		end,
 	})
@@ -3152,7 +3150,6 @@ Talis.Window = function(self, config)
 	config = type(config) == "table" and config or {}
 	local window = finalWindow(self, config)
 
-	-- Apply saved look + behaviour
 	window:ApplyLook()
 	window:SetScale(Talis.UISettings.Scale or 1)
 	window:SetSpacing(Talis.UISettings.Spacing or Talis.Spacing)
