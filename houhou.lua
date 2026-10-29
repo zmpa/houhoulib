@@ -1,8 +1,20 @@
 --[[
 	Talis UI Library
-	Version: 0.3.0
+	Version: 0.3.1
 
-	Changes in this build (on top of 0.2.1):
+	Changes in this build (on top of 0.3.0):
+
+	BUG FIXES
+	  * Resizing from the grip no longer seizes. Size is applied once per frame
+	    from a RenderStepped coalescer instead of on every input event, the
+	    origin is read from window.Size (not AbsoluteSize, which is 0 during the
+	    open tween), and window.Size / BaseSize are committed only on release.
+	  * Dragging and resizing both read the pointer in screen space, so the grip
+	    and header track the cursor on touch instead of lagging by the inset.
+	  * fit() no longer fights an in-progress resize.
+	  * Grip hit box is 24x24.
+
+	Changes in 0.3.0 (on top of 0.2.1):
 
 	BUG FIXES
 	  * UI scale no longer shifts the window/notifications/watermark off-screen
@@ -46,7 +58,7 @@
 ]]
 
 local Talis = {}
-Talis.Version = "0.3.0"
+Talis.Version = "0.3.1"
 Talis.Animations = true
 Talis.Root = "talis"
 Talis.Spacing = 6
@@ -962,7 +974,7 @@ function Talis:Window(config)
 		Name = "Grip",
 		AnchorPoint = Vector2.new(1, 1),
 		Position = UDim2.new(1, 0, 1, 0),
-		Size = UDim2.fromOffset(16, 16),
+		Size = UDim2.fromOffset(24, 24),
 		BackgroundTransparency = 1,
 		Text = "",
 		AutoButtonColor = false,
@@ -972,7 +984,7 @@ function Talis:Window(config)
 	local gripMark = New("Frame", {
 		Size = UDim2.fromOffset(6, 6),
 		AnchorPoint = Vector2.new(1, 1),
-		Position = UDim2.new(1, -5, 1, -5),
+		Position = UDim2.new(1, -7, 1, -7),
 		BackgroundColor3 = self.Theme.Faint,
 		BorderSizePixel = 0,
 		Parent = grip,
@@ -980,6 +992,10 @@ function Talis:Window(config)
 	Theme(gripMark, "Faint", "BackgroundColor3")
 
 	local opened = false
+
+	-- Resize state. Declared before fit() so fit() can back off mid-drag.
+	local resizing, resizeStart, resizeOrigin, resizePosition, resizeTarget, resizePending
+	local resizeConnection
 
 	-- Keeps the window inside the screen (small screens / phones / big UI scale).
 	local function fit()
@@ -989,7 +1005,7 @@ function Talis:Window(config)
 		local width = math.min(base.X.Offset, math.max(240, view.X - 24))
 		local height = math.min(base.Y.Offset, math.max(200, view.Y - 24))
 		window.Size = UDim2.fromOffset(width, height)
-		if opened and not window.Minimized then
+		if opened and not window.Minimized and not resizing then
 			shell.Size = window.Size
 		end
 	end
@@ -1026,13 +1042,13 @@ function Talis:Window(config)
 	Connect(header.InputBegan, function(input)
 		if not isPress(input) then return end
 		dragging = true
-		dragStart = input.Position
+		dragStart = pointer(input)
 		dragOrigin = shell.Position
 	end)
 	Connect(UIS.InputChanged, function(input)
 		if not dragging or not isMove(input) then return end
 		local factor = scale.Scale
-		local delta = (input.Position - dragStart) / factor
+		local delta = (pointer(input) - dragStart) / factor
 		local screen = viewport() / factor
 		local width = shell.AbsoluteSize.X / factor
 		local height = shell.AbsoluteSize.Y / factor
@@ -1046,32 +1062,53 @@ function Talis:Window(config)
 		if isPress(input) then dragging = false end
 	end)
 
-	local resizing, resizeStart, resizeOrigin, resizePosition
-	Connect(grip.InputBegan, function(input)
-		if not isPress(input) or window.Minimized then return end
-		resizing = true
-		resizeStart = input.Position
-		resizeOrigin = shell.AbsoluteSize / scale.Scale
-		resizePosition = shell.Position
-	end)
-	Connect(UIS.InputChanged, function(input)
-		if not resizing or not isMove(input) then return end
-		local factor = scale.Scale
-		local delta = (input.Position - resizeStart) / factor
+	-- Applies the newest pending target exactly once per frame.
+	local function applyResize()
+		resizePending = false
+		if not resizing or not resizeTarget or window.Destroyed then return end
+		local factor = math.max(scale.Scale, 0.01)
 		local view = viewport() / factor
-		local width = math.clamp(resizeOrigin.X + delta.X, window.MinSize.X, math.max(window.MinSize.X, view.X))
-		local height = math.clamp(resizeOrigin.Y + delta.Y, window.MinSize.Y, math.max(window.MinSize.Y, view.Y))
-		-- The shell is centre-anchored, so shift the centre by half the growth to keep the top-left fixed.
+		local width = math.clamp(resizeTarget.X, window.MinSize.X, math.max(window.MinSize.X, view.X))
+		local height = math.clamp(resizeTarget.Y, window.MinSize.Y, math.max(window.MinSize.Y, view.Y))
+		resizeTarget = Vector2.new(width, height)
 		shell.Size = UDim2.fromOffset(width, height)
+		-- Centre-anchored shell: shift the centre by half the growth so the top-left stays put.
 		shell.Position = UDim2.new(
 			resizePosition.X.Scale, resizePosition.X.Offset + (width - resizeOrigin.X) / 2,
 			resizePosition.Y.Scale, resizePosition.Y.Offset + (height - resizeOrigin.Y) / 2
 		)
+	end
+
+	Connect(grip.InputBegan, function(input)
+		if not isPress(input) or window.Minimized then return end
+		resizing = true
+		resizePending = false
+		resizeStart = pointer(input)
+		resizeOrigin = Vector2.new(window.Size.X.Offset, window.Size.Y.Offset)
+		resizePosition = shell.Position
+		resizeTarget = resizeOrigin
+		if not resizeConnection then
+			resizeConnection = Connect(RunService.RenderStepped, function()
+				if resizePending then applyResize() end
+			end)
+		end
+	end)
+
+	Connect(UIS.InputChanged, function(input)
+		if not resizing or not isMove(input) then return end
+		local delta = (pointer(input) - resizeStart) / math.max(scale.Scale, 0.01)
+		resizeTarget = Vector2.new(resizeOrigin.X + delta.X, resizeOrigin.Y + delta.Y)
+		resizePending = true
+	end)
+
+	Connect(UIS.InputEnded, function(input)
+		if not isPress(input) or not resizing then return end
+		resizePending = true
+		applyResize() -- flush the final sample before tearing down
+		resizing = false
+		resizeTarget = nil
 		window.Size = shell.Size
 		window.BaseSize = shell.Size
-	end)
-	Connect(UIS.InputEnded, function(input)
-		if isPress(input) then resizing = false end
 	end)
 
 	Connect(closeButton.MouseButton1Click, function()
