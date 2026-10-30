@@ -18,6 +18,8 @@ local library = {
     hidden = {},
     connections = {},
     pointers = {},
+    keybinds = {},
+    mouseBindsOpen = false,
     began = {},
     ended = {},
     changed = {},
@@ -358,8 +360,11 @@ do
         if not isfolder(library.folders.assets) then
             pcall(function()
                 makefolder(library.folders.assets)
-                pcall(delfile, library.folders.assets.."/roblox_icon.png")
             end)
+        end
+        --
+        if imageName == "roblox_icon" then
+            pcall(delfile, library.folders.assets.."/roblox_icon.png")
         end
         --
         local path = library.folders.assets.."/"..imageName..".png"
@@ -4650,11 +4655,19 @@ do
                 end
             end
             --
+            function keybind:Clear()
+                keybind.current = {}
+                keybind.active = false
+                keybind.selecting = false
+                keybind_value.Text = "..."
+                window.keybindslist:Remove(keybindname or name)
+            end
+            --
             keybind:Change(def)
             --
             library.began[#library.began + 1] = function(Input)
                 if keybind.current[1] and keybind.current[2] then
-                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
+                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and not library.mouseBindsOpen and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
                         if keybind.mode == "On Hold" then
                             local old = keybind.active
                             keybind.active = toggle:Get()
@@ -4744,7 +4757,7 @@ do
                         keybind.open = not keybind.open
                         --
                         local modemenu = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X + 2,0), keybind_outline}, {
-                            Size = utility:Size(0, 68, 0, 64),
+                            Size = utility:Size(0, 68, 0, 79),
                             Position = utility:Position(1, 2, 0, 0, keybind_outline),
                             Color = theme.outline,
                             Visible = page.open
@@ -4785,7 +4798,7 @@ do
                         --
                         utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
                         --
-                        for i,v in pairs({"Always", "Toggle", "On Hold", "Off Hold"}) do
+                        for i,v in pairs({"Always", "Toggle", "On Hold", "Off Hold", "Clear"}) do
                             local button_title = utility:Create("TextLabel", {Vector2.new(modemenu_frame.Size.X/2,15 * (i-1)), modemenu_frame}, {
                                 Text = v,
                                 Size = theme.textsize,
@@ -4812,7 +4825,7 @@ do
             library.ended[#library.ended + 1] = function(Input)
                 if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
                     if keybind.current[1] and keybind.current[2] then
-                        if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
+                        if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and not library.mouseBindsOpen and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
                             if keybind.mode == "On Hold" and keybind.active then
                                 keybind.active = false
                                 window.keybindslist:Remove(keybindname or name)
@@ -6219,7 +6232,7 @@ do
         --
         library.began[#library.began + 1] = function(Input)
             if keybind.current[1] and keybind.current[2] then
-                if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
+                if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and not library.mouseBindsOpen and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
                     if keybind.mode == "On Hold" then
                         keybind.active = true
                         if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
@@ -6278,15 +6291,25 @@ do
                 if keybind.open and keybind.modemenu.frame then
                     if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y, keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + keybind.modemenu.frame.Size.Y}) then
                         local changed = false
+                        local cleared = false
                         --
                         for i,v in pairs(keybind.modemenu.buttons) do
                             if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)), keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)) + 15}) then
-                                keybind.mode = v.Text
-                                changed = true
+                                if v.Text == "Clear" then
+                                    cleared = true
+                                else
+                                    keybind.mode = v.Text
+                                    changed = true
+                                end
                             end
                         end
                         --
-                        if changed then keybind:Reset() end
+                        if cleared then
+                            keybind:Clear()
+                            window:CloseContent()
+                        elseif changed then
+                            keybind:Reset()
+                        end
                     else
                         keybind.open = not keybind.open
                         --
@@ -6310,7 +6333,7 @@ do
                     keybind.open = not keybind.open
                     --
                     local modemenu = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X + 2,0), keybind_outline}, {
-                        Size = utility:Size(0, 68, 0, 64),
+                        Size = utility:Size(0, 68, 0, 79),
                         Position = utility:Position(1, 2, 0, 0, keybind_outline),
                         Color = theme.outline,
                         Visible = page.open
@@ -6351,7 +6374,7 @@ do
                     --
                     utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
                     --
-                    for i,v in pairs({"Always", "Toggle", "On Hold", "Off Hold"}) do
+                    for i,v in pairs({"Always", "Toggle", "On Hold", "Off Hold", "Clear"}) do
                         local button_title = utility:Create("TextLabel", {Vector2.new(modemenu_frame.Size.X/2,15 * (i-1)), modemenu_frame}, {
                             Text = v,
                             Size = theme.textsize,
@@ -6378,7 +6401,7 @@ do
         library.ended[#library.ended + 1] = function(Input)
             if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
                 if keybind.current[1] and keybind.current[2] then
-                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
+                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and not library.mouseBindsOpen and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
                         if keybind.mode == "On Hold" then
                             if keybind.active then
                                 keybind.active = false
