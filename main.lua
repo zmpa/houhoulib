@@ -454,6 +454,74 @@ do
 	pages.__index = pages
 	sections.__index = sections
     --
+    function library:GetConfig()
+        local config = {}
+        --
+        for i,v in pairs(library.pointers) do
+            if type(v.Get) == "function" then
+                local success, value = pcall(function()
+                    return v:Get()
+                end)
+                --
+                if success and value ~= nil then
+                    local kind = typeof(value)
+                    --
+                    if kind == "Color3" then
+                        local hue, sat, val = value:ToHSV()
+                        config[i] = {Color = {hue, sat, val}, Transparency = 0}
+                    elseif kind == "table" then
+                        if value.Color and value.Transparency ~= nil then
+                            local hue, sat, val
+                            --
+                            if typeof(value.Color) == "Color3" then
+                                hue, sat, val = value.Color:ToHSV()
+                            else
+                                hue, sat, val = value.Color[1] or 0, value.Color[2] or 0, value.Color[3] or 1
+                            end
+                            --
+                            config[i] = {Color = {hue, sat, val}, Transparency = value.Transparency}
+                        else
+                            local copy = {}
+                            --
+                            for key, entry in pairs(value) do
+                                if type(entry) == "string" or type(entry) == "number" or type(entry) == "boolean" then
+                                    copy[key] = entry
+                                end
+                            end
+                            --
+                            config[i] = copy
+                        end
+                    elseif kind == "string" or kind == "number" or kind == "boolean" then
+                        config[i] = value
+                    end
+                end
+            end
+        end
+        --
+        local encoded, result = pcall(function()
+            return hs:JSONEncode(config)
+        end)
+        --
+        return encoded and result or "{}"
+    end
+    --
+    function library:LoadConfig(config)
+        local success, decoded = pcall(function()
+            return hs:JSONDecode(config)
+        end)
+        --
+        if not success or type(decoded) ~= "table" then return end
+        --
+        for i,v in pairs(decoded) do
+            local pointer = library.pointers[i]
+            if pointer and type(pointer.Set) == "function" then
+                pcall(function()
+                    pointer:Set(v)
+                end)
+            end
+        end
+    end
+    --
     function library:Notification(info)
         local info = info or {}
         local text = info.text or info.Text or info.name or info.Name or ""
