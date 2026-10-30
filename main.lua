@@ -338,20 +338,37 @@ do
     end
     --
     function utility:LoadImage(instance, imageName, imageLink)
-        local data
+        if not isfolder(library.folders.assets) then
+            makefolder(library.folders.assets)
+        end
         --
-        if isfile(library.folders.assets.."/"..imageName..".png") then
-            data = readfile(library.folders.assets.."/"..imageName..".png")
-        else
-            if imageLink then
-                data = game:HttpGet(imageLink)
-                writefile(library.folders.assets.."/"..imageName..".png", data)
-            else
+        local path = library.folders.assets.."/"..imageName..".png"
+        --
+        if imageLink and imageLink:match("^rbxassetid://") then
+            imageLink = "https://assetdelivery.roblox.com/v1/asset/?id=" .. imageLink:gsub("^rbxassetid://", "")
+        end
+        --
+        if not isfile(path) then
+            if not imageLink then return end
+            --
+            local success, result = pcall(function()
+                return game:HttpGet(imageLink)
+            end)
+            --
+            if not success or not result or #result < 100 then
+                return
+            end
+            --
+            if not pcall(function() writefile(path, result) end) then
                 return
             end
         end
         --
-        if data and instance then
+        local readSuccess, data = pcall(function()
+            return readfile(path)
+        end)
+        --
+        if readSuccess and data and instance then
             instance.Data = data
         end
     end
@@ -476,7 +493,7 @@ do
             Position = utility:Position(0, 4, 0, 3, inner_frame)
         })
         --
-        utility:LoadImage(title_icon, "roblox_icon", "rbxassetid://98297007961359")
+        utility:LoadImage(title_icon, "roblox_icon", "https://assetdelivery.roblox.com/v1/asset/?id=98297007961359")
         --
         local title = utility:Create("TextLabel", {Vector2.new(23,2), inner_frame}, {
             Text = name,
@@ -947,7 +964,7 @@ do
             Position = utility:Position(0, 4, 0, 3, inner_frame)
         })
         --
-        utility:LoadImage(title_icon, "roblox_icon", "rbxassetid://98297007961359")
+        utility:LoadImage(title_icon, "roblox_icon", "https://assetdelivery.roblox.com/v1/asset/?id=98297007961359")
         --
         local title = utility:Create("TextLabel", {Vector2.new(23,2), inner_frame}, {
             Text = name,
