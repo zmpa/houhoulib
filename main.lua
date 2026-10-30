@@ -577,7 +577,7 @@ do
             Position = utility:Position(0, 4, 0, 3, inner_frame)
         })
         --
-        utility:LoadImage(title_icon, "roblox_icon", "https://assetdelivery.roblox.com/v1/asset/?id=98297007961359")
+        utility:LoadImage(title_icon, "roblox_icon", "https://www.roblox.com/headshot-thumbnail/image?userId=1&width=420&height=420&format=png")
         --
         local title = utility:Create("TextLabel", {Vector2.new(23,2), inner_frame}, {
             Text = name,
@@ -1105,7 +1105,7 @@ do
             Position = utility:Position(0, 4, 0, 3, inner_frame)
         })
         --
-        utility:LoadImage(title_icon, "roblox_icon", "https://assetdelivery.roblox.com/v1/asset/?id=98297007961359")
+        utility:LoadImage(title_icon, "roblox_icon", "https://www.roblox.com/headshot-thumbnail/image?userId=1&width=420&height=420&format=png")
         --
         local title = utility:Create("TextLabel", {Vector2.new(23,2), inner_frame}, {
             Text = name,
@@ -6380,7 +6380,7 @@ do
         --
         local allowedKeyCodes = {"Q","W","E","R","T","Y","U","I","O","P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N","M","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Zero", "Minus", "Equals","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","Insert","Tab","Home","End","LeftAlt","LeftControl","LeftShift","RightAlt","RightControl","RightShift","CapsLock"}
         local allowedInputTypes = {"MouseButton1","MouseButton2","MouseButton3"}
-        local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
+        local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
         --
         local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(40+4),keybind.axis), section.section_frame}, {
             Size = utility:Size(0, 40, 0, 17),
@@ -6560,7 +6560,7 @@ do
                 local done = keybind:Change(Input.KeyCode.Name ~= "Unknown" and Input.KeyCode or Input.UserInputType)
                 if done then
                     keybind.selecting = false
-                    keybind.active = keybind.mode == "Always" and true or false
+                    keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and true or false
                     keybind_frame.Color = theme.lightcontrast
                     --
                     library.colors[keybind_frame] = {
@@ -6587,7 +6587,7 @@ do
             end
             --
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and keybind_outline.Visible then
-                if utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
+                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (40+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
                     keybind.selecting = true
                     keybind_frame.Color = theme.darkcontrast
                     --
@@ -6625,7 +6625,7 @@ do
             end
             --
             if Input.UserInputType == Enum.UserInputType.MouseButton2 and window.isVisible and keybind_outline.Visible then
-                if utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
+                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (40+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
                     window:CloseContent()
                     keybind.open = not keybind.open
                     --
