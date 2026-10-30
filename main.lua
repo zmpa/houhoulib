@@ -4502,7 +4502,7 @@ do
             local keybindname = info.keybindname or info.keybindName or info.KeybindName or info.Keybindname or nil
             local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
             --
-            toggle.addedAxis = toggle.addedAxis + 40 + 4 + 2
+            toggle.addedAxis = toggle.addedAxis + 54 + 4 + 2
             --
             local keybind = {keybindname = keybindname or name, axis = toggle.axis, current = {}, selecting = false, mode = mode, open = false, modemenu = {buttons = {}, drawings = {}}, active = false}
             --
@@ -4512,9 +4512,9 @@ do
             local allowedInputTypes = {"MouseButton1","MouseButton2","MouseButton3"}
             local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
             --
-            local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(40+4),keybind.axis), section.section_frame}, {
+            local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(54+4),keybind.axis), section.section_frame}, {
                 Size = utility:Size(0, 40, 0, 17),
-                Position = utility:Position(1, -(40+4), 0, keybind.axis, section.section_frame),
+                Position = utility:Position(1, -(54+4), 0, keybind.axis, section.section_frame),
                 Color = theme.outline,
                 Visible = page.open
             }, section.visibleContent)
@@ -4552,16 +4552,32 @@ do
                 Visible = page.open
             }, section.visibleContent)
             --
-            local keybind_value = utility:Create("TextLabel", {Vector2.new(keybind_outline.Size.X/2,1), keybind_outline}, {
+            local keybind_value = utility:Create("TextLabel", {Vector2.new((keybind_outline.Size.X/2)-7,1), keybind_outline}, {
                 Text = "...",
                 Size = theme.textsize,
                 Font = theme.font,
                 Color = theme.textcolor,
                 OutlineColor = theme.textborder, 
                 Center = true,
-                Position = utility:Position(0.5, 0, 1, 0, keybind_outline),
+                Position = utility:Position(0.5, -7, 0, 1, keybind_outline),
                 Visible = page.open
             }, section.visibleContent);keybind["keybind_value"] = keybind_value
+        --
+        local keybind_clear = utility:Create("TextLabel", {Vector2.new(keybind_outline.Size.X + 8, 1), keybind_outline}, {
+            Text = "x",
+            Size = theme.textsize,
+            Font = theme.font,
+            Color = theme.textdark,
+            OutlineColor = theme.textborder,
+            Center = true,
+            Position = utility:Position(1, 8, 0, 1, keybind_outline),
+            Visible = page.open
+        }, section.visibleContent)
+        --
+        library.colors[keybind_clear] = {
+            OutlineColor = "textborder",
+            Color = "textdark"
+        }
             --
             library.colors[keybind_value] = {
                 OutlineColor = "textborder",
@@ -4714,13 +4730,17 @@ do
                 end
                 --
                 if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and keybind_outline.Visible then
-                    if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (40+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                        keybind.selecting = true
-                        keybind_frame.Color = theme.darkcontrast
-                        --
-                        library.colors[keybind_frame] = {
-                            Color = "darkcontrast"
-                        }
+                    if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
+                        if utility:MouseOverDrawing({keybind_clear.Position.X - 7, keybind_clear.Position.Y - 2, keybind_clear.Position.X + 7, keybind_clear.Position.Y + 15}) then
+                            keybind:Clear()
+                        else
+                            keybind.selecting = true
+                            keybind_frame.Color = theme.darkcontrast
+                            --
+                            library.colors[keybind_frame] = {
+                                Color = "darkcontrast"
+                            }
+                        end
                     end
                     if keybind.open and keybind.modemenu.frame then
                         if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y, keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + keybind.modemenu.frame.Size.Y}) then
@@ -4752,7 +4772,7 @@ do
                 end
                 --
                 if Input.UserInputType == Enum.UserInputType.MouseButton2 and window.isVisible and keybind_outline.Visible then
-                    if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (40+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
+                    if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
                         window:CloseContent()
                         keybind.open = not keybind.open
                         --
@@ -6069,9 +6089,9 @@ do
         local allowedInputTypes = {"MouseButton1","MouseButton2","MouseButton3"}
         local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
         --
-        local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(40+4),keybind.axis), section.section_frame}, {
+        local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(54+4),keybind.axis), section.section_frame}, {
             Size = utility:Size(0, 40, 0, 17),
-            Position = utility:Position(1, -(40+4), 0, keybind.axis, section.section_frame),
+            Position = utility:Position(1, -(54+4), 0, keybind.axis, section.section_frame),
             Color = theme.outline,
             Visible = page.open
         }, section.visibleContent)
@@ -6124,16 +6144,32 @@ do
             Visible = page.open
         }, section.visibleContent)
         --
-        local keybind_value = utility:Create("TextLabel", {Vector2.new(keybind_outline.Size.X/2,1), keybind_outline}, {
+        local keybind_value = utility:Create("TextLabel", {Vector2.new((keybind_outline.Size.X/2)-7,1), keybind_outline}, {
             Text = "...",
             Size = theme.textsize,
             Font = theme.font,
             Color = theme.textcolor,
             OutlineColor = theme.textborder, 
             Center = true,
-            Position = utility:Position(0.5, 0, 1, 0, keybind_outline),
+            Position = utility:Position(0.5, -7, 0, 1, keybind_outline),
             Visible = page.open
         }, section.visibleContent);keybind["keybind_value"] = keybind_value
+        --
+        local keybind_clear = utility:Create("TextLabel", {Vector2.new(keybind_outline.Size.X + 8, 1), keybind_outline}, {
+            Text = "x",
+            Size = theme.textsize,
+            Font = theme.font,
+            Color = theme.textdark,
+            OutlineColor = theme.textborder,
+            Center = true,
+            Position = utility:Position(1, 8, 0, 1, keybind_outline),
+            Visible = page.open
+        }, section.visibleContent)
+        --
+        library.colors[keybind_clear] = {
+            OutlineColor = "textborder",
+            Color = "textdark"
+        }
         --
         library.colors[keybind_value] = {
             OutlineColor = "textborder",
@@ -6280,7 +6316,7 @@ do
             end
             --
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and keybind_outline.Visible then
-                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (40+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
+                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
                     keybind.selecting = true
                     keybind_frame.Color = theme.darkcontrast
                     --
@@ -6328,7 +6364,7 @@ do
             end
             --
             if Input.UserInputType == Enum.UserInputType.MouseButton2 and window.isVisible and keybind_outline.Visible then
-                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (40+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
+                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
                     window:CloseContent()
                     keybind.open = not keybind.open
                     --
