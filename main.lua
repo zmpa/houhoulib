@@ -25,9 +25,9 @@ local library = {
     hovers = {},
     Relations = {},
     folders = {
-        main = "HouHou da hood",
-        assets = "HouHou da hood/Images",
-        configs = "HouHou da hood/Configs"
+        main = "Atlanta",
+        assets = "Atlanta/Images",
+        configs = "Atlanta/Configs"
     },
     shared = {
         initialized = false,
