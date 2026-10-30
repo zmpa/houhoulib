@@ -337,41 +337,69 @@ do
         return ws.CurrentCamera.ViewportSize
     end
     --
+    function utility:Thumbnail(userId)
+        local ok, body = pcall(function()
+            return game:HttpGet(("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=%s&size=420x420&format=Png&isCircular=false"):format(tostring(userId)))
+        end)
+        --
+        if not ok or type(body) ~= "string" then return nil end
+        --
+        local decoded
+        ok, decoded = pcall(function() return hs:JSONDecode(body) end)
+        if not ok or type(decoded) ~= "table" or type(decoded.data) ~= "table" then return nil end
+        --
+        local entry = decoded.data[1]
+        return entry and entry.imageUrl or nil
+    end
+    --
     function utility:LoadImage(instance, imageName, imageLink)
         if not instance then return end
         --
         if not isfolder(library.folders.assets) then
             pcall(function()
                 makefolder(library.folders.assets)
+                pcall(delfile, library.folders.assets.."/roblox_icon.png")
             end)
         end
         --
         local path = library.folders.assets.."/"..imageName..".png"
         --
-        if imageLink then
-            if imageLink:match("^rbxassetid://") then
-                imageLink = "https://assetdelivery.roblox.com/v1/asset/?id=" .. imageLink:gsub("^rbxassetid://", "")
-            elseif imageLink:match("^rbxthumb://") then
-                local id = imageLink:match("[?&]id=(%d+)")
-                if id then
-                    imageLink = "https://www.roblox.com/headshot-thumbnail/image?userId="..id.."&width=420&height=420&format=png"
+        local candidates = {}
+        --
+        if type(imageLink) == "table" then
+            for _, link in ipairs(imageLink) do
+                candidates[#candidates + 1] = link
+            end
+        elseif type(imageLink) == "string" then
+            candidates[1] = imageLink
+        end
+        --
+        for i = #candidates, 1, -1 do
+            local link = candidates[i]
+            if link:match("^rbxassetid://") then
+                candidates[i] = "https://assetdelivery.roblox.com/v1/asset/?id=" .. link:gsub("^rbxassetid://", "")
+            elseif link:match("^rbxthumb://") then
+                local id = link:match("[?&]id=(%d+)")
+                local resolved = id and utility:Thumbnail(id)
+                if resolved then
+                    candidates[i] = resolved
+                else
+                    table.remove(candidates, i)
                 end
             end
         end
         --
         if not isfile(path) then
-            if not imageLink then return end
-            --
-            local success, result = pcall(function()
-                return game:HttpGet(imageLink)
-            end)
-            --
-            if not success or not result or #result < 100 then
-                return
-            end
-            --
-            if not pcall(function() writefile(path, result) end) then
-                return
+            for _, link in ipairs(candidates) do
+                local success, result = pcall(function()
+                    return game:HttpGet(link)
+                end)
+                --
+                if success and type(result) == "string" and #result >= 100 then
+                    if pcall(function() writefile(path, result) end) then
+                        break
+                    end
+                end
             end
         end
         --
@@ -577,7 +605,10 @@ do
             Position = utility:Position(0, 4, 0, 3, inner_frame)
         })
         --
-        utility:LoadImage(title_icon, "roblox_icon", "https://www.roblox.com/headshot-thumbnail/image?userId=1&width=420&height=420&format=png")
+        utility:LoadImage(title_icon, "roblox_icon", {
+            "rbxthumb://type=AvatarHeadShot&id=1&w=420&h=420",
+            "https://i.imgur.com/tVqy0nL.png",
+        })
         --
         local title = utility:Create("TextLabel", {Vector2.new(23,2), inner_frame}, {
             Text = name,
@@ -1105,7 +1136,10 @@ do
             Position = utility:Position(0, 4, 0, 3, inner_frame)
         })
         --
-        utility:LoadImage(title_icon, "roblox_icon", "https://www.roblox.com/headshot-thumbnail/image?userId=1&width=420&height=420&format=png")
+        utility:LoadImage(title_icon, "roblox_icon", {
+            "rbxthumb://type=AvatarHeadShot&id=1&w=420&h=420",
+            "https://i.imgur.com/tVqy0nL.png",
+        })
         --
         local title = utility:Create("TextLabel", {Vector2.new(23,2), inner_frame}, {
             Text = name,
@@ -3727,8 +3761,9 @@ do
                     --
                     task.spawn(function()
                         local userId = Selection[1].UserId
+                        local url = utility:Thumbnail(userId)
                         local success, imagedata = pcall(function()
-                            return game:HttpGet(("https://www.roblox.com/headshot-thumbnail/image?userId=%s&width=100&height=100&format=png"):format(userId))
+                            return url and game:HttpGet(url) or nil
                         end)
                         --
                         if success and imagedata and #imagedata > 100 then
