@@ -4654,7 +4654,7 @@ do
             --
             library.began[#library.began + 1] = function(Input)
                 if keybind.current[1] and keybind.current[2] then
-                    if Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]] then
+                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
                         if keybind.mode == "On Hold" then
                             local old = keybind.active
                             keybind.active = toggle:Get()
@@ -4812,7 +4812,7 @@ do
             library.ended[#library.ended + 1] = function(Input)
                 if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
                     if keybind.current[1] and keybind.current[2] then
-                        if Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]] then
+                        if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
                             if keybind.mode == "On Hold" and keybind.active then
                                 keybind.active = false
                                 window.keybindslist:Remove(keybindname or name)
@@ -6219,7 +6219,7 @@ do
         --
         library.began[#library.began + 1] = function(Input)
             if keybind.current[1] and keybind.current[2] then
-                if Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]] then
+                if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
                     if keybind.mode == "On Hold" then
                         keybind.active = true
                         if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
@@ -6378,7 +6378,7 @@ do
         library.ended[#library.ended + 1] = function(Input)
             if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
                 if keybind.current[1] and keybind.current[2] then
-                    if Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]] then
+                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
                         if keybind.mode == "On Hold" then
                             if keybind.active then
                                 keybind.active = false
