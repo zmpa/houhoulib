@@ -26,8 +26,8 @@ local library = {
     Relations = {},
     folders = {
         main = "HouHou da hood",
-        assets = "HouHou/Images",
-        configs = "HouHou/Configs"
+        assets = "HouHou da hood/Images",
+        configs = "HouHou da hood/Configs"
     },
     shared = {
         initialized = false,
