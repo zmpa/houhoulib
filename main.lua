@@ -1575,7 +1575,7 @@ do
             title.Text = Name
         end
         --
-        function window:GetConfig()
+function window:GetConfig()
             local config = {}
             --
             for i,v in pairs(library.pointers) do
@@ -1585,17 +1585,45 @@ do
                     end)
                     --
                     if success and value ~= nil then
-                        if typeof(value) == "table" and value.Color and value.Transparency ~= nil then
-                            local hue, sat, val = value.Color[1], value.Color[2], value.Color[3]
-                            config[i] = {Color = {hue, sat, val}, Transparency = value.Transparency}
-                        else
+                        local kind = typeof(value)
+                        --
+                        if kind == "Color3" then
+                            local hue, sat, val = value:ToHSV()
+                            config[i] = {Color = {hue, sat, val}, Transparency = 0}
+                        elseif kind == "table" then
+                            if value.Color and value.Transparency ~= nil then
+                                local hue, sat, val
+                                --
+                                if typeof(value.Color) == "Color3" then
+                                    hue, sat, val = value.Color:ToHSV()
+                                else
+                                    hue, sat, val = value.Color[1] or 0, value.Color[2] or 0, value.Color[3] or 1
+                                end
+                                --
+                                config[i] = {Color = {hue, sat, val}, Transparency = value.Transparency}
+                            else
+                                local copy = {}
+                                --
+                                for key, entry in pairs(value) do
+                                    if type(entry) == "string" or type(entry) == "number" or type(entry) == "boolean" then
+                                        copy[key] = entry
+                                    end
+                                end
+                                --
+                                config[i] = copy
+                            end
+                        elseif kind == "string" or kind == "number" or kind == "boolean" then
                             config[i] = value
                         end
                     end
                 end
             end
             --
-            return hs:JSONEncode(config)
+            local encoded, result = pcall(function()
+                return hs:JSONEncode(config)
+            end)
+            --
+            return encoded and result or "{}"
         end
         --
         function window:LoadConfig(config)
