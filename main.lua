@@ -1151,6 +1151,20 @@ do
         --
         local window = {pages = {}, loader = style == 2, init = false, pageammount = pageammount, isVisible = false, callback = callback, uibind = Enum.KeyCode.Z, wminfo = "HouHou da hood || UID : %u || Ping : %s || Fps : %u", currentPage = nil, fading = false, dragging = false, drag = Vector2.new(0,0), currentContent = {frame = nil, dropdown = nil, multibox = nil, colorpicker = nil, keybind = nil, textbox = nil}}
         --
+        function window:GetPageOf(drawing)
+            local node = drawing
+            local depth = 0
+            --
+            while node and depth < 10 do
+                local owner = library.sectionOwner[node]
+                if owner then return owner end
+                node = library.parentOf[node]
+                depth = depth + 1
+            end
+            --
+            return nil
+        end
+        --
         local main_frame = utility:Create("Frame", {Vector2.new(0,0)}, {
             Size = utility:Size(0, size.X, 0, size.Y),
             Position = utility:Position(0.5, -(size.X/2) ,0.5, -(size.Y/2)),
