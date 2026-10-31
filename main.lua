@@ -20,6 +20,8 @@ local library = {
     pointers = {},
     keybinds = {},
     mouseBindsOpen = false,
+    clipContext = false,
+    clipPage = nil,
     began = {},
     ended = {},
     changed = {},
@@ -202,7 +204,7 @@ do
             end
             --
             if not instanceHidden then
-                library.drawings[#library.drawings + 1] = {instance, instanceOffset, instanceProperties["Transparency"] or 1}
+                library.drawings[#library.drawings + 1] = {instance, instanceOffset, instanceProperties["Transparency"] or 1, library.clipContext or false, library.clipPage}
             else
                 library.hidden[#library.hidden + 1] = {instance}
             end
@@ -563,6 +565,20 @@ do
         end
     end
     --
+    function library:IsMouseBlocked(Input)
+        if not Input or not Input.UserInputType then return false end
+        --
+        if Input.UserInputType ~= Enum.UserInputType.MouseButton1 and Input.UserInputType ~= Enum.UserInputType.MouseButton2 and Input.UserInputType ~= Enum.UserInputType.MouseButton3 then
+            return false
+        end
+        --
+        if library.mouseBindsOpen then return false end
+        if not self.isVisible then return false end
+        if self.dragging then return true end
+        --
+        return utility:MouseOverDrawing({self.main_frame.Position.X, self.main_frame.Position.Y, self.main_frame.Position.X + self.main_frame.Size.X, self.main_frame.Position.Y + self.main_frame.Size.Y})
+    end
+    --
     function library:Loader(info)
 		local info = info or {}
         local name = info.name or info.Name or info.title or info.Title or "UI Title"
@@ -762,12 +778,22 @@ do
         end
         --
         function window:Move(vector)
+            local tab = window.tab_frame
+            local page = window.currentPage
+            local top = tab.Position.Y
+            local bottom = top + tab.Size.Y
+            --
             for i,v in pairs(library.drawings) do
-                if v[1].Visible then
+                if v[1] then
                     if v[2][2] then
                         v[1].Position = utility:Position(0, v[2][1].X, 0, v[2][1].Y, v[2][2])
                     else
                         v[1].Position = utility:Position(0, vector.X, 0, vector.Y)
+                    end
+                    --
+                    if v[4] then
+                        local drawY = v[1].Position.Y
+                        v[1].Visible = page ~= nil and page.open and v[5] == page and drawY >= top - 2 and drawY <= bottom
                     end
                 end
             end
@@ -965,6 +991,9 @@ do
             end
             --
             library.shared.initialized = true
+            --
+            library.clipContext = false
+            library.clipPage = nil
             --
             window:Cursor()
             --
@@ -1768,12 +1797,22 @@ do
         end
         --
         function window:Move(vector)
+            local tab = window.tab_frame
+            local page = window.currentPage
+            local top = tab.Position.Y
+            local bottom = top + tab.Size.Y
+            --
             for i,v in pairs(library.drawings) do
-                if v[1].Visible then
+                if v[1] then
                     if v[2][2] then
                         v[1].Position = utility:Position(0, v[2][1].X, 0, v[2][1].Y, v[2][2])
                     else
                         v[1].Position = utility:Position(0, vector.X, 0, vector.Y)
+                    end
+                    --
+                    if v[4] then
+                        local drawY = v[1].Position.Y
+                        v[1].Visible = page ~= nil and page.open and v[5] == page and drawY >= top - 2 and drawY <= bottom
                     end
                 end
             end
@@ -2544,6 +2583,9 @@ do
             --
             library.shared.initialized = true
             --
+            library.clipContext = false
+            library.clipPage = nil
+            --
             window:Watermark()
             window:KeybindsList()
             window:StatusList()
@@ -2674,7 +2716,10 @@ do
         --
         local window = self
         --
-        local page = {open = false, sections = {}, sectionOffset = {left = 0, right = 0}, window = window}
+        local page = {open = false, sections = {}, sectionOffset = {left = 0, right = 0}, scroll = 0, scrollMax = 0, window = window}
+        --
+        library.clipContext = true
+        library.clipPage = page
         --
         local position = 4
         --
@@ -2747,14 +2792,29 @@ do
             page.sectionOffset["left"] = 0
             page.sectionOffset["right"] = 0
             --
+            local positions = {}
+            --
             for i,v in pairs(page.sections) do
                 if v.side then
-                    utility:UpdateOffset(v.section_inline, {Vector2.new(v.side == "right" and (window.tab_frame.Size.X/2)+2 or 5,5 + page["sectionOffset"][v.side]), window.tab_frame})
+                    positions[v] = page.sectionOffset[v.side]
                     v:Update(page.sectionOffset[v.side] + 10)
                     page.sectionOffset[v.side] = page.sectionOffset[v.side] + v.section_inline.Size.Y + 5
                 else
-                    page.sectionOffset["left"] = page.sectionOffset["left"] + v["playerList_inline"].Size.Y + 5
-                    page.sectionOffset["right"] = page.sectionOffset["right"] + v["playerList_inline"].Size.Y + 5
+                    positions[v] = page.sectionOffset["left"]
+                    local height = v["playerList_inline"].Size.Y + 5
+                    page.sectionOffset["left"] = page.sectionOffset["left"] + height
+                    page.sectionOffset["right"] = page.sectionOffset["right"] + height
+                end
+            end
+            --
+            page.scrollMax = math.max(0, (math.max(page.sectionOffset["left"], page.sectionOffset["right"]) + 4) - window.tab_frame.Size.Y)
+            page.scroll = math.clamp(page.scroll, 0, page.scrollMax)
+            --
+            for i,v in pairs(page.sections) do
+                if v.side then
+                    utility:UpdateOffset(v.section_inline, {Vector2.new(v.side == "right" and (window.tab_frame.Size.X/2)+2 or 5, 5 + positions[v] - page.scroll), window.tab_frame})
+                else
+                    utility:UpdateOffset(v["playerList_inline"], {Vector2.new(5, 5 + positions[v] - page.scroll), window.tab_frame})
                 end
             end
             --
@@ -2787,6 +2847,7 @@ do
             end
             --
             window.currentPage = page
+            page.scroll = 0
             page_button_color.Size = utility:Size(1, -2, 1, 0, page_button_inline)
             page_button_color.Color = theme.lightcontrast
             page_button_title.Color = theme.textcolor
@@ -2808,7 +2869,7 @@ do
             end
             --
             window.callback(name, window.currentPage)
-            window:Move(window.main_frame.Position)
+            page:Update()
         end
         --
         library.began[#library.began + 1] = function(Input)
@@ -2816,6 +2877,30 @@ do
                 page:Show()
             end
         end
+        --
+        utility:Connection(mouse.WheelForward, function()
+            if not window.isVisible or window.currentPage ~= page or not page.open or page.scrollMax <= 0 or window.dragging then return end
+            if window:IsOverContent() then return end
+            --
+            local tab = window.tab_frame
+            --
+            if utility:MouseOverDrawing({tab.Position.X, tab.Position.Y, tab.Position.X + tab.Size.X, tab.Position.Y + tab.Size.Y}) then
+                page.scroll = math.clamp(page.scroll - 24, 0, page.scrollMax)
+                page:Update()
+            end
+        end)
+        --
+        utility:Connection(mouse.WheelBackward, function()
+            if not window.isVisible or window.currentPage ~= page or not page.open or page.scrollMax <= 0 or window.dragging then return end
+            if window:IsOverContent() then return end
+            --
+            local tab = window.tab_frame
+            --
+            if utility:MouseOverDrawing({tab.Position.X, tab.Position.Y, tab.Position.X + tab.Size.X, tab.Position.Y + tab.Size.Y}) then
+                page.scroll = math.clamp(page.scroll + 24, 0, page.scrollMax)
+                page:Update()
+            end
+        end)
         --
         return setmetatable(page, pages)
     end
@@ -4513,7 +4598,7 @@ do
             local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
             --
             local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(54+4),keybind.axis), section.section_frame}, {
-                Size = utility:Size(0, 40, 0, 17),
+                Size = utility:Size(0, 54, 0, 17),
                 Position = utility:Position(1, -(54+4), 0, keybind.axis, section.section_frame),
                 Color = theme.outline,
                 Visible = page.open
@@ -4552,32 +4637,54 @@ do
                 Visible = page.open
             }, section.visibleContent)
             --
-            local keybind_value = utility:Create("TextLabel", {Vector2.new((keybind_outline.Size.X/2)-7,1), keybind_outline}, {
+            local keybind_value = utility:Create("TextLabel", {Vector2.new(20,1), keybind_outline}, {
                 Text = "...",
                 Size = theme.textsize,
                 Font = theme.font,
                 Color = theme.textcolor,
                 OutlineColor = theme.textborder, 
                 Center = true,
-                Position = utility:Position(0.5, -7, 0, 1, keybind_outline),
+                Position = utility:Position(0, 20, 0, 1, keybind_outline),
                 Visible = page.open
             }, section.visibleContent);keybind["keybind_value"] = keybind_value
-        --
-        local keybind_clear = utility:Create("TextLabel", {Vector2.new(keybind_outline.Size.X + 8, 1), keybind_outline}, {
-            Text = "x",
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textdark,
-            OutlineColor = theme.textborder,
-            Center = true,
-            Position = utility:Position(1, 8, 0, 1, keybind_outline),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_clear] = {
-            OutlineColor = "textborder",
-            Color = "textdark"
-        }
+            --
+            local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X - 13, 2), keybind_inline}, {
+                Size = utility:Size(0, 11, 0, 13, keybind_inline),
+                Position = utility:Position(1, -13, 0, 2, keybind_inline),
+                Color = theme.outline,
+                Visible = page.open
+            }, section.visibleContent)
+            --
+            library.colors[keybind_clear] = {
+                Color = "outline"
+            }
+            --
+            local keybind_clear_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_clear}, {
+                Size = utility:Size(1, -2, 1, -2, keybind_clear),
+                Position = utility:Position(0, 1, 0, 1, keybind_clear),
+                Color = theme.darkcontrast,
+                Visible = page.open
+            }, section.visibleContent)
+            --
+            library.colors[keybind_clear_inline] = {
+                Color = "darkcontrast"
+            }
+            --
+            local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(5, 6), keybind_clear_inline}, {
+                Text = "x",
+                Size = theme.textsize,
+                Font = theme.font,
+                Color = theme.textdark,
+                OutlineColor = theme.textborder,
+                Center = true,
+                Position = utility:Position(0.5, 0, 0.5, 0, keybind_clear_inline),
+                Visible = page.open
+            }, section.visibleContent)
+            --
+            library.colors[keybind_clear_title] = {
+                OutlineColor = "textborder",
+                Color = "textdark"
+            }
             --
             library.colors[keybind_value] = {
                 OutlineColor = "textborder",
@@ -4672,18 +4779,30 @@ do
             end
             --
             function keybind:Clear()
+                local old = {keybind.current[1], keybind.current[2]}
+                --
                 keybind.current = {}
                 keybind.active = false
                 keybind.selecting = false
                 keybind_value.Text = "..."
+                keybind_frame.Color = theme.lightcontrast
+                --
+                library.colors[keybind_frame] = {
+                    Color = "lightcontrast"
+                }
+                --
                 window.keybindslist:Remove(keybindname or name)
+                --
+                if old[1] and old[2] then
+                    pcall(callback, Enum[old[1]][old[2]], false)
+                end
             end
             --
             keybind:Change(def)
             --
             library.began[#library.began + 1] = function(Input)
                 if keybind.current[1] and keybind.current[2] then
-                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and not library.mouseBindsOpen and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
+                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not window:IsMouseBlocked(Input) then
                         if keybind.mode == "On Hold" then
                             local old = keybind.active
                             keybind.active = toggle:Get()
@@ -4730,17 +4849,15 @@ do
                 end
                 --
                 if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and keybind_outline.Visible then
-                    if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                        if utility:MouseOverDrawing({keybind_clear.Position.X - 7, keybind_clear.Position.Y - 2, keybind_clear.Position.X + 7, keybind_clear.Position.Y + 15}) then
-                            keybind:Clear()
-                        else
-                            keybind.selecting = true
-                            keybind_frame.Color = theme.darkcontrast
-                            --
-                            library.colors[keybind_frame] = {
-                                Color = "darkcontrast"
-                            }
-                        end
+                    if utility:MouseOverDrawing({keybind_clear.Position.X - 1, keybind_clear.Position.Y - 1, keybind_clear.Position.X + keybind_clear.Size.X + 1, keybind_clear.Position.Y + keybind_clear.Size.Y + 1}) then
+                        keybind:Clear()
+                    elseif utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
+                        keybind.selecting = true
+                        keybind_frame.Color = theme.darkcontrast
+                        --
+                        library.colors[keybind_frame] = {
+                            Color = "darkcontrast"
+                        }
                     end
                     if keybind.open and keybind.modemenu.frame then
                         if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y, keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + keybind.modemenu.frame.Size.Y}) then
@@ -4845,7 +4962,7 @@ do
             library.ended[#library.ended + 1] = function(Input)
                 if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
                     if keybind.current[1] and keybind.current[2] then
-                        if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and not library.mouseBindsOpen and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
+                        if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) then
                             if keybind.mode == "On Hold" and keybind.active then
                                 keybind.active = false
                                 window.keybindslist:Remove(keybindname or name)
@@ -6090,7 +6207,7 @@ do
         local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
         --
         local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(54+4),keybind.axis), section.section_frame}, {
-            Size = utility:Size(0, 40, 0, 17),
+            Size = utility:Size(0, 54, 0, 17),
             Position = utility:Position(1, -(54+4), 0, keybind.axis, section.section_frame),
             Color = theme.outline,
             Visible = page.open
@@ -6144,29 +6261,51 @@ do
             Visible = page.open
         }, section.visibleContent)
         --
-        local keybind_value = utility:Create("TextLabel", {Vector2.new((keybind_outline.Size.X/2)-7,1), keybind_outline}, {
+        local keybind_value = utility:Create("TextLabel", {Vector2.new(20,1), keybind_outline}, {
             Text = "...",
             Size = theme.textsize,
             Font = theme.font,
             Color = theme.textcolor,
             OutlineColor = theme.textborder, 
             Center = true,
-            Position = utility:Position(0.5, -7, 0, 1, keybind_outline),
+            Position = utility:Position(0, 20, 0, 1, keybind_outline),
             Visible = page.open
         }, section.visibleContent);keybind["keybind_value"] = keybind_value
         --
-        local keybind_clear = utility:Create("TextLabel", {Vector2.new(keybind_outline.Size.X + 8, 1), keybind_outline}, {
+        local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X - 13, 2), keybind_inline}, {
+            Size = utility:Size(0, 11, 0, 13, keybind_inline),
+            Position = utility:Position(1, -13, 0, 2, keybind_inline),
+            Color = theme.outline,
+            Visible = page.open
+        }, section.visibleContent)
+        --
+        library.colors[keybind_clear] = {
+            Color = "outline"
+        }
+        --
+        local keybind_clear_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_clear}, {
+            Size = utility:Size(1, -2, 1, -2, keybind_clear),
+            Position = utility:Position(0, 1, 0, 1, keybind_clear),
+            Color = theme.darkcontrast,
+            Visible = page.open
+        }, section.visibleContent)
+        --
+        library.colors[keybind_clear_inline] = {
+            Color = "darkcontrast"
+        }
+        --
+        local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(5, 6), keybind_clear_inline}, {
             Text = "x",
             Size = theme.textsize,
             Font = theme.font,
             Color = theme.textdark,
             OutlineColor = theme.textborder,
             Center = true,
-            Position = utility:Position(1, 8, 0, 1, keybind_outline),
+            Position = utility:Position(0.5, 0, 0.5, 0, keybind_clear_inline),
             Visible = page.open
         }, section.visibleContent)
         --
-        library.colors[keybind_clear] = {
+        library.colors[keybind_clear_title] = {
             OutlineColor = "textborder",
             Color = "textdark"
         }
@@ -6264,11 +6403,46 @@ do
             end
         end
         --
+        function keybind:Clear()
+            local old = {keybind.current[1], keybind.current[2]}
+            --
+            keybind.current = {}
+            keybind.active = false
+            keybind.selecting = false
+            keybind_value.Text = "..."
+            keybind_frame.Color = theme.lightcontrast
+            --
+            library.colors[keybind_frame] = {
+                Color = "lightcontrast"
+            }
+            --
+            if keybind.open then
+                keybind.open = false
+                --
+                for i,v in pairs(keybind.modemenu.drawings) do
+                    utility:Remove(v)
+                end
+                --
+                keybind.modemenu.drawings = {}
+                keybind.modemenu.buttons = {}
+                keybind.modemenu.frame = nil
+                --
+                window.currentContent.frame = nil
+                window.currentContent.keybind = nil
+            end
+            --
+            window.keybindslist:Remove(keybindname or name)
+            --
+            if old[1] and old[2] then
+                pcall(callback, Enum[old[1]][old[2]], false)
+            end
+        end
+        --
         keybind:Change(def)
         --
         library.began[#library.began + 1] = function(Input)
             if keybind.current[1] and keybind.current[2] then
-                if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and not library.mouseBindsOpen and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
+                if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not window:IsMouseBlocked(Input) then
                     if keybind.mode == "On Hold" then
                         keybind.active = true
                         if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
@@ -6316,7 +6490,9 @@ do
             end
             --
             if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and keybind_outline.Visible then
-                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
+                if utility:MouseOverDrawing({keybind_clear.Position.X - 1, keybind_clear.Position.Y - 1, keybind_clear.Position.X + keybind_clear.Size.X + 1, keybind_clear.Position.Y + keybind_clear.Size.Y + 1}) then
+                    keybind:Clear()
+                elseif utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
                     keybind.selecting = true
                     keybind_frame.Color = theme.darkcontrast
                     --
@@ -6437,7 +6613,7 @@ do
         library.ended[#library.ended + 1] = function(Input)
             if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
                 if keybind.current[1] and keybind.current[2] then
-                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not (keybind.current[1] == "UserInputType" and window.isVisible and not library.mouseBindsOpen and utility:MouseOverDrawing({window.main_frame.Position.X, window.main_frame.Position.Y, window.main_frame.Position.X + window.main_frame.Size.X, window.main_frame.Position.Y + window.main_frame.Size.Y})) then
+                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) then
                         if keybind.mode == "On Hold" then
                             if keybind.active then
                                 keybind.active = false
