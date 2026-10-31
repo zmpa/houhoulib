@@ -77,6 +77,31 @@ local theme = {
     font = 2,
     textsize = 13
 }
+--
+-- // page clipping + keybind glyph helpers
+local function GetPageOf(drawing)
+    local node = drawing
+    local depth = 0
+    --
+    while node and depth < 32 do
+        local owner = library.sectionOwner[node]
+        if owner then return owner end
+        node = library.parentOf[node]
+        depth = depth + 1
+    end
+    --
+    return nil
+end
+--
+-- returns the x / y offset that centres the keybind "x" glyph inside its box
+local function ClearGlyphOffset(box)
+    local size = theme.textsize - 2
+    local bounds = utility:GetTextBounds("x", size, theme.font)
+    local height = bounds.Y > 0 and bounds.Y or size
+    --
+    -- the -1 nudges the lowercase x up to sit on the visual middle; change it if you want it higher/lower
+    return math.ceil(box.Size.X / 2), math.floor((box.Size.Y - height) / 2) - 1
+end
 -- // utility Functions
 do
     function utility:Size(xScale,xOffset,yScale,yOffset,instance)
@@ -583,20 +608,6 @@ do
         return utility:MouseOverDrawing({self.main_frame.Position.X, self.main_frame.Position.Y, self.main_frame.Position.X + self.main_frame.Size.X, self.main_frame.Position.Y + self.main_frame.Size.Y})
     end
     --
-    function library:GetPageOf(drawing)
-        local node = drawing
-        local depth = 0
-        --
-        while node and depth < 10 do
-            local owner = library.sectionOwner[node]
-            if owner then return owner end
-            node = library.parentOf[node]
-            depth = depth + 1
-        end
-        --
-        return nil
-    end
-    --
     function library:Loader(info)
 		local info = info or {}
         local name = info.name or info.Name or info.title or info.Title or "UI Title"
@@ -810,7 +821,7 @@ do
                         v[1].Position = utility:Position(0, vector.X, 0, vector.Y)
                     end
                     --
-                    local owner = window:GetPageOf(v[1])
+                    local owner = GetPageOf(v[1])
                     if owner then
                         local drawY = v[1].Position.Y
                         v[1].Visible = page ~= nil and page.open and owner == page and drawY >= top - 2 and drawY <= bottom
@@ -1827,7 +1838,7 @@ do
                         v[1].Position = utility:Position(0, vector.X, 0, vector.Y)
                     end
                     --
-                    local owner = window:GetPageOf(v[1])
+                    local owner = GetPageOf(v[1])
                     if owner then
                         local drawY = v[1].Position.Y
                         v[1].Visible = page ~= nil and page.open and owner == page and drawY >= top - 2 and drawY <= bottom
@@ -2897,7 +2908,7 @@ do
             local tab = window.tab_frame
             --
             if utility:MouseOverDrawing({tab.Position.X, tab.Position.Y, tab.Position.X + tab.Size.X, tab.Position.Y + tab.Size.Y}) then
-                page.scroll = math.clamp(page.scroll - 24, 0, page.scrollMax)
+                page.scroll = math.clamp(page.scroll - 32, 0, page.scrollMax)
                 page:Update()
             end
         end)
@@ -2909,7 +2920,7 @@ do
             local tab = window.tab_frame
             --
             if utility:MouseOverDrawing({tab.Position.X, tab.Position.Y, tab.Position.X + tab.Size.X, tab.Position.Y + tab.Size.Y}) then
-                page.scroll = math.clamp(page.scroll + 24, 0, page.scrollMax)
+                page.scroll = math.clamp(page.scroll + 32, 0, page.scrollMax)
                 page:Update()
             end
         end)
@@ -2926,10 +2937,10 @@ do
         local side = window.loader and "left" or (info.side or info.Side or "left")
         side = side:lower()
         local page = self
-        local section = {window = window, page = page, visibleContent = {}, currentAxis = 20, side = side}
+        local section = {window = window, page = page, visibleContent = {}, currentAxis = 26, side = side}
         --
         local section_inline = utility:Create("Frame", {Vector2.new(side == "right" and (window.tab_frame.Size.X/2)+2 or 5,5 + page["sectionOffset"][side]), window.tab_frame}, {
-            Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, size or 22, window.tab_frame),
+            Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, size or 30, window.tab_frame),
             Position = utility:Position(side == "right" and 0.5 or 0, side == "right" and 2 or 5, 0, 5 + page.sectionOffset[side], window.tab_frame),
             Color = theme.inline,
             Visible = page.open
@@ -2990,7 +3001,7 @@ do
         }
         --
         function section:Update(Padding)
-            section_inline.Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or (size or (section.currentAxis+4)), window.tab_frame)
+            section_inline.Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or (size or (section.currentAxis+10)), window.tab_frame)
             section_outline.Size = utility:Size(1, -2, 1, -2, section_inline)
             section_frame.Size = utility:Size(1, -2, 1, -2, section_outline)
         end
@@ -3093,7 +3104,7 @@ do
         --
         for i,v in pairs(msections) do
             local msectionName = v
-            local msection = {window = window, page = page, currentAxis = 24, sections = {}, visibleContent = {}, section_inline = multiSection_inline, section_outline = multiSection_outline, section_frame = multiSection_frame, section_accent = multiSection_accent}
+            local msection = {window = window, page = page, currentAxis = 30, sections = {}, visibleContent = {}, section_inline = multiSection_inline, section_outline = multiSection_outline, section_frame = multiSection_frame, section_accent = multiSection_accent}
             --
             local textBounds = utility:GetTextBounds(v, theme.textsize, theme.font)
             --
@@ -3220,7 +3231,7 @@ do
         local window = self.window
         local page = self
         --
-        local playerList = {window = window, page = page, visibleContent = {}, buttons = {}, currentAxis = 20, scrollingindex = 0, scrolling = {false, nil}, items = {}, players = {}}
+        local playerList = {window = window, page = page, visibleContent = {}, buttons = {}, currentAxis = 26, scrollingindex = 0, scrolling = {false, nil}, items = {}, players = {}}
         --
         local playerList_inline = utility:Create("Frame", {Vector2.new(5,5), window.tab_frame}, {
             Size = utility:Size(1, -10, 0, ((10 * 22) + 4) + 20 + 60 + 12, window.tab_frame),
@@ -4013,7 +4024,7 @@ do
             library.pointers[tostring(pointer)] = label
         end
         --
-        section.currentAxis = section.currentAxis + label_title.TextBounds.Y + 4
+        section.currentAxis = section.currentAxis + label_title.TextBounds.Y + 10
         --
         return label
     end
@@ -4147,7 +4158,7 @@ do
             library.pointers[tostring(pointer)] = toggle
         end
         --
-        section.currentAxis = section.currentAxis + 15 + 4
+        section.currentAxis = section.currentAxis + 15 + 9
         --
         function toggle:Colorpicker(info)
             local info = info or {}
@@ -4666,8 +4677,8 @@ do
                 Visible = page.open
             }, section.visibleContent);keybind["keybind_value"] = keybind_value
             --
-            local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X - 13, 2), keybind_inline}, {
-                Size = utility:Size(0, 11, 0, 13, keybind_inline),
+            local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_inline.Size.X - 13, 2), keybind_inline}, {
+                Size = utility:Size(0, 11, 0, 11, keybind_inline),
                 Position = utility:Position(1, -13, 0, 2, keybind_inline),
                 Color = theme.outline,
                 Visible = page.open
@@ -4688,14 +4699,15 @@ do
                 Color = "darkcontrast"
             }
             --
-            local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(5, 6), keybind_clear_inline}, {
+            local keybind_clear_glyph_x, keybind_clear_glyph_y = ClearGlyphOffset(keybind_clear_inline)
+            local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(keybind_clear_glyph_x, keybind_clear_glyph_y), keybind_clear_inline}, {
                 Text = "x",
-                Size = theme.textsize,
+                Size = theme.textsize - 2,
                 Font = theme.font,
                 Color = theme.textdark,
                 OutlineColor = theme.textborder,
                 Center = true,
-                Position = utility:Position(0.5, 0, 0.5, 0, keybind_clear_inline),
+                Position = utility:Position(0, keybind_clear_glyph_x, 0, keybind_clear_glyph_y, keybind_clear_inline),
                 Visible = page.open
             }, section.visibleContent)
             --
@@ -5165,7 +5177,7 @@ do
             library.pointers[tostring(pointer)] = slider
         end
         --
-        section.currentAxis = section.currentAxis + (name and 29 or 14) + 4
+        section.currentAxis = section.currentAxis + (name and 29 or 14) + 9
         --
         return slider
     end
@@ -5262,7 +5274,7 @@ do
             library.pointers[tostring(pointer)] = button
         end
         --
-        section.currentAxis = section.currentAxis + 20 + 4
+        section.currentAxis = section.currentAxis + 20 + 9
         --
         return button
     end
@@ -5466,7 +5478,7 @@ do
             library.pointers[tostring(pointer)] = textbox
         end
         --
-        section.currentAxis = section.currentAxis + 20 + 4
+        section.currentAxis = section.currentAxis + 20 + 9
         --
         return textbox
     end
@@ -5560,7 +5572,7 @@ do
             end
         end
         --
-        section.currentAxis = section.currentAxis + 20 + 4
+        section.currentAxis = section.currentAxis + 20 + 9
     end
     --
     function sections:Dropdown(info)
@@ -5910,7 +5922,7 @@ do
             library.pointers[tostring(pointer)] = dropdown
         end
         --
-        section.currentAxis = section.currentAxis + (name and 35 or 20) + 4
+        section.currentAxis = section.currentAxis + (name and 35 or 20) + 9
         --
         return dropdown
     end
@@ -6200,7 +6212,7 @@ do
             library.pointers[tostring(pointer)] = multibox
         end
         --
-        section.currentAxis = section.currentAxis + (name and 35 or 20) + 4
+        section.currentAxis = section.currentAxis + (name and 35 or 20) + 9
         --
         return multibox
     end
@@ -6290,8 +6302,8 @@ do
             Visible = page.open
         }, section.visibleContent);keybind["keybind_value"] = keybind_value
         --
-        local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X - 13, 2), keybind_inline}, {
-            Size = utility:Size(0, 11, 0, 13, keybind_inline),
+        local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_inline.Size.X - 13, 2), keybind_inline}, {
+            Size = utility:Size(0, 11, 0, 11, keybind_inline),
             Position = utility:Position(1, -13, 0, 2, keybind_inline),
             Color = theme.outline,
             Visible = page.open
@@ -6312,14 +6324,15 @@ do
             Color = "darkcontrast"
         }
         --
-        local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(5, 6), keybind_clear_inline}, {
+        local keybind_clear_glyph_x, keybind_clear_glyph_y = ClearGlyphOffset(keybind_clear_inline)
+        local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(keybind_clear_glyph_x, keybind_clear_glyph_y), keybind_clear_inline}, {
             Text = "x",
-            Size = theme.textsize,
+            Size = theme.textsize - 2,
             Font = theme.font,
             Color = theme.textdark,
             OutlineColor = theme.textborder,
             Center = true,
-            Position = utility:Position(0.5, 0, 0.5, 0, keybind_clear_inline),
+            Position = utility:Position(0, keybind_clear_glyph_x, 0, keybind_clear_glyph_y, keybind_clear_inline),
             Visible = page.open
         }, section.visibleContent)
         --
@@ -6652,7 +6665,7 @@ do
             library.pointers[tostring(pointer)] = keybind
         end
         --
-        section.currentAxis = section.currentAxis + 17 + 4
+        section.currentAxis = section.currentAxis + 17 + 9
         --
         return keybind
     end
@@ -7119,7 +7132,7 @@ do
             library.pointers[tostring(pointer)] = colorpicker
         end
         --
-        section.currentAxis = section.currentAxis + 15 + 4
+        section.currentAxis = section.currentAxis + 15 + 9
         --
         function colorpicker:Colorpicker(info)
             local info = info or {}
@@ -7761,7 +7774,7 @@ do
         --
         list:UpdateScroll()
         --
-        section.currentAxis = section.currentAxis + ((list.max * 20) + 4) + 4
+        section.currentAxis = section.currentAxis + ((list.max * 20) + 4) + 9
         --
         return list
     end
