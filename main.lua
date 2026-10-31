@@ -583,6 +583,20 @@ do
         return utility:MouseOverDrawing({self.main_frame.Position.X, self.main_frame.Position.Y, self.main_frame.Position.X + self.main_frame.Size.X, self.main_frame.Position.Y + self.main_frame.Size.Y})
     end
     --
+    function library:GetPageOf(drawing)
+        local node = drawing
+        local depth = 0
+        --
+        while node and depth < 10 do
+            local owner = library.sectionOwner[node]
+            if owner then return owner end
+            node = library.parentOf[node]
+            depth = depth + 1
+        end
+        --
+        return nil
+    end
+    --
     function library:Loader(info)
 		local info = info or {}
         local name = info.name or info.Name or info.title or info.Title or "UI Title"
@@ -781,20 +795,7 @@ do
             end
         end
         --
-        function window:GetPageOf(drawing)
-            local node = drawing
-            local depth = 0
-            --
-            while node and depth < 10 do
-                local owner = library.sectionOwner[node]
-                if owner then return owner end
-                node = library.parentOf[node]
-                depth = depth + 1
-            end
-            --
-            return nil
-        end
-        --
+        
         function window:Move(vector)
             local tab = window.tab_frame
             local page = window.currentPage
