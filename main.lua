@@ -270,18 +270,6 @@ do
         end
     end
     --
-    function utility:GetSubPrefix(str)
-        local str = tostring(str):gsub(" ","")
-        local var = ""
-        --
-        if #str == 2 then
-            local sec = string.sub(str,#str,#str+1)
-            var = sec == "1" and "st" or sec == "2" and "nd" or sec == "3" and "rd" or "th"
-        end
-        --
-        return var
-    end
-    --
     function utility:Connection(connectionType, connectionCallback)
         local connection = connectionType:Connect(connectionCallback)
         library.connections[#library.connections + 1] = connection
@@ -881,7 +869,14 @@ do
                 --
                 window.currentContent.frame = nil
                 window.currentContent.keybind = nil
+                library.mouseBindsOpen = false
             elseif window.currentContent.textbox and window.currentContent.textbox.Disconnect then
+                if window.currentContent.textbox.Item.oldenter ~= window.currentContent.textbox.Item.current then
+                    window.currentContent.textbox.Item.oldenter = window.currentContent.textbox.Item.current
+                    task.spawn(function()
+                        window.currentContent.textbox.Item.callback(window.currentContent.textbox.Item.current, true)
+                    end)
+                end
                 window.currentContent.textbox.Disconnect()
                 window.currentContent.textbox = nil
             end
@@ -1926,6 +1921,7 @@ do
                 --
                 window.currentContent.frame = nil
                 window.currentContent.keybind = nil
+                library.mouseBindsOpen = false
             elseif window.currentContent.textbox and window.currentContent.textbox.Disconnect then
                 if window.currentContent.textbox.Item.oldenter ~= window.currentContent.textbox.Item.current then
                     window.currentContent.textbox.Item.oldenter = window.currentContent.textbox.Item.current
@@ -2104,7 +2100,8 @@ do
             utility:Connection(rs.RenderStepped, function(FPS)
                 library.shared.fps = math.floor(1 / math.abs(temp - tick()))
                 temp = tick()
-                library.shared.ping = stats.Network:FindFirstChild("ServerStatsItem") and tostring(math.round(stats.Network.ServerStatsItem["Data Ping"]:GetValue())) or "Unknown"
+                local statsItem = stats.Network:FindFirstChild("ServerStatsItem")
+                library.shared.ping = statsItem and statsItem["Data Ping"] and tostring(math.round(statsItem["Data Ping"]:GetValue())) or "Unknown"
                 --
                 task.spawn(function()
                     if (tick() - Tick) > 0.15 then
@@ -2849,18 +2846,6 @@ do
         --
         window.pages[#window.pages + 1] = page
         --
-        function page:GetTotalYSize(Side)
-            local TotalYSize = 0
-            --
-            for i,v in pairs(page.sections) do
-                if v.side == Side then
-                    TotalYSize = TotalYSize + v.section_inline.Size.Y + 5
-                end
-            end
-            --
-            return TotalYSize
-        end
-        --
         function page:UpdateScrollBar()
             local needed = page.open and window.currentPage == page and page.scrollMax > 0
             scroll_outline.Visible = needed
@@ -3046,7 +3031,7 @@ do
         local section = {window = window, page = page, visibleContent = {}, currentAxis = 20, side = side}
         --
         local section_inline = utility:Create("Frame", {Vector2.new(side == "right" and (window.tab_frame.Size.X/2)+2 or 5,5 + page["sectionOffset"][side]), window.tab_frame}, {
-            Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, size or 22, window.tab_frame),
+            Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or (side == "right" and -15 or -7), 0, size or 22, window.tab_frame),
             Position = utility:Position(side == "right" and 0.5 or 0, side == "right" and 2 or 5, 0, 5 + page.sectionOffset[side], window.tab_frame),
             Color = theme.inline,
             Visible = page.open
@@ -3107,7 +3092,7 @@ do
         }
         --
         function section:Update(Padding)
-            section_inline.Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or (size or (section.currentAxis+4)), window.tab_frame)
+            section_inline.Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or (side == "right" and -15 or -7), 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or (size or (section.currentAxis+4)), window.tab_frame)
             section_outline.Size = utility:Size(1, -2, 1, -2, section_inline)
             section_frame.Size = utility:Size(1, -2, 1, -2, section_outline)
         end
@@ -3132,7 +3117,7 @@ do
         local multiSection = {window = window, page = page, sections = {}, backup = {}, visibleContent = {}, currentSection = nil, side = side}
         --
         local multiSection_inline = utility:Create("Frame", {Vector2.new(side == "right" and (window.tab_frame.Size.X/2)+2 or 5,5 + page["sectionOffset"][side]), window.tab_frame}, {
-            Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, size, window.tab_frame),
+            Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or (side == "right" and -15 or -7), 0, size, window.tab_frame),
             Position = utility:Position(side == "right" and 0.5 or 0, side == "right" and 2 or 5, 0, 5 + page.sectionOffset[side], window.tab_frame),
             Color = theme.inline,
             Visible = page.open
@@ -3200,7 +3185,7 @@ do
         }
         --
         function multiSection:Update(Padding)
-            multiSection_inline.Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or size, window.tab_frame)
+            multiSection_inline.Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or (side == "right" and -15 or -7), 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or size, window.tab_frame)
             multiSection_outline.Size = utility:Size(1, -2, 1, -2, multiSection_inline)
             multiSection_frame.Size = utility:Size(1, -2, 1, -2, multiSection_outline)
             --
@@ -4139,9 +4124,11 @@ do
 
         local owned = {}
 
-        local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X - 58, keybind.axis), section.section_frame}, {
+        local keybindOffset = 58 + (parentToggle and parentToggle.addedAxis or 0)
+
+        local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X - keybindOffset, keybind.axis), section.section_frame}, {
             Size = utility:Size(0, 54, 0, 17),
-            Position = utility:Position(1, -58, 0, keybind.axis, section.section_frame),
+            Position = utility:Position(1, -keybindOffset, 0, keybind.axis, section.section_frame),
             Color = theme.outline,
             Visible = page.open
         }, section.visibleContent)
@@ -4236,7 +4223,10 @@ do
         utility:LoadImage(keybind_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
 
         library.keybinds[#library.keybinds + 1] = keybind
-        if parentToggle then parentToggle.keybind = keybind end
+        if parentToggle then
+            parentToggle.keybind = keybind
+            parentToggle.keybindOffset = keybindOffset
+        end
 
         local function listAdd()
             if window.keybindslist then window.keybindslist:Add(keybindname, keybind_value.Text) end
@@ -4297,7 +4287,7 @@ do
             if type(tbl) ~= "table" or not tbl[1] or not tbl[2] then return end
             keybind.current = { tbl[1], tbl[2] }
             keybind_value.Text = keybind:Shorten(tostring(tbl[2]))
-            if tbl[3] and Find(KEYBIND_MODES, tbl[3]) then keybind.mode = tbl[3] end
+            if tbl[3] and tbl[3] ~= "Remove" and Find(KEYBIND_MODES, tbl[3]) then keybind.mode = tbl[3] end
             keybind:Sync()
         end
 
@@ -4354,6 +4344,10 @@ do
             for _, drawing in pairs(keybind.modemenu.drawings) do
                 pcall(utility.Remove, utility, drawing)
             end
+            keybind.modemenu.drawings = {}
+            keybind.modemenu.buttons = {}
+            keybind.modemenu.frame = nil
+            library.mouseBindsOpen = false
 
             for index = #library.keybinds, 1, -1 do
                 if library.keybinds[index] == keybind then Remove(library.keybinds, index) end
@@ -4455,7 +4449,7 @@ do
                     end
                 end
 
-                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - 60), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() then
+                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - keybindOffset - 56), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + (section.section_frame.Size.X - keybindOffset + 2), section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() then
                     keybind.selecting = true
                     keybind_frame.Color = theme.darkcontrast
                     library.colors[keybind_frame] = { Color = "darkcontrast" }
@@ -4463,9 +4457,10 @@ do
             end
 
             if Input.UserInputType == Enum.UserInputType.MouseButton2 and keybind_outline.Visible then
-                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - 60), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() then
+                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - keybindOffset - 56), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + (section.section_frame.Size.X - keybindOffset + 2), section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() then
                     window:CloseContent()
                     keybind.open = true
+                    library.mouseBindsOpen = true
 
                     local modemenu = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X + 2, 0), keybind_outline}, {
                         Size = utility:Size(0, 68, 0, 79),
@@ -4660,7 +4655,7 @@ do
         }
         --
         library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and toggle_outline.Visible and window.isVisible and page.open and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + toggle.axis, section.section_frame.Position.X + section.section_frame.Size.X - toggle.addedAxis, section.section_frame.Position.Y + toggle.axis + 15}) and not window:IsOverContent() then
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 and toggle_outline.Visible and window.isVisible and page.open and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + toggle.axis, section.section_frame.Position.X + section.section_frame.Size.X - math.max(toggle.addedAxis, (toggle.keybind and toggle.keybindOffset or 0) + 54, toggle.colorpickers > 1 and 98 or (toggle.colorpickers > 0 and 64 or 0)), section.section_frame.Position.Y + toggle.axis + 15}) and not window:IsOverContent() then
                 toggle.current = not toggle.current
                 toggle_frame.Color = toggle.current == true and theme.accent or theme.lightcontrast
                 --
@@ -5617,6 +5612,7 @@ do
         for i=1, 2 do
             local entry = buttons[i] or {"", function() end}
             local button = {axis = section.currentAxis}
+            buttonHolder.buttons[#buttonHolder.buttons + 1] = button
             --
             local button_outline = utility:Create("Frame", {Vector2.new(i == 2 and ((section.section_frame.Size.X / 2) + 2) or 4,button.axis), section.section_frame}, {
                 Size = utility:Size(0.5, -6, 0, 20, section.section_frame),
@@ -7397,7 +7393,6 @@ do
             list.scrollingindex = math.clamp(list.current - 1, 0, math.max(0, #list.options - list.max))
             --
             list:UpdateScroll()
-            list:Refresh()
         end
         --
         library.began[#library.began + 1] = function(Input)
