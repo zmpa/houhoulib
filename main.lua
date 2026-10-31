@@ -1,7783 +1,4842 @@
---[[
-    @gs.cc
-]]
+local startupArgs = ({...})[1] or {}
+
+if getgenv().library ~= nil then
+    getgenv().library:Unload();
+end
+
+if not game:IsLoaded() then
+    game.Loaded:Wait()
+end
+
+local function gs(a)
+    return game:GetService(a)
+end
+
 -- // Variables
-local ws, uis, rs, hs, cas, plrs, stats = game:GetService("Workspace"), game:GetService("UserInputService"), game:GetService("RunService"), game:GetService("HttpService"), game:GetService("ContextActionService"), game:GetService("Players"), game:GetService("Stats")
---
-local localplayer = plrs.LocalPlayer
---
-local mouse = localplayer:GetMouse()
---
-local Remove = table.remove
-local Unpack = table.unpack
-local Find = table.find
--- UI Variables
+local players, http, runservice, inputservice, tweenService, stats, actionservice = gs('Players'), gs('HttpService'), gs('RunService'), gs('UserInputService'), gs('TweenService'), gs('Stats'), gs('ContextActionService')
+local localplayer = players.LocalPlayer
+
+local setByConfig = false
+local floor, ceil, huge, pi, clamp = math.floor, math.ceil, math.huge, math.pi, math.clamp
+local c3new, fromrgb, fromhsv = Color3.new, Color3.fromRGB, Color3.fromHSV
+local next, newInstance, newUDim2, newVector2 = next, Instance.new, UDim2.new, Vector2.new
+local isexecutorclosure = isexecutorclosure or is_synapse_function or is_sirhurt_closure or iskrnlclosure;
+local executor = (
+    syn and 'syn' or
+    getexecutorname and getexecutorname() or
+    'unknown'
+)
+
 local library = {
-    drawings = {},
-    objects = {},
-    hidden = {},
-    connections = {},
-    pointers = {},
-    keybinds = {},
-    mouseBindsOpen = false,
-    clipContext = false,
-    clipPage = nil,
-    parentOf = {},
-    sectionOwner = {},
-    began = {},
-    ended = {},
-    changed = {},
-    colors = {},
-    hovers = {},
-    Relations = {},
-    folders = {
-        main = "Atlanta",
-        assets = "Atlanta/Images",
-        configs = "Atlanta/Configs"
+    windows = {};
+    indicators = {};
+    flags = {};
+    options = {};
+    connections = {};
+    drawings = {};
+    instances = {};
+    utility = {};
+    notifications = {};
+    tweens = {};
+    theme = {};
+    zindexOrder = {
+        ['indicator'] = 950;
+        ['window'] = 1000;
+        ['dropdown'] = 1200;
+        ['colorpicker'] = 1100;
+        ['watermark'] = 1300;
+        ['notification'] = 1400;
+        ['cursor'] = 1500;
     },
-    shared = {
-        initialized = false,
-        fps = 0,
-        ping = 0
-    }
+    stats = {
+        ['fps'] = 0;
+        ['ping'] = 0;
+    };
+    images = {
+        ['gradientp90'] = 'https://raw.githubusercontent.com/portallol/luna/main/modules/gradient90.png';
+        ['gradientp45'] = 'https://raw.githubusercontent.com/portallol/luna/main/modules/gradient45.png';
+        ['colorhue'] = 'https://raw.githubusercontent.com/portallol/luna/main/modules/lgbtqshit.png';
+        ['colortrans'] = 'https://raw.githubusercontent.com/portallol/luna/main/modules/trans.png';
+    };
+    numberStrings = {['Zero'] = 0, ['One'] = 1, ['Two'] = 2, ['Three'] = 3, ['Four'] = 4, ['Five'] = 5, ['Six'] = 6, ['Seven'] = 7, ['Eight'] = 8, ['Nine'] = 9};
+    signal = loadstring(game:HttpGet('https://raw.githubusercontent.com/Quenty/NevermoreEngine/main/src/signal/src/Shared/Signal.lua'))();
+    open = false;
+    opening = false;
+    hasInit = false;
+    cheatname = startupArgs.cheatname or 'Clanware';
+    gamename = startupArgs.gamename or 'Universal';
+    fileext = startupArgs.fileext or '.txt';
 }
---
-local utility = {
-    Keyboard = {
-        Letters = {
-            "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"
-        },
-        Modifiers = {
-            ["`"] = "~", ["1"] = "!", ["2"] = "@", ["3"] = "#", ["4"] = "$", ["5"] = "%", ["6"] = "^", ["7"] = "&", ["8"] = "*", ["9"] = "(",
-            ["0"] = ")", ["-"] = "_", ["="] = "+", ["["] = "{", ["]"] = "}", ["\\"] = "|", [";"] = ":", ["'"] = '"', [","] = "<", ["."] = ".",
-            ["/"] = "?"
-        },
-        InputNames = {
-            One = "1", Two = "2", Three = "3", Four = "4", Five = "5", Six = "6", Seven = "7", Eight = "8", Nine = "9", Zero = "0",
-            LeftBracket = "[", RightBracket = "]", Semicolon = ";", BackSlash = "\\", Slash = "/", Minus = "-", Equals = "=", Return = "Enter",
-            Backquote = "`", CapsLock = "Caps", LeftShift = "LShift", RightShift = "RShift", LeftControl = "LCtrl", RightControl = "RCtrl",
-            LeftAlt = "LAlt", RightAlt = "RAlt", Backspace = "Back", Plus = "+", PageUp = "PgUp", PageDown = "PgDown", Delete = "Del",
-            Insert = "Ins", NumLock = "NumL", Comma = ",", Period = "."
+
+library.themes = {
+    {
+        name = 'Default',
+        theme = {
+            ['Accent']                    = fromrgb(124,97,196);
+            ['Background']                = fromrgb(17,17,17);
+            ['Border']                    = fromrgb(0,0,0);
+            ['Border 1']                  = fromrgb(47,47,47);
+            ['Border 2']                  = fromrgb(17,17,17);
+            ['Border 3']                  = fromrgb(10,10,10);
+            ['Primary Text']              = fromrgb(235,235,235);
+            ['Group Background']          = fromrgb(17,17,17);
+            ['Selected Tab Background']   = fromrgb(17,17,17);
+            ['Unselected Tab Background'] = fromrgb(17,17,17);
+            ['Selected Tab Text']         = fromrgb(245,245,245);
+            ['Unselected Tab Text']       = fromrgb(145,145,145);
+            ['Section Background']        = fromrgb(17,17,17);
+            ['Option Text 1']             = fromrgb(245,245,245);
+            ['Option Text 2']             = fromrgb(195,195,195);
+            ['Option Text 3']             = fromrgb(145,145,145);
+            ['Option Border 1']           = fromrgb(47,47,47);
+            ['Option Border 2']           = fromrgb(0,0,0);
+            ['Option Background']         = fromrgb(35,35,35);
+            ["Risky Text"]                = fromrgb(175, 21, 21);
+            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
+        }
+    },
+    {
+        name = 'Midnight',
+        theme = {
+            ['Accent']                    = fromrgb(103,89,179);
+            ['Background']                = fromrgb(22,22,31);
+            ['Border']                    = fromrgb(0,0,0);
+            ['Border 1']                  = fromrgb(50,50,50);
+            ['Border 2']                  = fromrgb(24,25,37);
+            ['Border 3']                  = fromrgb(10,10,10);
+            ['Primary Text']              = fromrgb(235,235,235);
+            ['Group Background']          = fromrgb(24,25,37);
+            ['Selected Tab Background']   = fromrgb(24,25,37);
+            ['Unselected Tab Background'] = fromrgb(22,22,31);
+            ['Selected Tab Text']         = fromrgb(245,245,245);
+            ['Unselected Tab Text']       = fromrgb(145,145,145);
+            ['Section Background']        = fromrgb(22,22,31);
+            ['Option Text 1']             = fromrgb(245,245,245);
+            ['Option Text 2']             = fromrgb(195,195,195);
+            ['Option Text 3']             = fromrgb(145,145,145);
+            ['Option Border 1']           = fromrgb(50,50,50);
+            ['Option Border 2']           = fromrgb(0,0,0);
+            ['Option Background']         = fromrgb(24,25,37);
+            ["Risky Text"]                = fromrgb(175, 21, 21);
+            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
+        }
+    },
+    {
+        name = 'Nekocheat',
+        theme = {
+            ["Accent"]                    = fromrgb(226, 30, 112);
+            ["Background"]                = fromrgb(18,18,18);
+            ["Border"]                    = fromrgb(0,0,0);
+            ["Border 1"]                  = fromrgb(60,60,60);
+            ["Border 2"]                  = fromrgb(18,18,18);
+            ["Border 3"]                  = fromrgb(10,10,10);
+            ["Primary Text"]              = fromrgb(255,255,255);
+            ["Group Background"]          = fromrgb(18,18,18);
+            ["Selected Tab Background"]   = fromrgb(18,18,18);
+            ["Unselected Tab Background"] = fromrgb(18,18,18);
+            ["Selected Tab Text"]         = fromrgb(245,245,245);
+            ["Unselected Tab Text"]       = fromrgb(145,145,145);
+            ["Section Background"]        = fromrgb(18,18,18);
+            ["Option Text 1"]             = fromrgb(255,255,255);
+            ["Option Text 2"]             = fromrgb(255,255,255);
+            ["Option Text 3"]             = fromrgb(255,255,255);
+            ["Option Border 1"]           = fromrgb(50,50,50);
+            ["Option Border 2"]           = fromrgb(0,0,0);
+            ["Option Background"]         = fromrgb(23,23,23);
+            ["Risky Text"]                = fromrgb(175, 21, 21);
+            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
+        }
+    },
+    {
+        name = 'Nekocheat Blue',
+        theme = {
+            ["Accent"]                    = fromrgb(0, 247, 255);
+            ["Background"]                = fromrgb(18,18,18);
+            ["Border"]                    = fromrgb(0,0,0);
+            ["Border 1"]                  = fromrgb(60,60,60);
+            ["Border 2"]                  = fromrgb(18,18,18);
+            ["Border 3"]                  = fromrgb(10,10,10);
+            ["Primary Text"]              = fromrgb(255,255,255);
+            ["Group Background"]          = fromrgb(18,18,18);
+            ["Selected Tab Background"]   = fromrgb(18,18,18);
+            ["Unselected Tab Background"] = fromrgb(18,18,18);
+            ["Selected Tab Text"]         = fromrgb(245,245,245);
+            ["Unselected Tab Text"]       = fromrgb(145,145,145);
+            ["Section Background"]        = fromrgb(18,18,18);
+            ["Option Text 1"]             = fromrgb(255,255,255);
+            ["Option Text 2"]             = fromrgb(255,255,255);
+            ["Option Text 3"]             = fromrgb(255,255,255);
+            ["Option Border 1"]           = fromrgb(50,50,50);
+            ["Option Border 2"]           = fromrgb(0,0,0);
+            ["Option Background"]         = fromrgb(23,23,23);
+            ["Risky Text"]                = fromrgb(175, 21, 21);
+            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
+        }
+    },
+    {
+        name = 'Fatality',
+        theme = {
+            ['Accent']                    = fromrgb(197,7,83);
+            ['Background']                = fromrgb(25,19,53);
+            ['Border']                    = fromrgb(0,0,0);
+            ['Border 1']                  = fromrgb(60,53,93);
+            ['Border 2']                  = fromrgb(29,23,66);
+            ['Border 3']                  = fromrgb(10,10,10);
+            ['Primary Text']              = fromrgb(235,235,235);
+            ['Group Background']          = fromrgb(29,23,66);
+            ['Selected Tab Background']   = fromrgb(29,23,66);
+            ['Unselected Tab Background'] = fromrgb(25,19,53);
+            ['Selected Tab Text']         = fromrgb(245,245,245);
+            ['Unselected Tab Text']       = fromrgb(145,145,145);
+            ['Section Background']        = fromrgb(25,19,53);
+            ['Option Text 1']             = fromrgb(245,245,245);
+            ['Option Text 2']             = fromrgb(195,195,195);
+            ['Option Text 3']             = fromrgb(145,145,145);
+            ['Option Border 1']           = fromrgb(60,53,93);
+            ['Option Border 2']           = fromrgb(0,0,0);
+            ['Option Background']         = fromrgb(29,23,66);
+            ["Risky Text"]                = fromrgb(175, 21, 21);
+            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
+        }
+    },
+    {
+        name = 'Gamesense',
+        theme = {
+            ['Accent']                    = fromrgb(147,184,26);
+            ['Background']                = fromrgb(17,17,17);
+            ['Border']                    = fromrgb(0,0,0);
+            ['Border 1']                  = fromrgb(47,47,47);
+            ['Border 2']                  = fromrgb(17,17,17);
+            ['Border 3']                  = fromrgb(10,10,10);
+            ['Primary Text']              = fromrgb(235,235,235);
+            ['Group Background']          = fromrgb(17,17,17);
+            ['Selected Tab Background']   = fromrgb(17,17,17);
+            ['Unselected Tab Background'] = fromrgb(17,17,17);
+            ['Selected Tab Text']         = fromrgb(245,245,245);
+            ['Unselected Tab Text']       = fromrgb(145,145,145);
+            ['Section Background']        = fromrgb(17,17,17);
+            ['Option Text 1']             = fromrgb(245,245,245);
+            ['Option Text 2']             = fromrgb(195,195,195);
+            ['Option Text 3']             = fromrgb(145,145,145);
+            ['Option Border 1']           = fromrgb(47,47,47);
+            ['Option Border 2']           = fromrgb(0,0,0);
+            ['Option Background']         = fromrgb(35,35,35);
+            ["Risky Text"]                = fromrgb(175, 21, 21);
+            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
+        }
+    },
+    {
+        name = 'Twitch',
+        theme = {
+            ['Accent']                    = fromrgb(169,112,255);
+            ['Background']                = fromrgb(14,14,14);
+            ['Border']                    = fromrgb(0,0,0);
+            ['Border 1']                  = fromrgb(45,45,45);
+            ['Border 2']                  = fromrgb(31,31,35);
+            ['Border 3']                  = fromrgb(10,10,10);
+            ['Primary Text']              = fromrgb(235,235,235);
+            ['Group Background']          = fromrgb(31,31,35);
+            ['Selected Tab Background']   = fromrgb(31,31,35);
+            ['Unselected Tab Background'] = fromrgb(17,17,17);
+            ['Selected Tab Text']         = fromrgb(225,225,225);
+            ['Unselected Tab Text']       = fromrgb(160,170,175);
+            ['Section Background']        = fromrgb(17,17,17);
+            ['Option Text 1']             = fromrgb(245,245,245);
+            ['Option Text 2']             = fromrgb(195,195,195);
+            ['Option Text 3']             = fromrgb(145,145,145);
+            ['Option Border 1']           = fromrgb(45,45,45);
+            ['Option Border 2']           = fromrgb(0,0,0);
+            ['Option Background']         = fromrgb(24,24,27);
+            ["Risky Text"]                = fromrgb(175, 21, 21);
+            ["Risky Text Enabled"]        = fromrgb(255, 41, 41);
         }
     }
 }
-local pages = {}
-local sections = {}
--- Theme Variables
-local theme = {
-    accent = Color3.fromRGB(126, 226, 200),
-    lightcontrast = Color3.fromRGB(28, 40, 42),
-    darkcontrast = Color3.fromRGB(16, 23, 26),
-    outline = Color3.fromRGB(9, 14, 16),
-    inline = Color3.fromRGB(48, 66, 68),
-    textcolor = Color3.fromRGB(235, 250, 245),
-    textdark = Color3.fromRGB(148, 176, 170),
-    textborder = Color3.fromRGB(7, 11, 13),
-    cursoroutline = Color3.fromRGB(10, 16, 18),
-    font = 2,
-    textsize = 13
+
+local blacklistedKeys = {
+    Enum.KeyCode.Unknown,
+    Enum.KeyCode.W,
+    Enum.KeyCode.A,
+    Enum.KeyCode.S,
+    Enum.KeyCode.D,
+    Enum.KeyCode.Slash,
+    Enum.KeyCode.Tab,
+    Enum.KeyCode.Escape
 }
---
--- // page clipping + keybind glyph helpers
-local function GetPageOf(drawing)
-    local node = drawing
-    local depth = 0
-    --
-    while node and depth < 32 do
-        local owner = library.sectionOwner[node]
-        if owner then return owner end
-        node = library.parentOf[node]
-        depth = depth + 1
-    end
-    --
-    return nil
-end
---
--- returns the x / y offset that centres the keybind "x" glyph inside its box
-local function ClearGlyphOffset(box)
-    local size = theme.textsize - 2
-    local bounds = utility:GetTextBounds("x", size, theme.font)
-    local height = bounds.Y > 0 and bounds.Y or size
-    --
-    -- the -1 nudges the lowercase x up to sit on the visual middle; change it if you want it higher/lower
-    return math.ceil(box.Size.X / 2), math.floor((box.Size.Y - height) / 2) - 1
-end
--- // utility Functions
+
+local whitelistedBoxKeys = {
+    Enum.KeyCode.Zero,
+    Enum.KeyCode.One,
+    Enum.KeyCode.Two,
+    Enum.KeyCode.Three,
+    Enum.KeyCode.Four,
+    Enum.KeyCode.Five,
+    Enum.KeyCode.Six,
+    Enum.KeyCode.Seven,
+    Enum.KeyCode.Eight,
+    Enum.KeyCode.Nine
+}
+
+local keyNames = {
+    [Enum.KeyCode.LeftControl] = 'LCTRL';
+    [Enum.KeyCode.RightControl] = 'RCTRL';
+    [Enum.KeyCode.LeftShift] = 'LSHIFT';
+    [Enum.KeyCode.RightShift] = 'RSHIFT';
+    [Enum.UserInputType.MouseButton1] = 'MB1';
+    [Enum.UserInputType.MouseButton2] = 'MB2';
+    [Enum.UserInputType.MouseButton3] = 'MB3';
+}
+
+library.button1down = library.signal.new()
+library.button1up   = library.signal.new()
+library.mousemove   = library.signal.new()
+library.unloaded    = library.signal.new();
+
+local button1down, button1up, mousemove = library.button1down, library.button1up, library.mousemove
+local mb1down = false;
+
+local utility = library.utility
 do
-    function utility:Size(xScale,xOffset,yScale,yOffset,instance)
-        if instance then
-            local x = xScale*instance.Size.x+xOffset
-            local y = yScale*instance.Size.y+yOffset
-            --
-            return Vector2.new(x,y)
-        else
-            local vx,vy = ws.CurrentCamera.ViewportSize.x,ws.CurrentCamera.ViewportSize.y
-            --
-            local x = xScale*vx+xOffset
-            local y = yScale*vy+yOffset
-            --
-            return Vector2.new(x,y)
-        end
+
+    function utility:Connection(signal, func)
+        local c = signal:Connect(func)
+        table.insert(library.connections, c)
+        return c
     end
-    --
-    function utility:Position(xScale,xOffset,yScale,yOffset,instance)
-        if instance then
-            local x = instance.Position.x+xScale*instance.Size.x+xOffset
-            local y = instance.Position.y+yScale*instance.Size.y+yOffset
-            --
-            return Vector2.new(x,y)
-        else
-            local vx,vy = ws.CurrentCamera.ViewportSize.x,ws.CurrentCamera.ViewportSize.y
-            --
-            local x = xScale*vx+xOffset
-            local y = yScale*vy+yOffset
-            --
-            return Vector2.new(x,y)
-        end
-    end
-    --
-	function utility:Create(instanceType, instanceOffset, instanceProperties, instanceParent)
-        local instanceType = instanceType or "Frame"
-        local instanceOffset = instanceOffset or {Vector2.new(0,0)}
-        local instanceProperties = instanceProperties or {}
-        local instanceHidden = false
-        local instance = nil
-        --
-		if instanceType == "Frame" or instanceType == "frame" then
-            local frame = Drawing.new("Square")
-            frame.Visible = true
-            frame.Filled = true
-            frame.Thickness = 0
-            frame.Color = Color3.fromRGB(255,255,255)
-            frame.Size = Vector2.new(100,100)
-            frame.Position = Vector2.new(0,0)
-            frame.ZIndex = 50
-            frame.Transparency = library.shared.initialized and 1 or 0
-            instance = frame
-        elseif instanceType == "TextLabel" or instanceType == "textlabel" then
-            local text = Drawing.new("Text")
-            text.Font = 3
-            text.Visible = true
-            text.Outline = true
-            text.Center = false
-            text.Color = Color3.fromRGB(255,255,255)
-            text.ZIndex = 50
-            text.Transparency = library.shared.initialized and 1 or 0
-            instance = text
-        elseif instanceType == "Triangle" or instanceType == "triangle" then
-            local frame = Drawing.new("Triangle")
-            frame.Visible = true
-            frame.Filled = true
-            frame.Thickness = 0
-            frame.Color = Color3.fromRGB(255,255,255)
-            frame.ZIndex = 50
-            frame.Transparency = library.shared.initialized and 1 or 0
-            instance = frame
-        elseif instanceType == "Image" or instanceType == "image" then
-            local image = Drawing.new("Image")
-            image.Size = Vector2.new(12,19)
-            image.Position = Vector2.new(0,0)
-            image.Visible = true
-            image.ZIndex = 50
-            image.Transparency = library.shared.initialized and 1 or 0
-            instance = image
-        elseif instanceType == "Circle" or instanceType == "circle" then
-            local circle = Drawing.new("Circle")
-            circle.Visible = false
-            circle.Color = Color3.fromRGB(255, 0, 0)
-            circle.Thickness = 1
-            circle.NumSides = 30
-            circle.Filled = true
-            circle.ZIndex = 50
-            circle.Radius = 50
-            circle.Transparency = library.shared.initialized and 1 or 0
-            instance = circle
-        elseif instanceType == "Quad" or instanceType == "quad" then
-            local quad = Drawing.new("Quad")
-            quad.Visible = false
-            quad.Color = Color3.fromRGB(255, 255, 255)
-            quad.Thickness = 1.5
-            quad.ZIndex = 50
-            quad.Filled = false
-            quad.Transparency = library.shared.initialized and 1 or 0
-            instance = quad
-        elseif instanceType == "Line" or instanceType == "line" then
-            local line = Drawing.new("Line")
-            line.Visible = false
-            line.Color = Color3.fromRGB(255, 255, 255)
-            line.Thickness = 1.5
-            line.ZIndex = 50
-            line.Transparency = library.shared.initialized and 1 or 0
-            instance = line
-        end
-        --
-        if instance then
-            for i, v in pairs(instanceProperties) do
-                if i == "Hidden" or i == "hidden" then
-                    instanceHidden = true
-                else
-                    if library.shared.initialized then
-                        instance[i] = v
-                    else
-                        if instanceProperties.Hidden or instanceProperties.hidden then
-                            instance[i] = v
-                        else
-                            if i ~= "Transparency" then
-                                instance[i] = v
-                            end
-                        end
-                    end
-                end
-            end
-            --
-            if not instanceHidden then
-                library.drawings[#library.drawings + 1] = {instance, instanceOffset, instanceProperties["Transparency"] or 1}
-                library.parentOf[instance] = instanceOffset[2]
-            else
-                library.hidden[#library.hidden + 1] = {instance}
-            end
-            --
-            if instanceParent then
-                instanceParent[#instanceParent + 1] = instance
-            end
-            --
-            return instance
-        end
-	end
-    --
-    function utility:Instance(InstanceType, InstanceProperties)
-        local Object = Instance.new(InstanceType)
-        --
-        for Index, Value in pairs(InstanceProperties) do
-            Object[Index] = Value
-        end
-        --
-        library.objects[Object] = true
-        --
-        return Object
-    end
-    --
-    function utility:RemoveInstance(Object)
-        library.objects[Object] = nil
-        Object:Remove()
-    end
-    --
-    function utility:UpdateOffset(instance, instanceOffset)
-        for i,v in pairs(library.drawings) do
-            if v[1] == instance then
-                v[2] = instanceOffset
-            end
-        end
-    end
-    --
-    function utility:UpdateTransparency(instance, instanceTransparency)
-        for i,v in pairs(library.drawings) do
-            if v[1] == instance then
-                v[3] = instanceTransparency
-            end
-        end
-    end
-    --
-    function utility:Remove(instance, hidden)
-        library.colors[instance] = nil
-        --
-        local ind = 0
-        --
-        for i,v in pairs(hidden and library.hidden or library.drawings) do
-            if v[1] == instance then
-                ind = i
-                if hidden then
-                    v[1] = nil
-                else
-                    v[2] = nil
-                    v[1] = nil
-                end
-            end
-        end
-        --
-        if ind ~= 0 then
-            Remove(hidden and library.hidden or library.drawings, ind)
-        end
-        --
-        if instance then
-            library.parentOf[instance] = nil
-            instance:Remove()
-        end
-    end
-    --
-    function utility:GetSubPrefix(str)
-        local str = tostring(str):gsub(" ","")
-        local var = ""
-        --
-        if #str == 2 then
-            local sec = string.sub(str,#str,#str+1)
-            var = sec == "1" and "st" or sec == "2" and "nd" or sec == "3" and "rd" or "th"
-        end
-        --
-        return var
-    end
-    --
-    function utility:Connection(connectionType, connectionCallback)
-        local connection = connectionType:Connect(connectionCallback)
-        library.connections[#library.connections + 1] = connection
-        --
-        return connection
-    end
-    --
-    function utility:Disconnect(connection)
-        for i,v in pairs(library.connections) do
-            if v == connection then
-                library.connections[i] = nil
-                v:Disconnect()
-            end
-        end
-    end
-    --
-    function utility:MouseLocation()
-        return uis:GetMouseLocation()
-    end
-    --
-    function utility:MouseOverDrawing(values, valuesAdd)
-        local valuesAdd = valuesAdd or {}
-        local values = {
-            (values[1] or 0) + (valuesAdd[1] or 0),
-            (values[2] or 0) + (valuesAdd[2] or 0),
-            (values[3] or 0) + (valuesAdd[3] or 0),
-            (values[4] or 0) + (valuesAdd[4] or 0)
-        }
-        --
-        local mouseLocation = utility:MouseLocation()
-	    return (mouseLocation.x >= values[1] and mouseLocation.x <= (values[1] + (values[3] - values[1]))) and (mouseLocation.y >= values[2] and mouseLocation.y <= (values[2] + (values[4] - values[2])))
-    end
-    --
-    function utility:GetTextBounds(text, textSize, font)
-        local textbounds = Vector2.new(0, 0)
-        --
-        local textlabel = utility:Create("TextLabel", {Vector2.new(0, 0)}, {
-            Text = text,
-            Size = textSize,
-            Font = font,
-            Hidden = true
-        })
-        --
-        textbounds = textlabel.TextBounds
-        utility:Remove(textlabel, true)
-        --
-        return textbounds
-    end
-    --
-    function utility:GetScreenSize()
-        return ws.CurrentCamera.ViewportSize
-    end
-    --
-    function utility:Thumbnail(userId)
-        local ok, body = pcall(function()
-            return game:HttpGet(("https://thumbnails.roblox.com/v1/users/avatar-headshot?userIds=%s&size=420x420&format=Png&isCircular=false"):format(tostring(userId)))
-        end)
-        --
-        if not ok or type(body) ~= "string" then return nil end
-        --
-        local decoded
-        ok, decoded = pcall(function() return hs:JSONDecode(body) end)
-        if not ok or type(decoded) ~= "table" or type(decoded.data) ~= "table" then return nil end
-        --
-        local entry = decoded.data[1]
-        return entry and entry.imageUrl or nil
-    end
-    --
-    function utility:LoadImage(instance, imageName, imageLink)
-        if not instance then return end
-        --
-        if not isfolder(library.folders.assets) then
-            pcall(function()
-                makefolder(library.folders.assets)
+
+    function utility:Instance(class, properties)
+        local inst = newInstance(class)
+        for prop, val in next, properties or {} do
+            local s,e = pcall(function()
+                inst[prop] = val
             end)
-        end
-        --
-        if imageName == "roblox_icon" then
-            pcall(delfile, library.folders.assets.."/roblox_icon.png")
-        end
-        --
-        local path = library.folders.assets.."/"..imageName..".png"
-        --
-        local candidates = {}
-        --
-        if type(imageLink) == "table" then
-            for _, link in ipairs(imageLink) do
-                candidates[#candidates + 1] = link
+            if not s then
+                printconsole(e, 255,0,0)
             end
-        elseif type(imageLink) == "string" then
-            candidates[1] = imageLink
         end
-        --
-        for i = #candidates, 1, -1 do
-            local link = candidates[i]
-            if link:match("^rbxassetid://") then
-                candidates[i] = "https://assetdelivery.roblox.com/v1/asset/?id=" .. link:gsub("^rbxassetid://", "")
-            elseif link:match("^rbxthumb://") then
-                local id = link:match("[?&]id=(%d+)")
-                local resolved = id and utility:Thumbnail(id)
-                if resolved then
-                    candidates[i] = resolved
-                else
-                    table.remove(candidates, i)
+        return inst
+    end
+
+    function utility:HasProperty(obj, prop)
+        return ({(pcall(function() local a = obj[prop] end))})[1]
+    end
+
+    function utility:ToRGB(c3)
+        return c3.R*255,c3.G*255,c3.B*255
+    end
+
+    function utility:AddRGB(a,b)
+        local r1,g1,b1 = self:ToRGB(a);
+        local r2,g2,b2 = self:ToRGB(b);
+        return fromrgb(clamp(r1+r2,0,255),clamp(g1+g2,0,255),clamp(b1+b2,0,255))
+    end
+
+    function utility:ConvertNumberRange(val,oldmin,oldmax,newmin,newmax)
+        return (((val - oldmin) * (newmax - newmin)) / (oldmax - oldmin)) + newmin
+    end
+
+    function utility:UDim2ToVector2(udim2, vector2)
+        local x,y
+        x = udim2.X.Offset + self:ConvertNumberRange(udim2.X.Scale,0,1,0,vector2.X)
+        y = udim2.Y.Offset + self:ConvertNumberRange(udim2.Y.Scale,0,1,0,vector2.Y)
+        return newVector2(x,y)
+    end
+
+    function utility:Lerp(a,b,c)
+        return a + (b-a) * c
+    end
+
+    function utility:Tween(obj, prop, val, time, direction, style)
+        if self:HasProperty(obj, prop) then
+            if library.tweens[obj] then
+                if library.tweens[obj][prop] then
+                    library.tweens[obj][prop]:Cancel()
                 end
             end
-        end
-        --
-        if not isfile(path) then
-            for _, link in ipairs(candidates) do
-                local success, result = pcall(function()
-                    return game:HttpGet(link)
-                end)
-                --
-                if success and type(result) == "string" and #result >= 100 then
-                    if pcall(function() writefile(path, result) end) then
-                        break
-                    end
+
+            local startVal = obj[prop];
+            local a = 0;
+            local tween = {
+                Completed = library.signal.new();
+            };
+
+            library.tweens[obj] = library.tweens[obj] or {};
+            library.tweens[obj][prop] = tween;
+
+            tween.Connection = self:Connection(runservice.RenderStepped, function(dt)
+                a = a + (dt / time);
+                if a >= 1 or obj == nil then
+                    tween:Cancel();
                 end
-            end
-        end
-        --
-        local readSuccess, data = pcall(function()
-            return readfile(path)
-        end)
-        --
-        if readSuccess and data and #data > 0 then
-            instance.Data = data
-        end
-    end
-    --
-    function utility:Lerp(instance, instanceTo, instanceTime)
-        local currentTime = 0
-        local currentIndex = {}
-        local connection
-        --
-        for i,v in pairs(instanceTo) do
-            currentIndex[i] = instance[i]
-        end
-        --
-        local function lerp()
-            for i,v in pairs(instanceTo) do
-                instance[i] = ((v - currentIndex[i]) * currentTime / instanceTime) + currentIndex[i]
-            end
-        end
-        --
-        connection = utility:Connection(rs.RenderStepped, function(delta)
-            if currentTime < instanceTime then
-                currentTime = currentTime + delta
-                lerp()
-            else
-                connection:Disconnect()
-            end
-        end)
-    end
-    --
-    function utility:Combine(table1, table2)
-        local table3 = {}
-        for i,v in pairs(table1) do table3[i] = v end
-        local t = #table3
-        for z,x in pairs(table2) do table3[z + t] = x end
-        return table3
-    end
-    --
-    function utility:WrapText(Text, Size)
-        local Max = math.max(1, math.floor(Size / 7))
-        --
-        return Text:sub(1, Max)
-    end
-    --
-    function utility:InputToString(Input)
-        if Input then
-            local String = (tostring(Input) .. "."):gsub("%.", ",")
-            local Count = 0
-            --
-            for Value in String:gmatch("(.-),") do
-                Count = Count + 1
-                --
-                if Count == 3 then
-                    String = Value:gsub("Keypad", "")
-                end
-            end
-            --
-            if String == "Unknown" or Input.Value == 27 then
-                return "None"
-            elseif utility.Keyboard.InputNames[String] then
-                String = utility.Keyboard.InputNames[String]
-            end
-            --
-            return String
-        else
-            return "None"
-        end
-    end
-end
--- // Library Functions
-do
-    library.__index = library
-	pages.__index = pages
-	sections.__index = sections
-    --
-    function library:GetConfig()
-        local config = {}
-        --
-        for i,v in pairs(library.pointers) do
-            if type(v.Get) == "function" then
-                local success, value = pcall(function()
-                    return v:Get()
-                end)
-                --
-                if success and value ~= nil then
-                    local kind = typeof(value)
-                    --
-                    if kind == "Color3" then
-                        local hue, sat, val = value:ToHSV()
-                        config[i] = {Color = {hue, sat, val}, Transparency = 0}
-                    elseif kind == "table" then
-                        if value.Color and value.Transparency ~= nil then
-                            local hue, sat, val
-                            --
-                            if typeof(value.Color) == "Color3" then
-                                hue, sat, val = value.Color:ToHSV()
-                            else
-                                hue, sat, val = value.Color[1] or 0, value.Color[2] or 0, value.Color[3] or 1
-                            end
-                            --
-                            config[i] = {Color = {hue, sat, val}, Transparency = value.Transparency}
-                        else
-                            local copy = {}
-                            --
-                            for key, entry in pairs(value) do
-                                if type(entry) == "string" or type(entry) == "number" or type(entry) == "boolean" then
-                                    copy[key] = entry
-                                end
-                            end
-                            --
-                            config[i] = copy
-                        end
-                    elseif kind == "string" or kind == "number" or kind == "boolean" then
-                        config[i] = value
-                    end
-                end
-            end
-        end
-        --
-        local encoded, result = pcall(function()
-            return hs:JSONEncode(config)
-        end)
-        --
-        return encoded and result or "{}"
-    end
-    --
-    function library:LoadConfig(config)
-        local success, decoded = pcall(function()
-            return hs:JSONDecode(config)
-        end)
-        --
-        if not success or type(decoded) ~= "table" then return end
-        --
-        for i,v in pairs(decoded) do
-            local pointer = library.pointers[i]
-            if pointer and type(pointer.Set) == "function" then
                 pcall(function()
-                    pointer:Set(v)
-                end)
-            end
-        end
-    end
-    --
-    function library:Notification(info)
-        local info = info or {}
-        local text = info.text or info.Text or info.name or info.Name or ""
-        if text ~= "" then
-            print("[Notification] "..tostring(text))
-        end
-    end
-    --
-    function library:IsMouseBlocked(Input)
-        if not Input or not Input.UserInputType then return false end
-        --
-        if Input.UserInputType ~= Enum.UserInputType.MouseButton1 and Input.UserInputType ~= Enum.UserInputType.MouseButton2 and Input.UserInputType ~= Enum.UserInputType.MouseButton3 then
-            return false
-        end
-        --
-        if library.mouseBindsOpen then return false end
-        if not self.isVisible then return false end
-        if self.dragging then return true end
-        --
-        return utility:MouseOverDrawing({self.main_frame.Position.X, self.main_frame.Position.Y, self.main_frame.Position.X + self.main_frame.Size.X, self.main_frame.Position.Y + self.main_frame.Size.Y})
-    end
-    --
-    function library:Loader(info)
-		local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "UI Title"
-        local size = info.size or info.Size or Vector2.new(375,359)
-        local accent = info.accent or info.Accent or info.color or info.Color or theme.accent
-        local callback = info.callback or info.Callback or info.callBack or info.CallBack or function() end
-        local pageammount = info.pages or info.Pages or 1
-        --
-        theme.accent = accent
-        --
-        local window = {pages = {}, loader = true, isVisible = false, pageammount = pageammount, callback = callback, wminfo = "HouHou da hood || UID : %u || Ping : %s || Fps : %u", currentPage = nil, fading = false, dragging = false, drag = Vector2.new(0,0), currentContent = {frame = nil, dropdown = nil, multibox = nil, colorpicker = nil, keybind = nil, textbox = nil}}
-        --
-        local main_frame = utility:Create("Frame", {Vector2.new(0,0)}, {
-            Size = utility:Size(0, size.X, 0, size.Y),
-            Position = utility:Position(0.5, -(size.X/2) ,0.5, -(size.Y/2)),
-            Color = theme.outline
-        });window["main_frame"] = main_frame
-        --
-        library.colors[main_frame] = {
-            Color = "outline"
-        }
-        --
-        local frame_inline = utility:Create("Frame", {Vector2.new(1,1), main_frame}, {
-            Size = utility:Size(1, -2, 1, -2, main_frame),
-            Position = utility:Position(0, 1, 0, 1, main_frame),
-            Color = theme.accent
-        })
-        --
-        library.colors[frame_inline] = {
-            Color = "accent"
-        }
-        --
-        local inner_frame = utility:Create("Frame", {Vector2.new(1,1), frame_inline}, {
-            Size = utility:Size(1, -2, 1, -2, frame_inline),
-            Position = utility:Position(0, 1, 0, 1, frame_inline),
-            Color = theme.lightcontrast
-        })
-        --
-        library.colors[inner_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local title_icon = utility:Create("Image", {Vector2.new(4,3), inner_frame}, {
-            Size = utility:Size(0, 15, 0, 15, inner_frame),
-            Position = utility:Position(0, 4, 0, 3, inner_frame)
-        })
-        --
-        utility:LoadImage(title_icon, "roblox_icon", {
-            "rbxthumb://type=AvatarHeadShot&id=1&w=420&h=420",
-            "https://i.imgur.com/tVqy0nL.png",
-        })
-        --
-        local title = utility:Create("TextLabel", {Vector2.new(23,2), inner_frame}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 23, 0, 2, inner_frame)
-        })
-        --
-        library.colors[title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        local inner_frame_inline = utility:Create("Frame", {Vector2.new(4,18), inner_frame}, {
-            Size = utility:Size(1, -8, 1, -22, inner_frame),
-            Position = utility:Position(0, 4, 0, 18, inner_frame),
-            Color = theme.inline
-        })
-        --
-        library.colors[inner_frame_inline] = {
-            Color = "inline"
-        }
-        --
-        local inner_frame_inline2 = utility:Create("Frame", {Vector2.new(1,1), inner_frame_inline}, {
-            Size = utility:Size(1, -2, 1, -2, inner_frame_inline),
-            Position = utility:Position(0, 1, 0, 1, inner_frame_inline),
-            Color = theme.outline
-        })
-        --
-        library.colors[inner_frame_inline2] = {
-            Color = "outline"
-        }
-        --
-        local back_frame = utility:Create("Frame", {Vector2.new(1,1), inner_frame_inline2}, {
-            Size = utility:Size(1, -2, 1, -2, inner_frame_inline2),
-            Position = utility:Position(0, 1, 0, 1, inner_frame_inline2),
-            Color = theme.darkcontrast
-        });window["back_frame"] = back_frame
-        --
-        library.colors[back_frame] = {
-            Color = "darkcontrast"
-        }
-        --
-        local tab_frame_inline = utility:Create("Frame", {Vector2.new(4,24), back_frame}, {
-            Size = utility:Size(1, -8, 1, -28, back_frame),
-            Position = utility:Position(0, 4, 0, 24, back_frame),
-            Color = theme.outline
-        })
-        --
-        library.colors[tab_frame_inline] = {
-            Color = "outline"
-        }
-        --
-        local tab_frame_inline2 = utility:Create("Frame", {Vector2.new(1,1), tab_frame_inline}, {
-            Size = utility:Size(1, -2, 1, -2, tab_frame_inline),
-            Position = utility:Position(0, 1, 0, 1, tab_frame_inline),
-            Color = theme.inline
-        })
-        --
-        library.colors[tab_frame_inline2] = {
-            Color = "inline"
-        }
-        --
-        local tab_frame = utility:Create("Frame", {Vector2.new(1,1), tab_frame_inline2}, {
-            Size = utility:Size(1, -2, 1, -2, tab_frame_inline2),
-            Position = utility:Position(0, 1, 0, 1, tab_frame_inline2),
-            Color = theme.lightcontrast
-        });window["tab_frame"] = tab_frame
-        --
-        library.colors[tab_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        function window:SetName(Name)
-            title.Text = Name
-        end
-        --
-        function window:GetConfig()
-            local config = {}
-            --
-            for i,v in pairs(library.pointers) do
-                if type(v.Get) == "function" then
-                    local success, value = pcall(function()
-                        return v:Get()
-                    end)
-                    --
-                    if success and value ~= nil then
-                        local kind = typeof(value)
-                        --
-                        if kind == "Color3" then
-                            local hue, sat, val = value:ToHSV()
-                            config[i] = {Color = {hue, sat, val}, Transparency = 0}
-                        elseif kind == "table" then
-                            if value.Color and value.Transparency ~= nil then
-                                local hue, sat, val
-                                --
-                                if typeof(value.Color) == "Color3" then
-                                    hue, sat, val = value.Color:ToHSV()
-                                else
-                                    hue, sat, val = value.Color[1] or 0, value.Color[2] or 0, value.Color[3] or 1
-                                end
-                                --
-                                config[i] = {Color = {hue, sat, val}, Transparency = value.Transparency}
-                            else
-                                local copy = {}
-                                --
-                                for key, entry in pairs(value) do
-                                    if type(entry) == "string" or type(entry) == "number" or type(entry) == "boolean" then
-                                        copy[key] = entry
-                                    end
-                                end
-                                --
-                                config[i] = copy
-                            end
-                        elseif kind == "string" or kind == "number" or kind == "boolean" then
-                            config[i] = value
-                        end
-                    end
-                end
-            end
-            --
-            local encoded, result = pcall(function()
-                return hs:JSONEncode(config)
-            end)
-            --
-            return encoded and result or "{}"
-        end
-        --
-        function window:LoadConfig(config)
-            local success, decoded = pcall(function()
-                return hs:JSONDecode(config)
-            end)
-            --
-            if not success or type(decoded) ~= "table" then return end
-            --
-            for i,v in pairs(decoded) do
-                local pointer = library.pointers[i]
-                if pointer and type(pointer.Set) == "function" then
-                    pcall(function()
-                        pointer:Set(v)
-                    end)
-                end
-            end
-        end
-        --
-        
-        function window:Move(vector)
-            local tab = window.tab_frame
-            local page = window.currentPage
-            local top = tab.Position.Y
-            local bottom = top + tab.Size.Y
-            --
-            for i,v in pairs(library.drawings) do
-                if v[1] then
-                    if v[2][2] then
-                        v[1].Position = utility:Position(0, v[2][1].X, 0, v[2][1].Y, v[2][2])
+                    local progress = tweenService:GetValue(a, style or Enum.EasingStyle.Linear, direction or Enum.EasingDirection.In)
+                    local newVal
+                    if typeof(startVal) == 'number' then
+                        newVal = utility:Lerp(startVal, val, progress);
                     else
-                        v[1].Position = utility:Position(0, vector.X, 0, vector.Y)
+                        newVal = startVal:Lerp(val, progress);
                     end
-                    --
-                    local owner = GetPageOf(v[1])
-                    if owner then
-                        local drawY = v[1].Position.Y
-                        v[1].Visible = page ~= nil and page.open and owner == page and drawY >= top - 2 and drawY <= bottom
-                    end
-                end
-            end
-        end
-        --
-        function window:CloseContent()
-            if window.currentContent.dropdown and window.currentContent.dropdown.open then
-                local dropdown = window.currentContent.dropdown
-                dropdown.open = not dropdown.open
-                utility:LoadImage(dropdown.dropdown_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                --
-                for i,v in pairs(dropdown.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                dropdown.holder.drawings = {}
-                dropdown.holder.buttons = {}
-                dropdown.holder.inline = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.dropdown = nil
-            elseif window.currentContent.multibox and window.currentContent.multibox.open then
-                local multibox = window.currentContent.multibox
-                multibox.open = not multibox.open
-                utility:LoadImage(multibox.multibox_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                --
-                for i,v in pairs(multibox.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                multibox.holder.drawings = {}
-                multibox.holder.buttons = {}
-                multibox.holder.inline = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.multibox = nil
-            elseif window.currentContent.colorpicker and window.currentContent.colorpicker.open then
-                local colorpicker = window.currentContent.colorpicker
-                colorpicker.open = not colorpicker.open
-                --
-                for i,v in pairs(colorpicker.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                colorpicker.holder.drawings = {}
-                --
-                window.currentContent.frame = nil
-                window.currentContent.colorpicker = nil
-            elseif window.currentContent.keybind and window.currentContent.keybind.open then
-                local modemenu = window.currentContent.keybind.modemenu
-                window.currentContent.keybind.open = not window.currentContent.keybind.open
-                --
-                for i,v in pairs(modemenu.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                modemenu.drawings = {}
-                modemenu.buttons = {}
-                modemenu.frame = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.keybind = nil
-            elseif window.currentContent.textbox and window.currentContent.textbox.Disconnect then
-                window.currentContent.textbox.Disconnect()
-                window.currentContent.textbox = nil
-            end
-        end
-        --
-        function window:IsOverContent()
-            local isOver = false
-            --
-            if window.currentContent.frame and utility:MouseOverDrawing({window.currentContent.frame.Position.X,window.currentContent.frame.Position.Y,window.currentContent.frame.Position.X + window.currentContent.frame.Size.X,window.currentContent.frame.Position.Y + window.currentContent.frame.Size.Y}) then
-                isOver = true
-            end
-            --
-            return isOver
-        end
-        --
-        function window:Unload()
-            pcall(function() cas:UnbindAction("DisableKeyboard") end)
-            --
-            for i,v in pairs(library.connections) do
-                pcall(function() v:Disconnect() end)
-                v = nil
-            end
-            --
-            for i,v in next, library.hidden do
-                if v[1] then
-                    pcall(function() v[1]:Remove() end)
-                    v[1] = nil
-                end
-            end
-            --
-            for i,v in pairs(library.drawings) do
-                if v[1] then
-                    pcall(function() v[1]:Remove() end)
-                    v[1] = nil
-                    v[2] = nil
-                end
-            end
-            --
-            for i,v in pairs(library.objects) do
-                pcall(function() i:Remove() end)
-            end
-            --
-            for i in pairs(library.began) do library.began[i] = nil end
-            for i in pairs(library.ended) do library.ended[i] = nil end
-            for i in pairs(library.changed) do library.changed[i] = nil end
-            for i in pairs(library.pointers) do library.pointers[i] = nil end
-            for i in pairs(library.colors) do library.colors[i] = nil end
-            --
-            library.shared.initialized = false
-            library.drawings = {}
-            library.objects = {}
-            library.hidden = {}
-            library.connections = {}
-            --
-            uis.MouseIconEnabled = true
-        end
-        --
-        function window:Cursor(info)
-            window.cursor = {}
-            --
-            local cursor = utility:Create("Triangle", nil, {
-                Color = theme.cursoroutline,
-                Thickness = 2.5,
-                Filled = false,
-                ZIndex = 65,
-                Hidden = true
-            });window.cursor["cursor"] = cursor
-            --
-            library.colors[cursor] = {
-                Color = "cursoroutline"
-            }
-            --
-            local cursor_inline = utility:Create("Triangle", nil, {
-                Color = theme.accent,
-                Filled = true,
-                Thickness = 0,
-                ZIndex = 65,
-                Hidden = true
-            });window.cursor["cursor_inline"] = cursor_inline
-            --
-            library.colors[cursor_inline] = {
-                Color = "accent"
-            }
-            --
-            utility:Connection(rs.RenderStepped, function()
-                local mouseLocation = utility:MouseLocation()
-                --
-                cursor.PointA = Vector2.new(mouseLocation.X, mouseLocation.Y)
-                cursor.PointB = Vector2.new(mouseLocation.X + 12, mouseLocation.Y + 4)
-                cursor.PointC = Vector2.new(mouseLocation.X + 4, mouseLocation.Y + 12)
-                --
-                cursor_inline.PointA = Vector2.new(mouseLocation.X, mouseLocation.Y)
-                cursor_inline.PointB = Vector2.new(mouseLocation.X + 12, mouseLocation.Y + 4)
-                cursor_inline.PointC = Vector2.new(mouseLocation.X + 4, mouseLocation.Y + 12)
+                    obj[prop] = newVal;
+                end)
             end)
-            --
-            uis.MouseIconEnabled = false
-            --
-            return window.cursor
-        end
-        --
-        function window:Fade()
-            if window.fading then return end
-            window.fading = true
-            window.isVisible = not window.isVisible
-            --
-            task.spawn(function()
-                for i, v in pairs(library.drawings) do
-                    if v[1] then
-                        utility:Lerp(v[1], {Transparency = window.isVisible and v[3] or 0}, 0.25)
-                    end
-                end
-            end)
-            --
-            if window.cursor then
-                window.cursor["cursor"].Transparency = window.isVisible and 1 or 0
-                window.cursor["cursor_inline"].Transparency = window.isVisible and 1 or 0
+
+            function tween:Cancel()
+                tween.Connection:Disconnect();
+                tween.Completed:Fire();
+                table.clear(tween);
+                library.tweens[obj][prop] = nil;
             end
-            --
-            uis.MouseIconEnabled = not window.isVisible
-            --
-            task.delay(0.05, function()
-                window.fading = false
-            end)
+            
+            return tween;
+        else
+            printconsole('unable to tween: invalid property '..tostring(prop)..' for object '..tostring(obj), 255,0,0)
         end
-        --
-        function window:Initialize()
-            if window.pages[1] then window.pages[1]:Show() end
-            --
-            for i,v in pairs(window.pages) do
+    end
+
+    function utility:DetectTableChange(indexcallback,newindexcallback)
+        if indexcallback == nil then
+            warn('DetectTableChange: Argument #1 (indexcallback) is nil, function may not work as expected.')
+        elseif newindexcallback == nil then
+            warn('DetectTableChange: Argument #2 (newindexcallback) is nil, function may not work as expected.')
+        end
+        local proxy = newproxy(true);
+        local mt = getmetatable(proxy);
+        mt.__index = indexcallback
+        mt.__newindex = newindexcallback
+        return proxy
+    end
+
+    function utility:MouseOver(obj)
+        local mousePos = inputservice:GetMouseLocation();
+        local x1 = obj.Position.X
+        local y1 = obj.Position.Y
+        local x2 = x1 + obj.Size.X
+        local y2 = y1 + obj.Size.Y
+        return (mousePos.X >= x1 and mousePos.Y >= y1 and mousePos.X <= x2 and mousePos.Y <= y2)
+    end
+
+    function utility:GetHoverObject()
+        local objects = {}
+        for i,v in next, library.drawings do
+            if v.Object.Visible and v.Class == 'Square' and self:MouseOver(v.Object) then
+                table.insert(objects,v.Object)
+            end
+        end
+        table.sort(objects,function(a,b)
+            return a.ZIndex > b.ZIndex
+        end)
+        return objects[1]
+    end
+
+    function utility:Draw(class, properties)
+        local blacklistedProperties = {'Object','Children','Class'}
+        local drawing = {
+            Object = Drawing.new(class);
+            Children = {};
+            ThemeColor = '';
+            OutlineThemeColor = '';
+            ThemeColorOffset = 0;
+            OutlineThemeColorOffset = 0;
+            Parent = nil;
+            Size = newUDim2(0,0,0,0);
+            Position = newUDim2(0,0,0,0);
+            AbsoluteSize = newVector2(0,0);
+            AbsolutePosition = newVector2(0,0);
+            Hover = false;
+            Visible = true;
+            MouseButton1Down = library.signal.new();
+            MouseButton2Down = library.signal.new();
+            MouseButton1Up = library.signal.new();
+            MouseButton2Up = library.signal.new();
+            MouseEnter = library.signal.new();
+            MouseLeave = library.signal.new();
+            Class = class;
+        }
+
+        function drawing:Update()
+            -- if drawing.Parent then
+                local parent = drawing.Parent ~= nil and library.drawings[drawing.Parent.Object] or nil
+                local parentSize,parentPos,parentVis = workspace.CurrentCamera.ViewportSize, Vector2.new(0,0), true;
+                if parent ~= nil then
+                    parentSize = (parent.Class == 'Square' or parent.Class == 'Image') and parent.Object.Size or parent.Class == 'Text' and parent.TextBounds or workspace.CurrentCamera.ViewportSize
+                    parentPos = parent.Object.Position
+                    parentVis = parent.Object.Visible
+                end
+
+                if drawing.Class == 'Square' or drawing.Class == 'Image' then
+                    drawing.Object.Size = typeof(drawing.Size) == 'Vector2' and drawing.Size or typeof(drawing.Size) == 'UDim2' and utility:UDim2ToVector2(drawing.Size,parentSize)
+                end
+
+                if drawing.Class == 'Square' or drawing.Class == 'Image' or drawing.Class == 'Circle' or drawing.Class == 'Text' then
+                    drawing.Object.Position = parentPos + (typeof(drawing.Position) == 'Vector2' and drawing.Position or utility:UDim2ToVector2(drawing.Position,parentSize))
+                end
+
+                drawing.Object.Visible = (parentVis and drawing.Visible) and true or false
+
+            -- end
+            drawing:UpdateChildren()
+        end
+
+        function drawing:UpdateChildren()
+            for i,v in next, drawing.Children do
                 v:Update()
             end
-            --
-            library.shared.initialized = true
-            --
-            window:Cursor()
-            --
-            window:Fade()
         end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and utility:MouseOverDrawing({main_frame.Position.X,main_frame.Position.Y,main_frame.Position.X + main_frame.Size.X,main_frame.Position.Y + 20}) then
-                local mouseLocation = utility:MouseLocation()
-                --
-                window.dragging = true
-                window.drag = Vector2.new(mouseLocation.X - main_frame.Position.X, mouseLocation.Y - main_frame.Position.Y)
+
+        function drawing:GetDescendants()
+            local descendants = {};
+            local function a(t)
+                for _,v in next, t.Children do
+                    table.insert(descendants, v);
+                    a(v)
+                end
             end
-            --
-            if window.currentContent.textbox then
-                if Find(utility.Keyboard.Letters, utility:InputToString(Input.KeyCode)) then
-                    if uis:IsKeyDown(Enum.KeyCode.LeftShift) then
-                        window.currentContent.textbox.Fire((utility:InputToString(Input.KeyCode)):upper())
-                    else
-                        window.currentContent.textbox.Fire((utility:InputToString(Input.KeyCode)):lower())
+            a(self)
+            return descendants;
+        end
+
+        library.drawings[drawing.Object] = drawing
+
+        -- this is really stupid lol
+        local proxy = utility:DetectTableChange(
+        function(obj,i)
+            return drawing[i] == nil and drawing.Object[i] or drawing[i]
+        end,
+        function(obj,i,v)
+            if not table.find(blacklistedProperties,i) then
+
+                local lastval = drawing[i]
+
+                if i == 'Size' and (class == 'Square' or class == 'Image') then
+                    drawing.Object.Size = utility:UDim2ToVector2(v,drawing.Parent == nil and workspace.CurrentCamera.ViewportSize or drawing.Parent.Object.Size);
+                    drawing.AbsoluteSize = drawing.Object.Size;
+                elseif i == 'Position' and (class == 'Square' or class == 'Image' or class == 'Text') then
+                    drawing.Object.Position =  utility:UDim2ToVector2(v,drawing.Parent == nil and newVector2(0,0) or drawing.Parent.Object.Position);
+                    drawing.AbsolutePosition = drawing.Object.Position;
+                elseif i == 'Parent' then
+                    if drawing.Parent ~= nil then
+                        drawing.Parent.Children[drawing] = nil
                     end
-                elseif utility:InputToString(Input.KeyCode) == "Space" then
-                    window.currentContent.textbox.Fire(" ")
-                elseif utility.Keyboard.Modifiers[utility:InputToString(Input.KeyCode)] then
-                    if uis:IsKeyDown(Enum.KeyCode.LeftShift) then
-                        if utility.Keyboard.Modifiers[utility:InputToString(Input.KeyCode)] then
-                            window.currentContent.textbox.Fire(utility.Keyboard.Modifiers[utility:InputToString(Input.KeyCode)])
-                        end
-                    else
-                        window.currentContent.textbox.Fire(utility:InputToString(Input.KeyCode))
+                    if v ~= nil then
+                        table.insert(v.Children,drawing)
                     end
-                elseif utility:InputToString(Input.KeyCode) == "Back" then
-                    window.currentContent.textbox.Fire("Backspace")
-                    --
-                    window.currentContent.textbox.Backspace = {tick(), 0}
+                elseif i == 'Visible' then
+                    drawing.Visible = v
+                elseif i == 'Font' and v == 2 and executor == 'ScriptWare' then
+                    v = 1
                 end
-            end
-        end
-        --
-        library.ended[#library.ended + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and window.dragging then
-                window.dragging = false
-                window.drag = Vector2.new(0, 0)
-            end
-            --
-            if window.currentContent.textbox and window.currentContent.textbox.Fire and window.currentContent.textbox.Backspace then
-                if utility:InputToString(Input.KeyCode) == "Back" then
-                    window.currentContent.textbox.Backspace = nil
+
+                pcall(function()
+                    drawing.Object[i] = v
+                end)
+                if drawing[i] ~= nil or i == 'Parent' then
+                    drawing[i] = v
                 end
-            end
-        end
-        --
-        library.changed[#library.changed + 1] = function(Input)
-            if window.dragging and window.isVisible then
-                local mouseLocation = utility:MouseLocation()
-                if utility:GetScreenSize().Y-main_frame.Size.Y-5 > 5 then
-                    local move = Vector2.new(math.clamp(mouseLocation.X - window.drag.X, 5, utility:GetScreenSize().X-main_frame.Size.X-5), math.clamp(mouseLocation.Y - window.drag.Y, 5, utility:GetScreenSize().Y-main_frame.Size.Y-5))
-                    window:Move(move)
-                else
-                    local move = Vector2.new(mouseLocation.X - window.drag.X, mouseLocation.Y - window.drag.Y)
-                    window:Move(move)
+
+                if table.find({'Size','Position','Position','Visible','Parent'},i) then
+                    drawing:Update()
                 end
-            end
-        end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.KeyCode == Enum.KeyCode.P then
-                if #plrs:GetPlayers() <= 1 then
-                    localplayer:Kick("\nRejoining...")
-                    task.wait()
-                    game:GetService('TeleportService'):Teleport(game.PlaceId, localplayer)
-                else
-                    game:GetService('TeleportService'):TeleportToPlaceInstance(game.PlaceId, game.JobId, localplayer)
+                if table.find({'ThemeColor','OutlineThemeColor','ThemeColorOffset','OutlineThemeColorOffset'},i) and lastval ~= v then
+                    library.UpdateThemeColors()
                 end
-            elseif Input.KeyCode == Enum.KeyCode.U then
-                window:Unload()
-            end
-        end
-        --
-        utility:Connection(uis.InputBegan,function(Input)
-            for _, func in pairs(library.began) do
-                if not window.dragging then
-                    pcall(function()
-                        func(Input)
-                    end)
-                else
-                    break
-                end
+
             end
         end)
-        --
-        utility:Connection(uis.InputEnded,function(Input)
-            for _, func in pairs(library.ended) do
-                pcall(function()
-                    func(Input)
+
+        function drawing:Remove()
+            for i,v in next, self.Children do
+                v:Remove();
+            end
+
+            if drawing.Parent then
+                drawing.Parent.Children[drawing.Object] = nil;
+            end
+
+            library.drawings[drawing.Object] = nil;
+            drawing.Object:Remove();
+            table.clear(drawing);
+
+        end
+
+        properties = typeof(properties) == 'table' and properties or {}
+
+        if class == 'Square' and properties.Filled == nil then
+            properties.Filled = true;
+        end
+
+        if properties.Visible == nil then
+            properties.Visible = true;
+        end
+
+        for i,v in next, properties do
+            proxy[i] = v
+        end
+
+        drawing:Update()
+        return proxy
+    end
+end
+
+library.utility = utility
+
+function library:Unload()
+    library.unloaded:Fire();
+    for _,c in next, self.connections do
+        c:Disconnect()
+    end
+    for obj in next, self.drawings do
+        obj:Remove()
+    end
+    table.clear(self.drawings)
+    getgenv().library = nil
+end
+
+function library:init()
+    if self.hasInit then
+        return
+    end
+
+    local tooltipObjects = {};
+
+    makefolder(self.cheatname)
+    makefolder(self.cheatname..'/assets')
+    makefolder(self.cheatname..'/'..self.gamename)
+    makefolder(self.cheatname..'/'..self.gamename..'/configs');
+
+    function self:SetTheme(theme)
+        for i,v in next, theme do
+            self.theme[i] = v;
+        end
+        self.UpdateThemeColors();
+    end
+
+    function self:GetConfig(name)
+        if isfile(self.cheatname..'/'..self.gamename..'/configs/'..name..self.fileext) then
+            return readfile(self.cheatname..'/'..self.gamename..'/configs/'..name..self.fileext);
+        end
+    end
+
+    function self:LoadConfig(name)
+        local cfg = self:GetConfig(name)
+        if not cfg then
+            self:SendNotification('Error loading config: Config does not exist. ('..tostring(name)..')', 5, c3new(1,0,0));
+            return
+        end
+
+        local s,e = pcall(function()
+            setByConfig = true
+            for flag,value in next, http:JSONDecode(cfg) do
+                local option = library.options[flag]
+                if option ~= nil then
+                    if option.class == 'toggle' then
+                        option:SetState(value == nil and false or (value == 1 and true or false));
+                    elseif option.class == 'slider' then
+                        option:SetValue(value == nil and 0 or value)
+                    elseif option.class == 'bind' then
+                        option:SetBind(value == nil and 'none' or (utility:HasProperty(Enum.KeyCode, value) and Enum.KeyCode[value] or Enum.UserInputType[value]));
+                    elseif option.class == 'color' then
+                        option:SetColor(value == nil and c3new(1,1,1) or c3new(value[1], value[2], value[3]));
+                        option:SetTrans(value == nil and 1 or value[4]);
+                    elseif option.class == 'list' then
+                        option:Select(value == nil and '' or value);
+                    elseif option.class == 'box' then
+                        option:SetInput(value == nil and '' or value)
+                    end
+                end
+            end
+            setByConfig = false
+        end)
+
+        if s then
+            self:SendNotification('Successfully loaded config: '..name, 5, c3new(0,1,0));
+        else
+            self:SendNotification('Error loading config: '..tostring(e)..'. ('..tostring(name)..')', 5, c3new(1,0,0));
+        end
+    end
+
+    function self:SaveConfig(name)
+        if not self:GetConfig(name) then
+            self:SendNotification('Error saving config: Config does not exist. ('..tostring(name)..')', 5, c3new(1,0,0));
+            return
+        end
+
+        local s,e = pcall(function()
+            local cfg = {};
+            for flag,option in next, self.options do
+                if option.class == 'toggle' then
+                    cfg[flag] = option.state and 1 or 0;
+                elseif option.class == 'slider' then
+                    cfg[flag] = option.value;
+                elseif option.class == 'bind' then
+                    cfg[flag] = option.bind.Name;
+                elseif option.class == 'color' then
+                    cfg[flag] = {
+                        option.color.r,
+                        option.color.g,
+                        option.color.b,
+                        option.trans,
+                    }
+                elseif option.class == 'list' then
+                    cfg[flag] = option.selected;
+                elseif option.class == 'box' then
+                    cfg[flag] = option.input
+                end
+            end
+            writefile(self.cheatname..'/'..self.gamename..'/configs/'..name..self.fileext, http:JSONEncode(cfg));
+        end)
+
+        if s then
+            self:SendNotification('Successfully saved config: '..name, 5, c3new(0,1,0));
+        else
+            self:SendNotification('Error saving config: '..tostring(e)..'. ('..tostring(name)..')', 5, c3new(1,0,0));
+        end
+    end
+
+    for i,v in next, self.images do
+        if not isfile(self.cheatname..'/assets/'..i..'.oh') then
+            writefile(self.cheatname..'/assets/'..i..'.oh', game:HttpGet(v))
+        end
+        self.images[i] = readfile(self.cheatname..'/assets/'..i..'.oh');
+    end
+
+    self.cursor1 = utility:Draw('Triangle', {Filled = true, Color = fromrgb(255,255,255), ZIndex = self.zindexOrder.cursor});
+    self.cursor2 = utility:Draw('Triangle', {Filled = true, Color = fromrgb(85,85,85), self.zindexOrder.cursor-1});
+    local function updateCursor()
+        self.cursor1.Visible = self.open
+        self.cursor2.Visible = self.open
+        if self.cursor1.Visible then
+            local pos = inputservice:GetMouseLocation();
+            self.cursor1.PointA = pos;
+            self.cursor1.PointB = pos + newVector2(16,5);
+            self.cursor1.PointC = pos + newVector2(5,16);
+            self.cursor2.PointA = self.cursor1.PointA + newVector2(0, 0)
+            self.cursor2.PointB = self.cursor1.PointB + newVector2(1, 1)
+            self.cursor2.PointC = self.cursor1.PointC + newVector2(1, 1)
+        end
+    end
+
+    local screenGui = Instance.new('ScreenGui');
+    if syn then syn.protect_gui(screenGui); end
+    screenGui.Parent = game:GetService('CoreGui');
+    screenGui.Enabled = true;
+    utility:Instance('ImageButton', {
+        Parent = screenGui,
+        Visible = true,
+        Modal = true,
+        Size = UDim2.new(1,0,1,0),
+        ZIndex = 9999999999,
+        Transparency = 1;
+    })
+
+    utility:Connection(library.unloaded, function()
+        screenGui:Destroy()
+    end)
+
+    utility:Connection(inputservice.InputBegan, function(input, gpe)
+        if self.hasInit then
+            if input.KeyCode == self.toggleKey and not library.opening and not gpe then
+                self:SetOpen(not self.open)
+                task.spawn(function()
+                    library.opening = true;
+                    task.wait(.15);
+                    library.opening = false;
                 end)
             end
-        end)
-        --
-        utility:Connection(uis.InputChanged,function()
-            for _, func in pairs(library.changed) do
-                pcall(function()
-                    func()
-                end)
-            end
-        end)
-        --
-        utility:Connection(rs.RenderStepped,function()
-            if window.currentContent.textbox and window.currentContent.textbox.Fire and window.currentContent.textbox.Backspace then
-                local Time = (tick() - window.currentContent.textbox.Backspace[1])
-                --
-                if Time > 0.4 then
-                    window.currentContent.textbox.Backspace[2] = window.currentContent.textbox.Backspace[2] + 1
-                    --
-                    if (window.currentContent.textbox.Backspace[2] % 5 == 0) then
-                        window.currentContent.textbox.Fire("Backspace")
+            if library.open then
+                local hoverObj = utility:GetHoverObject();
+                local hoverObjData = library.drawings[hoverObj];
+                if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                    mb1down = true;
+                    button1down:Fire()
+                    if hoverObj and hoverObjData then
+                        hoverObjData.MouseButton1Down:Fire(inputservice:GetMouseLocation())
+                    end
+
+                    -- // Update Sliders Click
+                    if library.draggingSlider ~= nil then
+                        local rel = inputservice:GetMouseLocation() - library.draggingSlider.objects.background.Object.Position;
+                        local val = utility:ConvertNumberRange(rel.X, 0 , library.draggingSlider.objects.background.Object.Size.X, library.draggingSlider.min, library.draggingSlider.max);
+                        library.draggingSlider:SetValue(val)
+                    end
+
+                elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+                    if hoverObj and hoverObjData then
+                        hoverObjData.MouseButton2Down:Fire(inputservice:GetMouseLocation())
                     end
                 end
             end
-        end)
-        --
-        utility:Connection(ws.CurrentCamera:GetPropertyChangedSignal("ViewportSize"),function()
-            window:Move(Vector2.new((utility:GetScreenSize().X/2) - (size.X/2), (utility:GetScreenSize().Y/2) - (size.Y/2)))
-        end)
-        --
-		return setmetatable(window, library)
-	end
-    --
-    function library:New(info)
-		local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "UI Title"
-        local size = info.size or info.Size or Vector2.new(504,604)
-        local accent = info.accent or info.Accent or info.color or info.Color or theme.accent
-        local callback = info.callback or info.Callback or info.callBack or info.CallBack or function() end
-        local style = info.style or info.Style or 1
-        local pageammount = info.PageAmmount
-        --
-        theme.accent = accent
-        --
-        local window = {pages = {}, loader = style == 2, init = false, pageammount = pageammount, isVisible = false, callback = callback, uibind = Enum.KeyCode.Z, wminfo = "HouHou da hood || UID : %u || Ping : %s || Fps : %u", currentPage = nil, fading = false, dragging = false, drag = Vector2.new(0,0), currentContent = {frame = nil, dropdown = nil, multibox = nil, colorpicker = nil, keybind = nil, textbox = nil}}
-        --
-        local main_frame = utility:Create("Frame", {Vector2.new(0,0)}, {
-            Size = utility:Size(0, size.X, 0, size.Y),
-            Position = utility:Position(0.5, -(size.X/2) ,0.5, -(size.Y/2)),
-            Color = theme.outline
-        });window["main_frame"] = main_frame
-        --
-        library.colors[main_frame] = {
-            Color = "outline"
-        }
-        --
-        local frame_inline = utility:Create("Frame", {Vector2.new(1,1), main_frame}, {
-            Size = utility:Size(1, -2, 1, -2, main_frame),
-            Position = utility:Position(0, 1, 0, 1, main_frame),
-            Color = theme.accent
-        })
-        --
-        library.colors[frame_inline] = {
-            Color = "accent"
-        }
-        --
-        local inner_frame = utility:Create("Frame", {Vector2.new(1,1), frame_inline}, {
-            Size = utility:Size(1, -2, 1, -2, frame_inline),
-            Position = utility:Position(0, 1, 0, 1, frame_inline),
-            Color = theme.lightcontrast
-        })
-        --
-        library.colors[inner_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local title_icon = utility:Create("Image", {Vector2.new(4,3), inner_frame}, {
-            Size = utility:Size(0, 15, 0, 15, inner_frame),
-            Position = utility:Position(0, 4, 0, 3, inner_frame)
-        })
-        --
-        utility:LoadImage(title_icon, "roblox_icon", {
-            "rbxthumb://type=AvatarHeadShot&id=1&w=420&h=420",
-            "https://i.imgur.com/tVqy0nL.png",
-        })
-        --
-        local title = utility:Create("TextLabel", {Vector2.new(23,2), inner_frame}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 23, 0, 2, inner_frame)
-        })
-        --
-        library.colors[title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        local inner_frame_inline = utility:Create("Frame", {Vector2.new(4,18), inner_frame}, {
-            Size = utility:Size(1, -8, 1, -22, inner_frame),
-            Position = utility:Position(0, 4, 0, 18, inner_frame),
-            Color = theme.inline
-        })
-        --
-        library.colors[inner_frame_inline] = {
-            Color = "inline"
-        }
-        --
-        local inner_frame_inline2 = utility:Create("Frame", {Vector2.new(1,1), inner_frame_inline}, {
-            Size = utility:Size(1, -2, 1, -2, inner_frame_inline),
-            Position = utility:Position(0, 1, 0, 1, inner_frame_inline),
-            Color = theme.outline
-        })
-        --
-        library.colors[inner_frame_inline2] = {
-            Color = "outline"
-        }
-        --
-        local back_frame = utility:Create("Frame", {Vector2.new(1,1), inner_frame_inline2}, {
-            Size = utility:Size(1, -2, 1, -2, inner_frame_inline2),
-            Position = utility:Position(0, 1, 0, 1, inner_frame_inline2),
-            Color = theme.darkcontrast
-        });window["back_frame"] = back_frame
-        --
-        library.colors[back_frame] = {
-            Color = "darkcontrast"
-        }
-        --
-        local tab_frame_inline = utility:Create("Frame", {Vector2.new(4,24), back_frame}, {
-            Size = utility:Size(1, -8, 1, -28, back_frame),
-            Position = utility:Position(0, 4, 0, 24, back_frame),
-            Color = theme.outline
-        })
-        --
-        library.colors[tab_frame_inline] = {
-            Color = "outline"
-        }
-        --
-        local tab_frame_inline2 = utility:Create("Frame", {Vector2.new(1,1), tab_frame_inline}, {
-            Size = utility:Size(1, -2, 1, -2, tab_frame_inline),
-            Position = utility:Position(0, 1, 0, 1, tab_frame_inline),
-            Color = theme.inline
-        })
-        --
-        library.colors[tab_frame_inline2] = {
-            Color = "inline"
-        }
-        --
-        local tab_frame = utility:Create("Frame", {Vector2.new(1,1), tab_frame_inline2}, {
-            Size = utility:Size(1, -2, 1, -2, tab_frame_inline2),
-            Position = utility:Position(0, 1, 0, 1, tab_frame_inline2),
-            Color = theme.lightcontrast
-        });window["tab_frame"] = tab_frame
-        --
-        library.colors[tab_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        function ColorLerp(Value, MinColor, MaxColor)
-            if Value <= 0 then return MaxColor end
-            if Value >= 100 then return MinColor end
-            --
-            return Color3.new(
-                MaxColor.R + (MinColor.R - MaxColor.R) * Value,
-                MaxColor.G + (MinColor.G - MaxColor.G) * Value,
-                MaxColor.B + (MinColor.B - MaxColor.B) * Value
+        end
+    end)
+
+    utility:Connection(inputservice.InputEnded, function(input, gpe)
+        if self.hasInit and library.open then
+            local hoverObj = utility:GetHoverObject();
+            local hoverObjData = library.drawings[hoverObj];
+
+            if input.UserInputType == Enum.UserInputType.MouseButton1 then
+                mb1down = false;
+                button1up:Fire();
+                if hoverObj and hoverObjData then
+                    hoverObjData.MouseButton1Up:Fire(inputservice:GetMouseLocation())
+                end
+            elseif input.UserInputType == Enum.UserInputType.MouseButton2 then
+                if hoverObj and hoverObjData then
+                    hoverObjData.MouseButton2Up:Fire(inputservice:GetMouseLocation())
+                end
+            end
+        end
+    end)
+
+    utility:Connection(inputservice.InputChanged, function(input, gpe)
+        if input.UserInputType == Enum.UserInputType.MouseMovement then
+            if library.open then
+                mousemove:Fire(inputservice:GetMouseLocation());
+                updateCursor();
+
+                if library.CurrentTooltip ~= nil then
+                    local mousePos = inputservice:GetMouseLocation()
+                    tooltipObjects.background.Position = UDim2.new(0,mousePos.X + 15,0,mousePos.Y + 15)
+                    tooltipObjects.background.Size = UDim2.new(0,tooltipObjects.text.TextBounds.X + 6 + (library.CurrentTooltip.risky and 60 or 0),0,tooltipObjects.text.TextBounds.Y + 2)
+                end
+
+                local hoverObj = utility:GetHoverObject();
+                for _,v in next, library.drawings do
+                    local hover = hoverObj == v.Object;
+                    if hover and not v.Hover then
+                        v.Hover = true;
+                        v.MouseEnter:Fire(inputservice:GetMouseLocation());
+                    elseif not hover and v.Hover then
+                        v.Hover = false;
+                        v.MouseLeave:Fire(inputservice:GetMouseLocation());
+                    end
+                end
+
+                if mb1down then
+
+                    -- // Update Sliders Drag
+                    if library.draggingSlider ~= nil then
+                        local rel = inputservice:GetMouseLocation() - library.draggingSlider.objects.background.Object.Position;
+                        local val = utility:ConvertNumberRange(rel.X, 0 , library.draggingSlider.objects.background.Object.Size.X, library.draggingSlider.min, library.draggingSlider.max);
+                        library.draggingSlider:SetValue(val)
+                    end
+
+                end
+            end
+        end
+    end)
+    
+    function self:SetOpen(bool)
+        self.open = bool;
+        screenGui.Enabled = bool;
+
+        if bool and library.flags.disablemenumovement then
+            actionservice:BindAction(
+                'FreezeMovement',
+                function()
+                    return Enum.ContextActionResult.Sink
+                end,
+                false,
+                unpack(Enum.PlayerActions:GetEnumItems())
             )
+        else
+            actionservice:UnbindAction('FreezeMovement');
         end
-        -- // Esp Preview
+
+        updateCursor();
+        for _,window in next, self.windows do
+            window:SetOpen(bool);
+        end
+
+        library.CurrentTooltip = nil;
+        tooltipObjects.background.Visible = false
+    end
+
+    function self.UpdateThemeColors()
+        for _,v in next, library.drawings do
+            if v.ThemeColor and library.theme[v.ThemeColor] then
+                v.Object.Color = utility:AddRGB(library.theme[v.ThemeColor],fromrgb(v.ThemeColorOffset,v.ThemeColorOffset,v.ThemeColorOffset))
+            end
+            if v.ThemeColorOutline and library.theme[v.ThemeColorOutline] then
+                v.Object.OutlineColor = utility:AddRGB(library.theme[v.ThemeColorOutline],fromrgb(v.OutlineThemeColorOffset,v.OutlineThemeColorOffset,v.OutlineThemeColorOffset))
+            end
+        end
+    end
+
+    function self:SendNotification(message, time, color)
+        time = time or 5
+        if typeof(message) ~= 'string' then
+            return error(string.format('invalid message type, got %s, expected string', typeof(message)))
+        elseif typeof(time) ~= 'number' then
+            return error(string.format('invalid time type, got %s, expected number', typeof(time)))
+        elseif color ~= nil and typeof(color) ~= 'Color3' then
+            return error(string.format('invalid color type, got %s, expected color3', typeof(time)))
+        end
+
+        local notification = {};
+
+        self.notifications[notification] = true
+
         do
-            window.VisualPreview = {
-                Size = {X = 5, Y = 0},
-                Color1 = Color3.fromRGB(126, 226, 200),
-                Color2 = Color3.fromRGB(210, 90, 90),
-                HealthBarFade = 0,
-                Fading = false,
-                State = false,
-                Visible = true,
-                Drawings = {},
-                Components = {
-                    Box = {
-                        Outline = nil,
-                        Box = nil,
-                        Fill = nil
-                    },
-                    HealthBar = {
-                        Outline = nil,
-                        Box = nil,
-                        Value = nil
-                    },
-                    Skeleton = {
-                        Head = {},
-                        Torso = {},
-                        LeftArm = {},
-                        RightArm = {},
-                        Hips = {},
-                        LeftLeg = {},
-                        RightLeg = {},
-                        HipsTorso = {}
-                    },
-                    Chams = {
-                        Head = {},
-                        Torso = {},
-                        LeftArm = {},
-                        RightArm = {},
-                        LeftLeg = {},
-                        RightLeg = {}
-                    },
-                    Title = {
-                        Text = nil
-                    },
-                    Distance = {
-                        Text = nil
-                    },
-                    Tool = {
-                        Text = nil
-                    },
-                    Flags = {
-                        Text = nil
-                    }
-                }
-            }
-            --
-            local esppreview_frame = utility:Create("Frame", {Vector2.new(main_frame.Size.X + 5,0), main_frame}, {
-                Size = utility:Size(0, 236, 0, 339),
-                Position = utility:Position(1, 5, 0, 0, main_frame),
-                Color = theme.outline
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_frame] = {
-                Color = "outline"
-            }
-            --
-            local esppreview_inline = utility:Create("Frame", {Vector2.new(1,1), esppreview_frame}, {
-                Size = utility:Size(1, -2, 1, -2, esppreview_frame),
-                Position = utility:Position(0, 1, 0, 1, esppreview_frame),
-                Color = theme.accent
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inline] = {
-                Color = "accent"
-            }
-            --
-            local esppreview_inner = utility:Create("Frame", {Vector2.new(1,1), esppreview_inline}, {
-                Size = utility:Size(1, -2, 1, -2, esppreview_inline),
-                Position = utility:Position(0, 1, 0, 1, esppreview_inline),
-                Color = theme.lightcontrast
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inner] = {
-                Color = "lightcontrast"
-            }
-            --
-            local esppreview_title = utility:Create("TextLabel", {Vector2.new(4,2), esppreview_inner}, {
-                Text = "ESP Preview",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(0, 4, 0, 2, esppreview_inner)
-            }, window.VisualPreview.Drawings)
-            --
-            local esppreview_visiblebutton = utility:Create("TextLabel", {Vector2.new(esppreview_inner.Size.X - (5 + 7),2), esppreview_inner}, {
-                Text = "O",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(1, -(5 + 7), 0, 2, esppreview_inner)
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            local esppreview_inner_inline = utility:Create("Frame", {Vector2.new(4,18), esppreview_inner}, {
-                Size = utility:Size(1, -8, 1, -22, esppreview_inner),
-                Position = utility:Position(0, 4, 0, 18, esppreview_inner),
-                Color = theme.inline
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inner_inline] = {
-                Color = "inline"
-            }
-            --
-            local esppreview_inner_outline = utility:Create("Frame", {Vector2.new(1,1), esppreview_inner_inline}, {
-                Size = utility:Size(1, -2, 1, -2, esppreview_inner_inline),
-                Position = utility:Position(0, 1, 0, 1, esppreview_inner_inline),
-                Color = theme.outline
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inner_outline] = {
-                Color = "outline"
-            }
-            --
-            local esppreview_inner_frame = utility:Create("Frame", {Vector2.new(1,1), esppreview_inner_outline}, {
-                Size = utility:Size(1, -2, 1, -2, esppreview_inner_outline),
-                Position = utility:Position(0, 1, 0, 1, esppreview_inner_outline),
-                Color = theme.darkcontrast
-            }, window.VisualPreview.Drawings)
-            --
-            library.colors[esppreview_inner_frame] = {
-                Color = "darkcontrast"
-            }
-            --
-            local esppreview_frame_previewbox = utility:Create("Frame", {Vector2.new(10,10), esppreview_inner_frame}, {
-                Size = utility:Size(1, -20, 1, -20, esppreview_inner_frame),
-                Position = utility:Position(0, 10, 0, 10, esppreview_inner_frame),
-                Color = Color3.fromRGB(0, 0, 0),
-                Transparency = 0
+            local objs = notification;
+            local z = self.zindexOrder.notification;
+
+            notification.holder = utility:Draw('Square', {
+                Position = newUDim2(0, 0, 0, 75);
+                Transparency = 0;
             })
-            --
-            local BoxSize = utility:Size(1, -7, 1, -55, esppreview_frame_previewbox)
-            local healthbaroutline
-            local healthbar
-            local healthvalue
-            local boxoutline
-            --
-            function window.VisualPreview:UpdateHealthBar()
-                window.VisualPreview.HealthBarFade = window.VisualPreview.HealthBarFade + 0.015
-                local Smoothened = (math.acos(math.cos(window.VisualPreview.HealthBarFade * math.pi)) / math.pi)
-                local Size = (healthbaroutline.Size.Y - 2) * Smoothened
-                local Color = ColorLerp(Smoothened, window.VisualPreview.Color1, window.VisualPreview.Color2)
-                --
-                healthvalue.Text = "<- " .. math.round(Smoothened * 100)
-                healthvalue.Color = Color
-                healthbar.Color = Color
-                healthbar.Size = utility:Size(1, -2, 0, Size, healthbaroutline)
-                healthbar.Position = utility:Position(0, 1, 1, -Size - 1, healthbaroutline)
-                utility:UpdateOffset(healthbar, {Vector2.new(1, healthbaroutline.Size.Y - Size - 1), healthbaroutline})
-            end
-            --
-            function window.VisualPreview:UpdateHealthValue(Size)
-                local New = Vector2.new(healthbar.Position.X + (5 - Size), math.clamp(healthbar.Position.Y + 5, 0, (healthbar.Position.Y) + (healthbar.Size.Y) - 18))
-                --
-                healthvalue.Position = New
-                utility:UpdateOffset(healthvalue, {Vector2.new(5 - Size, New.Y - healthbar.Position.Y), healthbar})
-            end
-            --
-            function window.VisualPreview:ValidateSize(Side, Size)
-                if not (window.VisualPreview.Size[Side] == Size) then
-                    window.VisualPreview.Size[Side] = Size
-                    --
-                    esppreview_frame.Size = utility:Size(0, 231 + window.VisualPreview.Size[Side], 0, 339)
-                    esppreview_inline.Size = utility:Size(1, -2, 1, -2, esppreview_frame)
-                    esppreview_inner.Size = utility:Size(1, -2, 1, -2, esppreview_inline)
-                    esppreview_inner_inline.Size = utility:Size(1, -8, 1, -22, esppreview_inner)
-                    esppreview_inner_outline.Size = utility:Size(1, -2, 1, -2, esppreview_inner_inline)
-                    esppreview_inner_frame.Size = utility:Size(1, -2, 1, -2, esppreview_inner_outline)
-                    esppreview_frame_previewbox.Size = utility:Size(1, -20, 1, -20, esppreview_inner_frame)
-                    --
-                    esppreview_visiblebutton.Position = utility:Position(1, -(5 + 7), 0, 2, esppreview_inner)
-                    esppreview_frame_previewbox.Position = utility:Position(0, 10, 0, 10, esppreview_inner_frame)
-                    --
-                    utility:UpdateOffset(esppreview_visiblebutton, {Vector2.new(esppreview_inner.Size.X - (5 + 7),2), esppreview_inner})
-                    utility:UpdateOffset(esppreview_frame_previewbox, {Vector2.new(10,10), esppreview_inner_frame})
-                    utility:UpdateOffset(boxoutline, {Vector2.new(esppreview_frame_previewbox.Size.X - BoxSize.X - 1, 20), esppreview_frame_previewbox})
-                    --
-                    window:Move(main_frame.Position + Vector2.new(0, 0))
-                end
-            end
-            --
-            function window.VisualPreview:SetPreviewState(State)
-                window.VisualPreview.Fading = true
-                window.VisualPreview.State = State
-                --
-                task.spawn(function()
-                    for Index, Value in pairs(window.VisualPreview.Drawings) do
-                        utility:Lerp(Index, {Transparency = window.VisualPreview.State and Value or 0}, 0.2)
-                        utility:UpdateTransparency(Index, window.VisualPreview.State and Value or 0)
-                    end
-                end)
-                --
-                window.VisualPreview.Fading = false
-            end
-            --
-            function window.VisualPreview:SetComponentProperty(Component, Property, State, Index)
-                for Index2, Value in pairs(window.VisualPreview.Components[Component]) do
-                    if Index then
-                        Value[Index][Property] = State
-                        --
-                        if Property == "Transparency" then
-                            utility:UpdateTransparency(Value[Index], State)
-                            if window.VisualPreview.Drawings[Value[Index]] then
-                                window.VisualPreview.Drawings[Value[Index]] = State
-                            end
-                        end
-                    else
-                        Value[Property] = State
-                        --
-                        if Property == "Transparency" then
-                            utility:UpdateTransparency(Value, State)
-                            if window.VisualPreview.Drawings[Value] then
-                                window.VisualPreview.Drawings[Value] = State
-                            end
-                        end
-                    end 
-                end
-            end
-            --
-            function window.VisualPreview:SetComponentSelfProperty(Component, Self, Property, State, Index)
-                if Index then
-                    window.VisualPreview.Components[Component][Self][Index][Property] = State
-                    --
-                    if Property == "Transparency" then
-                        utility:UpdateTransparency(window.VisualPreview.Components[Component][Self][Index], State)
-                        if window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self][Index]] then
-                            window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self][Index]] = State
-                        end
-                    end
-                else
-                    window.VisualPreview.Components[Component][Self][Property] = State
-                    --
-                    if Property == "Transparency" then
-                        utility:UpdateTransparency(window.VisualPreview.Components[Component][Self], State)
-                        if window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self]] then
-                            window.VisualPreview.Drawings[window.VisualPreview.Components[Component][Self]] = State
-                        end
-                    end
-                end 
-            end
-            --
-            library.began[#library.began + 1] = function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 and esppreview_visiblebutton.Visible and window.isVisible and utility:MouseOverDrawing({esppreview_visiblebutton.Position.X, esppreview_visiblebutton.Position.Y, esppreview_visiblebutton.Position.X + esppreview_visiblebutton.TextBounds.X, esppreview_visiblebutton.Position.Y + esppreview_visiblebutton.TextBounds.Y}) and not window:IsOverContent() then
-                    window.VisualPreview.Visible = not window.VisualPreview.Visible
-                    esppreview_visiblebutton.Text = window.VisualPreview.Visible and "O" or "0"
-                end
-            end
-            --
-            do -- Preview Stuff
-                local preview_boxoutline = utility:Create("Frame", {Vector2.new(esppreview_frame_previewbox.Size.X - BoxSize.X - 1, 20), esppreview_frame_previewbox}, {
-                    Size = BoxSize,
-                    Position = utility:Position(1, -(BoxSize.X - 1), 0, 20, esppreview_frame_previewbox),
-                    Color = Color3.fromRGB(0, 0, 0),
-                    Filled = false,
-                    Thickness = 2.5
-                }, window.VisualPreview.Drawings);boxoutline = preview_boxoutline
-                --
-                local preview_box = utility:Create("Frame", {Vector2.new(0, 0), preview_boxoutline}, {
-                    Size = utility:Size(1, 0, 1, 0, preview_boxoutline),
-                    Position = utility:Position(0, 0, 0, 0, preview_boxoutline),
-                    Color = Color3.fromRGB(255, 255, 255),
-                    Filled = false,
-                    Thickness = 0.6
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_heatlhbaroutline = utility:Create("Frame", {Vector2.new(-6, -1), preview_boxoutline}, {
-                    Size = utility:Size(0, 4, 1, 2, preview_boxoutline),
-                    Position = utility:Position(0, -6, 0, -1, preview_boxoutline),
-                    Color = Color3.fromRGB(0, 0, 0),
-                    Filled = true
-                }, window.VisualPreview.Drawings);healthbaroutline = preview_heatlhbaroutline
-                --
-                local preview_heatlhbar = utility:Create("Frame", {Vector2.new(1, 1), preview_heatlhbaroutline}, {
-                    Size = utility:Size(1, -2, 1, -2, preview_heatlhbaroutline),
-                    Position = utility:Position(0, 1, 0, 1, preview_heatlhbaroutline),
-                    Color = Color3.fromRGB(255, 0, 0),
-                    Filled = true
-                }, window.VisualPreview.Drawings);healthbar = preview_heatlhbar
-                --
-                local preview_title = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X / 2, -20), preview_box}, {
-                    Text = "Username",
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = theme.textcolor,
-                    OutlineColor = theme.textborder,
-                    Center = true,
-                    Position = utility:Position(0.5, 0, 0, -20, preview_box)
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_distance = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X / 2, preview_box.Size.Y + 5), preview_box}, {
-                    Text = "25m",
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = theme.textcolor,
-                    OutlineColor = theme.textborder,
-                    Center = true,
-                    Position = utility:Position(0.5, 0, 1, 5, preview_box)
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_tool = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X / 2, preview_box.Size.Y + 20), preview_box}, {
-                    Text = "Weapon",
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = theme.textcolor,
-                    OutlineColor = theme.textborder,
-                    Center = true,
-                    Position = utility:Position(0.5, 0, 1, 20, preview_box)
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_character = utility:Create("Frame", {Vector2.new(46/2, 40/2), preview_box}, {
-                    Size = utility:Size(1, -46, 1, -40, preview_box),
-                    Position = utility:Position(0, (46/2), 0, (40/2), preview_box),
-                    Color = Color3.fromRGB(255, 255, 255),
-                    Transparency = 0
-                }, window.VisualPreview.Drawings)
-                --
-                do -- Chams
-                    for Index = 1, 2 do
-                        local transparency = Index == 1 and 0.75 or 0.5
-                        local color = Index == 1 and Color3.fromRGB(46, 130, 116) or Color3.fromRGB(255, 255, 255)
-                        --
-                        local extrasize = Index == 1 and 4 or 0
-                        local extraoffset = Index == 1 and -2 or 0
-                        --
-                        local preview_character_head = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.35) + (extraoffset), extraoffset), preview_character}, {
-                            Size = utility:Size(0.3, extrasize, 0.2, 0, preview_character),
-                            Position = utility:Position(0.35, extraoffset, 0, extraoffset, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_torso = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.25) + (extraoffset), (preview_character.Size.Y * 0.2) + (extraoffset)), preview_character}, {
-                            Size = utility:Size(0.5, extrasize, 0.4, extrasize, preview_character),
-                            Position = utility:Position(0.25, extraoffset, 0.2, extraoffset, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_leftarm = utility:Create("Frame", {Vector2.new(extraoffset, (preview_character.Size.Y * 0.2) + (extraoffset)), preview_character}, {
-                            Size = utility:Size(0.25, 0, 0.4, extrasize, preview_character),
-                            Position = utility:Position(0, extraoffset, 0.2, extraoffset, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_rightarm = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.75) + (extraoffset + extrasize), (preview_character.Size.Y * 0.2) + (extraoffset)), preview_character}, {
-                            Size = utility:Size(0.25, 0, 0.4, extrasize, preview_character),
-                            Position = utility:Position(0.75, extraoffset, 0.2, extraoffset, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_leftleg = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.25) + (extraoffset), (preview_character.Size.Y * 0.6) + (extraoffset + extrasize)), preview_character}, {
-                            Size = utility:Size(0.25, extrasize / 2, 0.4, 0, preview_character),
-                            Position = utility:Position(0.25, extraoffset, 0.6, extraoffset + extrasize, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_character_rightleg = utility:Create("Frame", {Vector2.new((preview_character.Size.X * 0.5) + (extraoffset + (extrasize / 2)), (preview_character.Size.Y * 0.6) + (extraoffset + extrasize)), preview_character}, {
-                            Size = utility:Size(0.25, extrasize / 2, 0.4, 0, preview_character),
-                            Position = utility:Position(0.25, extraoffset, 0.6, extraoffset + extrasize, preview_character),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        window.VisualPreview.Components.Chams["Head"][Index] = preview_character_head
-                        window.VisualPreview.Components.Chams["Torso"][Index] = preview_character_torso
-                        window.VisualPreview.Components.Chams["LeftArm"][Index] = preview_character_leftarm
-                        window.VisualPreview.Components.Chams["RightArm"][Index] = preview_character_rightarm
-                        window.VisualPreview.Components.Chams["LeftLeg"][Index] = preview_character_leftleg
-                        window.VisualPreview.Components.Chams["RightLeg"][Index] = preview_character_rightleg
-                    end
-                end
-                --
-                do -- Skeleton
-                    for Index = 1, 2 do
-                        local skeletonsize = Vector2.new(Index == 1 and 3 or 1, Index == 1 and -10 or -12)
-                        local skeletonoffset = Vector2.new(Index == 1 and -1 or 0, Index == 1 and 5 or 6)
-                        local transparency = 0.5
-                        local color = Index == 1 and Color3.fromRGB(0, 0, 0) or Color3.fromRGB(255, 255, 255)
-                        --
-                        local preview_skeleton_head = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["Head"][2].Size.X * 0.5) + skeletonoffset.X, (window.VisualPreview.Components.Chams["Head"][2].Size.Y * 0.5) + skeletonoffset.Y), window.VisualPreview.Components.Chams["Head"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 0.5, 0, window.VisualPreview.Components.Chams["Head"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0.5, skeletonoffset.Y, window.VisualPreview.Components.Chams["Head"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_torso = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["Torso"][2].Size.X * 0) + skeletonoffset.X - (window.VisualPreview.Components.Chams["LeftArm"][2].Size.X / 2) + (Index == 1 and 3 or 1), skeletonoffset.Y), window.VisualPreview.Components.Chams["Torso"][2]}, {
-                            Size = utility:Size(1, skeletonsize.X + window.VisualPreview.Components.Chams["LeftArm"][2].Size.X - (Index == 1 and 6 or 2), 0, skeletonsize.X, window.VisualPreview.Components.Chams["Torso"][2]),
-                            Position = utility:Position(0, skeletonoffset.X - (window.VisualPreview.Components.Chams["LeftArm"][2].Size.X / 2) + (Index == 1 and 3 or 1), 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["Torso"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_leftarm = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["LeftArm"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["LeftArm"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["LeftArm"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["LeftArm"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_rightarm = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["RightArm"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["RightArm"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["RightArm"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["RightArm"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_hips = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["LeftLeg"][2].Size.X * 1) + skeletonoffset.X - (window.VisualPreview.Components.Chams["LeftLeg"][2].Size.X / 2) + (Index == 1 and 3 or 1), skeletonoffset.Y), window.VisualPreview.Components.Chams["LeftLeg"][2]}, {
-                            Size = utility:Size(1, skeletonsize.X - (Index == 1 and 6 or 2), 0, skeletonsize.X, window.VisualPreview.Components.Chams["LeftLeg"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X + (Index == 1 and 3 or 1), 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["LeftLeg"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_leftleg = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["LeftLeg"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["LeftLeg"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["LeftLeg"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["LeftLeg"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_rightleg = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["RightLeg"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y), window.VisualPreview.Components.Chams["RightLeg"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, skeletonsize.Y, window.VisualPreview.Components.Chams["RightLeg"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y, window.VisualPreview.Components.Chams["RightLeg"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        local preview_skeleton_hipstorso = utility:Create("Frame", {Vector2.new((window.VisualPreview.Components.Chams["Torso"][2].Size.X * 0.5) + skeletonoffset.X, skeletonoffset.Y + (Index == 1 and 3 or 1)), window.VisualPreview.Components.Chams["Torso"][2]}, {
-                            Size = utility:Size(0, skeletonsize.X, 1, Index == 1 and -3 or -1, window.VisualPreview.Components.Chams["Torso"][2]),
-                            Position = utility:Position(0.5, skeletonoffset.X, 0, skeletonoffset.Y + (Index == 1 and 3 or 1), window.VisualPreview.Components.Chams["Torso"][2]),
-                            Color = color,
-                            Transparency = transparency
-                        }, window.VisualPreview.Drawings)
-                        --
-                        window.VisualPreview.Components.Skeleton["Head"][Index] = preview_skeleton_head
-                        window.VisualPreview.Components.Skeleton["Torso"][Index] = preview_skeleton_torso
-                        window.VisualPreview.Components.Skeleton["LeftArm"][Index] = preview_skeleton_leftarm
-                        window.VisualPreview.Components.Skeleton["RightArm"][Index] = preview_skeleton_rightarm
-                        window.VisualPreview.Components.Skeleton["Hips"][Index] = preview_skeleton_hips
-                        window.VisualPreview.Components.Skeleton["LeftLeg"][Index] = preview_skeleton_leftleg
-                        window.VisualPreview.Components.Skeleton["RightLeg"][Index] = preview_skeleton_rightleg
-                        window.VisualPreview.Components.Skeleton["HipsTorso"][Index] = preview_skeleton_hipstorso
-                    end
-                end
-                --
-                local preview_boxfill = utility:Create("Frame", {Vector2.new(1, 1), preview_boxoutline}, {
-                    Size = utility:Size(1, -2, 1, -2, preview_boxoutline),
-                    Position = utility:Position(0, 1, 0, 1, preview_boxoutline),
-                    Color = Color3.fromRGB(255, 255, 255),
-                    Filled = true,
-                    Transparency = 0.9
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_flags = utility:Create("TextLabel", {Vector2.new(preview_box.Size.X -56, 5), preview_box}, {
-                    Text = "Flags ->",
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = Color3.fromRGB(255, 255, 255),
-                    OutlineColor = theme.textborder,
-                    Center = false,
-                    Position = utility:Position(1, -56, 0, 5, preview_box)
-                }, window.VisualPreview.Drawings)
-                --
-                local preview_healthbarvalue = utility:Create("TextLabel", {Vector2.new(0, 5), preview_heatlhbar}, {
-                    Text = "<- Number",
-                    Size = theme.textsize,
-                    Font = theme.font,
-                    Color = Color3.fromRGB(126, 226, 200),
-                    OutlineColor = theme.textborder,
-                    Center = false,
-                    Position = utility:Position(0, 0, 0, 5, preview_heatlhbar)
-                }, window.VisualPreview.Drawings);healthvalue = preview_healthbarvalue
-                --
-                window.VisualPreview.Components.Title["Text"] = preview_title
-                window.VisualPreview.Components.Distance["Text"] = preview_distance
-                window.VisualPreview.Components.Tool["Text"] = preview_tool
-                window.VisualPreview.Components.Flags["Text"] = preview_flags
-                window.VisualPreview.Components.Box["Outline"] = preview_boxoutline
-                window.VisualPreview.Components.Box["Box"] = preview_box
-                window.VisualPreview.Components.Box["Fill"] = preview_boxfill
-                window.VisualPreview.Components.HealthBar["Outline"] = preview_heatlhbaroutline
-                window.VisualPreview.Components.HealthBar["Box"] = preview_heatlhbar
-                window.VisualPreview.Components.HealthBar["Value"] = preview_healthbarvalue
-            end
-            --
-            do -- New Drawings
-                local NewDrawings = {}
-                --
-                for Index, Value in pairs(library.drawings) do
-                    if Value[1] and table.find(window.VisualPreview.Drawings, Value[1]) then
-                        NewDrawings[Value[1]] = Value[3]
-                    end
-                end
-                --
-                window.VisualPreview.Drawings = NewDrawings
-            end
-        end
-        --
-        function window:SetName(Name)
-            title.Text = Name
-        end
-        --
-        function window:LoadConfig(config)
-            local success, decoded = pcall(function()
-                return hs:JSONDecode(config)
-            end)
-            --
-            if not success or type(decoded) ~= "table" then return end
-            --
-            for i,v in pairs(decoded) do
-                local pointer = library.pointers[i]
-                if pointer and type(pointer.Set) == "function" then
-                    pcall(function()
-                        pointer:Set(v)
-                    end)
-                end
-            end
-        end
-        --
-        function window:Move(vector)
-            local tab = window.tab_frame
-            local page = window.currentPage
-            local top = tab.Position.Y
-            local bottom = top + tab.Size.Y
-            --
-            for i,v in pairs(library.drawings) do
-                if v[1] then
-                    if v[2][2] then
-                        v[1].Position = utility:Position(0, v[2][1].X, 0, v[2][1].Y, v[2][2])
-                    else
-                        v[1].Position = utility:Position(0, vector.X, 0, vector.Y)
-                    end
-                    --
-                    local owner = GetPageOf(v[1])
-                    if owner then
-                        local drawY = v[1].Position.Y
-                        v[1].Visible = page ~= nil and page.open and owner == page and drawY >= top - 2 and drawY <= bottom
-                    end
-                end
-            end
-        end
-        --
-        function window:CloseContent()
-            if window.currentContent.dropdown and window.currentContent.dropdown.open then
-                local dropdown = window.currentContent.dropdown
-                dropdown.open = not dropdown.open
-                utility:LoadImage(dropdown.dropdown_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                --
-                for i,v in pairs(dropdown.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                dropdown.holder.drawings = {}
-                dropdown.holder.buttons = {}
-                dropdown.holder.inline = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.dropdown = nil
-            elseif window.currentContent.multibox and window.currentContent.multibox.open then
-                local multibox = window.currentContent.multibox
-                multibox.open = not multibox.open
-                utility:LoadImage(multibox.multibox_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                --
-                for i,v in pairs(multibox.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                multibox.holder.drawings = {}
-                multibox.holder.buttons = {}
-                multibox.holder.inline = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.multibox = nil
-            elseif window.currentContent.colorpicker and window.currentContent.colorpicker.open then
-                local colorpicker = window.currentContent.colorpicker
-                colorpicker.open = not colorpicker.open
-                --
-                for i,v in pairs(colorpicker.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                colorpicker.holder.drawings = {}
-                --
-                window.currentContent.frame = nil
-                window.currentContent.colorpicker = nil
-            elseif window.currentContent.keybind and window.currentContent.keybind.open then
-                local modemenu = window.currentContent.keybind.modemenu
-                window.currentContent.keybind.open = not window.currentContent.keybind.open
-                --
-                for i,v in pairs(modemenu.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                modemenu.drawings = {}
-                modemenu.buttons = {}
-                modemenu.frame = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.keybind = nil
-            elseif window.currentContent.textbox and window.currentContent.textbox.Disconnect then
-                if window.currentContent.textbox.Item.oldenter ~= window.currentContent.textbox.Item.current then
-                    window.currentContent.textbox.Item.oldenter = window.currentContent.textbox.Item.current
-                    task.spawn(function()
-                        window.currentContent.textbox.Item.callback(window.currentContent.textbox.Item.current, true)
-                    end)
-                end
-                window.currentContent.textbox.Disconnect()
-                window.currentContent.textbox = nil
-            end
-        end
-        --
-        function window:IsOverContent()
-            local isOver = false
-            --
-            if window.currentContent.frame and utility:MouseOverDrawing({window.currentContent.frame.Position.X,window.currentContent.frame.Position.Y,window.currentContent.frame.Position.X + window.currentContent.frame.Size.X,window.currentContent.frame.Position.Y + window.currentContent.frame.Size.Y}) then
-                isOver = true
-            end
-            --
-            return isOver
-        end
-        --
-        function window:Unload()
-            pcall(function() cas:UnbindAction("DisableKeyboard") end)
-            --
-            for i,v in pairs(library.connections) do
-                pcall(function() v:Disconnect() end)
-                v = nil
-            end
-            --
-            for i,v in next, library.hidden do
-                if v[1] then
-                    pcall(function() v[1]:Remove() end)
-                    v[1] = nil
-                end
-            end
-            --
-            for i,v in pairs(library.drawings) do
-                if v[1] then
-                    pcall(function() v[1]:Remove() end)
-                    v[1] = nil
-                    v[2] = nil
-                end
-            end
-            --
-            for i,v in pairs(library.objects) do
-                pcall(function() i:Remove() end)
-            end
-            --
-            for i in pairs(library.began) do library.began[i] = nil end
-            for i in pairs(library.ended) do library.ended[i] = nil end
-            for i in pairs(library.changed) do library.changed[i] = nil end
-            for i in pairs(library.pointers) do library.pointers[i] = nil end
-            for i in pairs(library.colors) do library.colors[i] = nil end
-            --
-            library.shared.initialized = false
-            library.drawings = {}
-            library.objects = {}
-            library.hidden = {}
-            library.connections = {}
-            --
-            uis.MouseIconEnabled = true
-        end
-        --
-        function window:Watermark(info)
-            window.watermark = {visible = false}
-            --
-            local info = info or {}
-            local watermark_name = info.name or info.Name or info.title or info.Title or window.wminfo
-            --
-            local text_bounds = utility:GetTextBounds(watermark_name, theme.textsize, theme.font)
-            --
-            local watermark_outline = utility:Create("Frame", {Vector2.new(100,38/2-10)}, {
-                Size = utility:Size(0, text_bounds.X+20, 0, 21),
-                Position = utility:Position(0, 100, 0, 38/2-10),
-                Hidden = true,
-                ZIndex = 60,
-                Color = theme.outline,
-                Visible = window.watermark.visible
-            })window.watermark.outline = watermark_outline
-            --
-            library.colors[watermark_outline] = {
-                Color = "outline"
-            }
-            --
-            local watermark_inline = utility:Create("Frame", {Vector2.new(1,1), watermark_outline}, {
-                Size = utility:Size(1, -2, 1, -2, watermark_outline),
-                Position = utility:Position(0, 1, 0, 1, watermark_outline),
-                Hidden = true,
-                ZIndex = 60,
-                Color = theme.inline,
-                Visible = window.watermark.visible
+            
+            notification.background = utility:Draw('Square', {
+                Size = newUDim2(1,0,1,0);
+                Position = newUDim2(0, -500, 0, 0);
+                Parent = notification.holder;
+                ThemeColor = 'Background';
+                ZIndex = z;
             })
-            --
-            library.colors[watermark_inline] = {
-                Color = "inline"
-            }
-            --
-            local watermark_frame = utility:Create("Frame", {Vector2.new(1,1), watermark_inline}, {
-                Size = utility:Size(1, -2, 1, -2, watermark_inline),
-                Position = utility:Position(0, 1, 0, 1, watermark_inline),
-                Hidden = true,
-                ZIndex = 60,
-                Color = theme.lightcontrast,
-                Visible = window.watermark.visible
+
+            notification.border1 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 2';
+                Parent = notification.background;
+                ZIndex = z-1;
             })
-            --
-            library.colors[watermark_frame] = {
-                Color = "lightcontrast"
-            }
-            --
-            local watermark_accent = utility:Create("Frame", {Vector2.new(0,0), watermark_frame}, {
-                Size = utility:Size(1, 0, 0, 1, watermark_frame),
-                Position = utility:Position(0, 0, 0, 0, watermark_frame),
-                Hidden = true,
-                ZIndex = 60,
-                Color = theme.accent,
-                Visible = window.watermark.visible
+
+            objs.border2 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 3';
+                Parent = objs.border1;
+                ZIndex = z-2;
             })
-            --
-            library.colors[watermark_accent] = {
-                Color = "accent"
-            }
-            --
-            local watermark_title = utility:Create("TextLabel", {Vector2.new(2 + 6,4), watermark_outline}, {
-                Text = "Failed Loading Watermark.",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Hidden = true,
-                ZIndex = 60,
-                Position = utility:Position(0, 2 + 6, 0, 4, watermark_outline),
-                Visible = window.watermark.visible
+
+            notification.gradient = utility:Draw('Image', {
+                Size = newUDim2(1,0,1,0);
+                Data = self.images.gradientp90;
+                Parent = notification.background;
+                Transparency = .5;
+                ZIndex = z+1;
             })
-            --
-            library.colors[watermark_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            function window.watermark:UpdateSize()
-                watermark_outline.Size = utility:Size(0, watermark_title.TextBounds.X + 4 + (6*2), 0, 21)
-                watermark_inline.Size = utility:Size(1, -2, 1, -2, watermark_outline)
-                watermark_frame.Size = utility:Size(1, -2, 1, -2, watermark_inline)
-                watermark_accent.Size = utility:Size(1, 0, 0, 1, watermark_frame)
+
+            notification.accentBar = utility:Draw('Square',{
+                Size = newUDim2(0,5,1,4);
+                Position = newUDim2(0,0,0,-2);
+                Parent = notification.background;
+                ThemeColor = color == nil and 'Accent' or '';
+                ZIndex = z+5;
+            })
+
+            notification.text = utility:Draw('Text', {
+                Position = newUDim2(0,13,0,2);
+                ThemeColor = 'Primary Text';
+                Text = message;
+                Outline = true;
+                Font = 2;
+                Size = 13;
+                ZIndex = z+4;
+                Parent = notification.background;
+            })
+
+            if color then
+                notification.accentBar.Color = color;
             end
-            --
-            function window.watermark:Visibility()
-                watermark_outline.Visible = window.watermark.visible
-                watermark_inline.Visible = window.watermark.visible
-                watermark_frame.Visible = window.watermark.visible
-                watermark_accent.Visible = window.watermark.visible
-                watermark_title.Visible = window.watermark.visible
-            end
-            --
-            function window.watermark:Update(updateType, updateValue)
-                if updateType == "Visible" then
-                    window.watermark.visible = updateValue
-                    window.watermark:Visibility()
-                end
-            end
-            --
-            window.watermark:UpdateSize()
-            --
-            local temp = tick()
-            local Tick = tick()
-            --
-            utility:Connection(rs.RenderStepped, function(FPS)
-                library.shared.fps = math.floor(1 / math.abs(temp - tick()))
-                temp = tick()
-                library.shared.ping = stats.Network:FindFirstChild("ServerStatsItem") and tostring(math.round(stats.Network.ServerStatsItem["Data Ping"]:GetValue())) or "Unknown"
-                --
-                task.spawn(function()
-                    if (tick() - Tick) > 0.15 then
-                        watermark_title.Text = window.wminfo:gsub("$PING", library.shared.ping):gsub("$FPS", library.shared.fps)
-                        window.watermark:UpdateSize()
-                        --
-                        Tick = tick()
-                    end
-                end)
-            end)
-            --
-            return window.watermark
+
         end
-        --
-        function window:KeybindsList(info)
-            window.keybindslist = {visible = false, keybinds = {}}
-            --
-            local info = info or {}
-            --
-            local keybindslist_outline = utility:Create("Frame", {Vector2.new(10,(utility:GetScreenSize().Y/2)-200)}, {
-                Size = utility:Size(0, 180, 0, 22),
-                Position = utility:Position(0, 10, 0.4, 0),
-                Hidden = true,
-                ZIndex = 55,
-                Color = theme.outline,
-                Visible = window.keybindslist.visible
-            })window.keybindslist.outline = keybindslist_outline
-            --
-            library.colors[keybindslist_outline] = {
-                Color = "outline"
-            }
-            --
-            local keybindslist_inline = utility:Create("Frame", {Vector2.new(1,1), keybindslist_outline}, {
-                Size = utility:Size(1, -2, 1, -2, keybindslist_outline),
-                Position = utility:Position(0, 1, 0, 1, keybindslist_outline),
-                Hidden = true,
-                ZIndex = 55,
-                Color = theme.inline,
-                Visible = window.keybindslist.visible
-            })
-            --
-            library.colors[keybindslist_inline] = {
-                Color = "inline"
-            }
-            --
-            local keybindslist_frame = utility:Create("Frame", {Vector2.new(1,1), keybindslist_inline}, {
-                Size = utility:Size(1, -2, 1, -2, keybindslist_inline),
-                Position = utility:Position(0, 1, 0, 1, keybindslist_inline),
-                Hidden = true,
-                ZIndex = 55,
-                Color = theme.lightcontrast,
-                Visible = window.keybindslist.visible
-            })
-            --
-            library.colors[keybindslist_frame] = {
-                Color = "lightcontrast"
-            }
-            --
-            local keybindslist_accent = utility:Create("Frame", {Vector2.new(0,0), keybindslist_frame}, {
-                Size = utility:Size(1, 0, 0, 1, keybindslist_frame),
-                Position = utility:Position(0, 0, 0, 0, keybindslist_frame),
-                Hidden = true,
-                ZIndex = 55,
-                Color = theme.accent,
-                Visible = window.keybindslist.visible
-            })
-            --
-            library.colors[keybindslist_accent] = {
-                Color = "accent"
-            }
-            --
-            local keybindslist_title = utility:Create("TextLabel", {Vector2.new(keybindslist_outline.Size.X/2,4), keybindslist_outline}, {
-                Text = "[ Keybinds ]",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Center = true,
-                Hidden = true,
-                ZIndex = 55,
-                Position = utility:Position(0.5, 0, 0, 5, keybindslist_outline),
-                Visible = window.keybindslist.visible
-            })
-            --
-            library.colors[keybindslist_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            function window.keybindslist:Resort()
-                local index = 0
-                for i,v in pairs(window.keybindslist.keybinds) do
-                    v:Move(0 + (index*17))
-                    --
-                    index = index + 1
-                end
-            end
-            --
-            function window.keybindslist:Add(keybindname, keybindvalue)
-                if keybindname and keybindvalue and not window.keybindslist.keybinds[keybindname] then
-                    local keybindTable = {}
-                    --
-                    local keybind_outline = utility:Create("Frame", {Vector2.new(0,keybindslist_outline.Size.Y-1), keybindslist_outline}, {
-                        Size = utility:Size(1, 0, 0, 18, keybindslist_outline),
-                        Position = utility:Position(0, 0, 1, -1, keybindslist_outline),
-                        Hidden = true,
-                        ZIndex = 55,
-                        Color = theme.outline,
-                        Visible = window.keybindslist.visible
-                    })
-                    --
-                    library.colors[keybind_outline] = {
-                        Color = "outline"
-                    }
-                    --
-                    local keybind_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_outline}, {
-                        Size = utility:Size(1, -2, 1, -2, keybind_outline),
-                        Position = utility:Position(0, 1, 0, 1, keybind_outline),
-                        Hidden = true,
-                        ZIndex = 55,
-                        Color = theme.inline,
-                        Visible = window.keybindslist.visible
-                    })
-                    --
-                    library.colors[keybind_inline] = {
-                        Color = "inline"
-                    }
-                    --
-                    local keybind_frame = utility:Create("Frame", {Vector2.new(1,1), keybind_inline}, {
-                        Size = utility:Size(1, -2, 1, -2, keybind_inline),
-                        Position = utility:Position(0, 1, 0, 1, keybind_inline),
-                        Hidden = true,
-                        ZIndex = 55,
-                        Color = theme.darkcontrast,
-                        Visible = window.keybindslist.visible
-                    })
-                    --
-                    library.colors[keybind_frame] = {
-                        Color = "darkcontrast"
-                    }
-                    --
-                    local keybind_title = utility:Create("TextLabel", {Vector2.new(4,3), keybind_outline}, {
-                        Text = keybindname,
-                        Size = theme.textsize,
-                        Font = theme.font,
-                        Color = theme.textcolor,
-                        OutlineColor = theme.textborder,
-                        Center = false,
-                        Hidden = true,
-                        ZIndex = 55,
-                        Position = utility:Position(0, 4, 0, 3, keybind_outline),
-                        Visible = window.keybindslist.visible
-                    })
-                    --
-                    library.colors[keybind_title] = {
-                        OutlineColor = "textborder",
-                        Color = "textcolor"
-                    }
-                    --
-                    local keybind_value = utility:Create("TextLabel", {Vector2.new(keybind_outline.Size.X - 4 - utility:GetTextBounds(keybindname, theme.textsize, theme.font).X,3), keybind_outline}, {
-                        Text = "["..keybindvalue.."]",
-                        Size = theme.textsize,
-                        Font = theme.font,
-                        Color = theme.textcolor,
-                        OutlineColor = theme.textborder,
-                        Hidden = true,
-                        ZIndex = 55,
-                        Position = utility:Position(1, -4 - utility:GetTextBounds(keybindname, theme.textsize, theme.font).X, 0, 3, keybind_outline),
-                        Visible = window.keybindslist.visible
-                    })
-                    --
-                    library.colors[keybind_value] = {
-                        OutlineColor = "textborder",
-                        Color = "textcolor"
-                    }
-                    --
-                    function keybindTable:Move(yPos)
-                        keybind_outline.Position = utility:Position(0, 0, 1, -1 + yPos, keybindslist_outline)
-                        keybind_inline.Position = utility:Position(0, 1, 0, 1, keybind_outline)
-                        keybind_frame.Position = utility:Position(0, 1, 0, 1, keybind_inline)
-                        keybind_title.Position = utility:Position(0, 4, 0, 3, keybind_outline)
-                        keybind_value.Position = utility:Position(1, -4 - keybind_value.TextBounds.X, 0, 3, keybind_outline)
-                    end
-                    --
-                    function keybindTable:Remove()
-                        utility:Remove(keybind_outline, true)
-                        utility:Remove(keybind_inline, true)
-                        utility:Remove(keybind_frame, true)
-                        utility:Remove(keybind_title, true)
-                        utility:Remove(keybind_value, true)
-                        --
-                        window.keybindslist.keybinds[keybindname] = nil
-                        keybindTable = nil
-                    end
-                    --
-                    function keybindTable:Visibility()
-                        keybind_outline.Visible = window.keybindslist.visible
-                        keybind_inline.Visible = window.keybindslist.visible
-                        keybind_frame.Visible = window.keybindslist.visible
-                        keybind_title.Visible = window.keybindslist.visible
-                        keybind_value.Visible = window.keybindslist.visible
-                    end
-                    --
-                    window.keybindslist.keybinds[keybindname] = keybindTable
-                    window.keybindslist:Resort()
-                end
-            end
-            --
-            function window.keybindslist:Remove(keybindname)
-                if keybindname and window.keybindslist.keybinds[keybindname] then
-                    window.keybindslist.keybinds[keybindname]:Remove()
-                    window.keybindslist.keybinds[keybindname] = nil
-                    window.keybindslist:Resort()
-                end
-            end
-            --
-            function window.keybindslist:Visibility()
-                keybindslist_outline.Visible = window.keybindslist.visible
-                keybindslist_inline.Visible = window.keybindslist.visible
-                keybindslist_frame.Visible = window.keybindslist.visible
-                keybindslist_accent.Visible = window.keybindslist.visible
-                keybindslist_title.Visible = window.keybindslist.visible
-                --
-                for i,v in pairs(window.keybindslist.keybinds) do
-                    v:Visibility()
-                end
-            end
-            --
-            function window.keybindslist:Update(updateType, updateValue)
-                if updateType == "Visible" then
-                    window.keybindslist.visible = updateValue
-                    window.keybindslist:Visibility()
-                end
-            end
-            --
-            utility:Connection(ws.CurrentCamera:GetPropertyChangedSignal("ViewportSize"),function()
-                keybindslist_outline.Position = utility:Position(0, 10, 0.4, 0)
-                keybindslist_inline.Position = utility:Position(0, 1, 0, 1, keybindslist_outline)
-                keybindslist_frame.Position = utility:Position(0, 1, 0, 1, keybindslist_inline)
-                keybindslist_accent.Position = utility:Position(0, 0, 0, 0, keybindslist_frame)
-                keybindslist_title.Position = utility:Position(0.5, 0, 0, 5, keybindslist_outline)
-                --
-                window.keybindslist:Resort()
-            end)
+
+        function notification:Remove()
+            library.notifications[notification] = nil;
+            self.holder:Remove();
+            library:UpdateNotifications()
         end
-        --
-        function window:StatusList(info)
-            window.statuslist = {visible = false, statuses = {}}
-            --
-            local info = info or {}
-            --
-            local statuslist_outline = utility:Create("Frame", {Vector2.new(10,(utility:GetScreenSize().Y/2)-200)}, {
-                Size = utility:Size(0, 150, 0, 22),
-                Position = utility:Position(1, -160, 0.4, 0),
-                Hidden = true,
-                ZIndex = 55,
-                Color = theme.outline,
-                Visible = window.statuslist.visible
-            })window.statuslist.outline = statuslist_outline
-            --
-            library.colors[statuslist_outline] = {
-                Color = "outline"
-            }
-            --
-            local statuslist_inline = utility:Create("Frame", {Vector2.new(1,1), statuslist_outline}, {
-                Size = utility:Size(1, -2, 1, -2, statuslist_outline),
-                Position = utility:Position(0, 1, 0, 1, statuslist_outline),
-                Hidden = true,
-                ZIndex = 55,
-                Color = theme.inline,
-                Visible = window.statuslist.visible
-            })
-            --
-            library.colors[statuslist_inline] = {
-                Color = "inline"
-            }
-            --
-            local statuslist_frame = utility:Create("Frame", {Vector2.new(1,1), statuslist_inline}, {
-                Size = utility:Size(1, -2, 1, -2, statuslist_inline),
-                Position = utility:Position(0, 1, 0, 1, statuslist_inline),
-                Hidden = true,
-                ZIndex = 55,
-                Color = theme.lightcontrast,
-                Visible = window.statuslist.visible
-            })
-            --
-            library.colors[statuslist_frame] = {
-                Color = "lightcontrast"
-            }
-            --
-            local statuslist_accent = utility:Create("Frame", {Vector2.new(0,0), statuslist_frame}, {
-                Size = utility:Size(1, 0, 0, 1, statuslist_frame),
-                Position = utility:Position(0, 0, 0, 0, statuslist_frame),
-                Hidden = true,
-                ZIndex = 55,
-                Color = theme.accent,
-                Visible = window.statuslist.visible
-            })
-            --
-            library.colors[statuslist_accent] = {
-                Color = "accent"
-            }
-            --
-            local statuslist_title = utility:Create("TextLabel", {Vector2.new(statuslist_outline.Size.X/2,4), statuslist_outline}, {
-                Text = "[ Statuses ]",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Center = true,
-                Hidden = true,
-                ZIndex = 55,
-                Position = utility:Position(0.5, 0, 0, 5, statuslist_outline),
-                Visible = window.statuslist.visible
-            })
-            --
-            library.colors[statuslist_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            function window.statuslist:Resort()
-                local index = 0
-                for i,v in pairs(window.statuslist.statuses) do
-                    v:Move(0 + (index*17))
-                    --
-                    index = index + 1
+
+        task.spawn(function()
+            self:UpdateNotifications();
+            notification.background.Size = newUDim2(0, notification.text.TextBounds.X + 20, 0, 19)
+            task.wait();
+            utility:Tween(notification.background, 'Position', newUDim2(0,0,0, 0), .1);
+            task.wait(time);
+            for i,v in next, notification do
+                if typeof(v) ~= 'function' then
+                    utility:Tween(v, 'Transparency', 0, .15);
                 end
             end
-            --
-            function window.statuslist:Add(statusname)
-                if statusname and not window.statuslist.statuses[statusname] then
-                    local statusTable = {}
-                    --
-                    local status_outline = utility:Create("Frame", {Vector2.new(0,statuslist_outline.Size.Y-1), statuslist_outline}, {
-                        Size = utility:Size(1, 0, 0, 18, statuslist_outline),
-                        Position = utility:Position(0, 0, 1, -1, statuslist_outline),
-                        Hidden = true,
-                        ZIndex = 55,
-                        Color = theme.outline,
-                        Visible = window.statuslist.visible
-                    })
-                    --
-                    library.colors[status_outline] = {
-                        Color = "outline"
-                    }
-                    --
-                    local status_inline = utility:Create("Frame", {Vector2.new(1,1), status_outline}, {
-                        Size = utility:Size(1, -2, 1, -2, status_outline),
-                        Position = utility:Position(0, 1, 0, 1, status_outline),
-                        Hidden = true,
-                        ZIndex = 55,
-                        Color = theme.inline,
-                        Visible = window.statuslist.visible
-                    })
-                    --
-                    library.colors[status_inline] = {
-                        Color = "inline"
-                    }
-                    --
-                    local status_frame = utility:Create("Frame", {Vector2.new(1,1), status_inline}, {
-                        Size = utility:Size(1, -2, 1, -2, status_inline),
-                        Position = utility:Position(0, 1, 0, 1, status_inline),
-                        Hidden = true,
-                        ZIndex = 55,
-                        Color = theme.darkcontrast,
-                        Visible = window.statuslist.visible
-                    })
-                    --
-                    library.colors[status_frame] = {
-                        Color = "darkcontrast"
-                    }
-                    --
-                    local status_title = utility:Create("TextLabel", {Vector2.new(4,3), status_outline}, {
-                        Text = statusname,
-                        Size = theme.textsize,
-                        Font = theme.font,
-                        Color = theme.textcolor,
-                        OutlineColor = theme.textborder,
-                        Center = false,
-                        Hidden = true,
-                        ZIndex = 55,
-                        Position = utility:Position(0, 4, 0, 3, status_outline),
-                        Visible = window.statuslist.visible
-                    })
-                    --
-                    library.colors[status_title] = {
-                        OutlineColor = "textborder",
-                        Color = "textcolor"
-                    }
-                    --
-                    function statusTable:Move(yPos)
-                        status_outline.Position = utility:Position(0, 0, 1, -1 + yPos, statuslist_outline)
-                        status_inline.Position = utility:Position(0, 1, 0, 1, status_outline)
-                        status_frame.Position = utility:Position(0, 1, 0, 1, status_inline)
-                        status_title.Position = utility:Position(0, 4, 0, 3, status_outline)
-                    end
-                    --
-                    function statusTable:Remove()
-                        utility:Remove(status_outline, true)
-                        utility:Remove(status_inline, true)
-                        utility:Remove(status_frame, true)
-                        utility:Remove(status_title, true)
-                        --
-                        window.statuslist.statuses[statusname] = nil
-                        statusTable = nil
-                    end
-                    --
-                    function statusTable:Visibility()
-                        status_outline.Visible = window.statuslist.visible
-                        status_inline.Visible = window.statuslist.visible
-                        status_frame.Visible = window.statuslist.visible
-                        status_title.Visible = window.statuslist.visible
-                    end
-                    --
-                    window.statuslist.statuses[statusname] = statusTable
-                    window.statuslist:Resort()
-                end
-            end
-            --
-            function window.statuslist:Remove(statusname)
-                if statusname and window.statuslist.statuses[statusname] then
-                    window.statuslist.statuses[statusname]:Remove()
-                    window.statuslist.statuses[statusname] = nil
-                    window.statuslist:Resort()
-                end
-            end
-            --
-            function window.statuslist:Visibility()
-                statuslist_outline.Visible = window.statuslist.visible
-                statuslist_inline.Visible = window.statuslist.visible
-                statuslist_frame.Visible = window.statuslist.visible
-                statuslist_accent.Visible = window.statuslist.visible
-                statuslist_title.Visible = window.statuslist.visible
-                --
-                for i,v in pairs(window.statuslist.statuses) do
-                    v:Visibility()
-                end
-            end
-            --
-            function window.statuslist:Update(updateType, updateValue)
-                if updateType == "Visible" then
-                    window.statuslist.visible = updateValue
-                    window.statuslist:Visibility()
-                end
-            end
-            --
-            utility:Connection(ws.CurrentCamera:GetPropertyChangedSignal("ViewportSize"),function()
-                statuslist_outline.Position = utility:Position(1, -160, 0.4, 0)
-                statuslist_inline.Position = utility:Position(0, 1, 0, 1, statuslist_outline)
-                statuslist_frame.Position = utility:Position(0, 1, 0, 1, statuslist_inline)
-                statuslist_accent.Position = utility:Position(0, 0, 0, 0, statuslist_frame)
-                statuslist_title.Position = utility:Position(0.5, 0, 0, 5, statuslist_outline)
-                --
-                window.statuslist:Resort()
-            end)
-        end
-        --
-        function window:Cursor(info)
-            window.cursor = {}
-            --
-            local cursor = utility:Create("Triangle", nil, {
-                Color = theme.cursoroutline,
-                Thickness = 2.5,
-                Filled = false,
-                ZIndex = 65,
-                Hidden = true
-            });window.cursor["cursor"] = cursor
-            --
-            library.colors[cursor] = {
-                Color = "cursoroutline"
-            }
-            --
-            local cursor_inline = utility:Create("Triangle", nil, {
-                Color = theme.accent,
-                Filled = true,
-                Thickness = 0,
-                ZIndex = 65,
-                Hidden = true
-            });window.cursor["cursor_inline"] = cursor_inline
-            --
-            library.colors[cursor_inline] = {
-                Color = "accent"
-            }
-            --
-            utility:Connection(rs.RenderStepped, function()
-                local mouseLocation = utility:MouseLocation()
-                --
-                cursor.PointA = Vector2.new(mouseLocation.X, mouseLocation.Y)
-                cursor.PointB = Vector2.new(mouseLocation.X + 12, mouseLocation.Y + 4)
-                cursor.PointC = Vector2.new(mouseLocation.X + 4, mouseLocation.Y + 12)
-                --
-                cursor_inline.PointA = Vector2.new(mouseLocation.X, mouseLocation.Y)
-                cursor_inline.PointB = Vector2.new(mouseLocation.X + 12, mouseLocation.Y + 4)
-                cursor_inline.PointC = Vector2.new(mouseLocation.X + 4, mouseLocation.Y + 12)
-            end)
-            --
-            uis.MouseIconEnabled = false
-            --
-            return window.cursor
-        end
-        --
-        function window:Fade()
-            if window.fading then return end
-            window.fading = true
-            window.isVisible = not window.isVisible
-            --
-            task.spawn(function()
-                for i, v in pairs(library.drawings) do
-                    if v[1] then
-                        utility:Lerp(v[1], {Transparency = window.isVisible and v[3] or 0}, 0.25)
-                    end
-                end
-            end)
-            --
-            if window.cursor then
-                window.cursor["cursor"].Transparency = window.isVisible and 1 or 0
-                window.cursor["cursor_inline"].Transparency = window.isVisible and 1 or 0
-            end
-            --
-            uis.MouseIconEnabled = not window.isVisible
-            --
-            task.delay(0.05, function()
-                window.fading = false
-            end)
-        end
-        --
-        function window:Initialize()
-            if window.pages[1] then window.pages[1]:Show() end
-            --
-            for i,v in pairs(window.pages) do
-                v:Update()
-            end
-            --
-            library.shared.initialized = true
-            --
-            window:Watermark()
-            window:KeybindsList()
-            window:StatusList()
-            window:Cursor()
-            --
-            window.init = true
-            --
-            window:Fade()
-        end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and utility:MouseOverDrawing({main_frame.Position.X,main_frame.Position.Y,main_frame.Position.X + main_frame.Size.X,main_frame.Position.Y + 20}) then
-                local mouseLocation = utility:MouseLocation()
-                --
-                window.dragging = true
-                window.drag = Vector2.new(mouseLocation.X - main_frame.Position.X, mouseLocation.Y - main_frame.Position.Y)
-            end
-            --
-            if window.currentContent.textbox then
-                if Find(utility.Keyboard.Letters, utility:InputToString(Input.KeyCode)) then
-                    if uis:IsKeyDown(Enum.KeyCode.LeftShift) then
-                        window.currentContent.textbox.Fire((utility:InputToString(Input.KeyCode)):upper())
-                    else
-                        window.currentContent.textbox.Fire((utility:InputToString(Input.KeyCode)):lower())
-                    end
-                elseif utility:InputToString(Input.KeyCode) == "Space" then
-                    window.currentContent.textbox.Fire(" ")
-                elseif utility.Keyboard.Modifiers[utility:InputToString(Input.KeyCode)] then
-                    if uis:IsKeyDown(Enum.KeyCode.LeftShift) then
-                        if utility.Keyboard.Modifiers[utility:InputToString(Input.KeyCode)] then
-                            window.currentContent.textbox.Fire(utility.Keyboard.Modifiers[utility:InputToString(Input.KeyCode)])
-                        end
-                    else
-                        window.currentContent.textbox.Fire(utility:InputToString(Input.KeyCode))
-                    end
-                elseif utility:InputToString(Input.KeyCode) == "Back" then
-                    window.currentContent.textbox.Fire("Backspace")
-                    --
-                    window.currentContent.textbox.Backspace = {tick(), 0}
-                end
-            end
-        end
-        --
-        library.ended[#library.ended + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and window.dragging then
-                window.dragging = false
-                window.drag = Vector2.new(0, 0)
-            end
-            --
-            if window.currentContent.textbox and window.currentContent.textbox.Fire and window.currentContent.textbox.Backspace then
-                if utility:InputToString(Input.KeyCode) == "Back" then
-                    window.currentContent.textbox.Backspace = nil
-                end
-            end
-        end
-        --
-        library.changed[#library.changed + 1] = function(Input)
-            if window.dragging and window.isVisible then
-                local mouseLocation = utility:MouseLocation()
-                if utility:GetScreenSize().Y-main_frame.Size.Y-5 > 5 then
-                    local move = Vector2.new(math.clamp(mouseLocation.X - window.drag.X, 5, utility:GetScreenSize().X-main_frame.Size.X-5), math.clamp(mouseLocation.Y - window.drag.Y, 5, utility:GetScreenSize().Y-main_frame.Size.Y-5))
-                    window:Move(move)
-                else
-                    local move = Vector2.new(mouseLocation.X - window.drag.X, mouseLocation.Y - window.drag.Y)
-                    window:Move(move)
-                end
-            end
-        end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.KeyCode == window.uibind then
-                window:Fade()
-            end
-        end
-        --
-        utility:Connection(uis.InputBegan,function(Input)
-            for _, func in pairs(library.began) do
-                if not window.dragging then
-                    pcall(function()
-                        func(Input)
-                    end)
-                else
-                    break
-                end
-            end
+            utility:Connection(utility:Tween(notification.background, 'Position', newUDim2(0,-500,0, 0), .25).Completed, (function()
+                notification:Remove();
+            end))
         end)
-        --
-        utility:Connection(uis.InputEnded,function(Input)
-            for _, func in pairs(library.ended) do
-                pcall(function()
-                    func(Input)
-                end)
-            end
-        end)
-        --
-        utility:Connection(uis.InputChanged,function()
-            for _, func in pairs(library.changed) do
-                pcall(function()
-                    func()
-                end)
-            end
-        end)
-        --
-        utility:Connection(rs.RenderStepped,function()
-            if window.currentContent.textbox and window.currentContent.textbox.Fire and window.currentContent.textbox.Backspace then
-                local Time = (tick() - window.currentContent.textbox.Backspace[1])
-                --
-                if Time > 0.4 then
-                    window.currentContent.textbox.Backspace[2] = window.currentContent.textbox.Backspace[2] + 1
-                    --
-                    if (window.currentContent.textbox.Backspace[2] % 5 == 0) then
-                        window.currentContent.textbox.Fire("Backspace")
-                    end
-                end
-            end
-        end)
-        --
-        utility:Connection(ws.CurrentCamera:GetPropertyChangedSignal("ViewportSize"),function()
-            window:Move(Vector2.new((utility:GetScreenSize().X/2) - (size.X/2), (utility:GetScreenSize().Y/2) - (size.Y/2)))
-        end)
-        --
-		return setmetatable(window, library)
-	end
-    --
-    function library:Page(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "New Page"
-        --
-        local window = self
-        --
-        local page = {open = false, sections = {}, sectionOffset = {left = 0, right = 0}, scroll = 0, scrollMax = 0, window = window}
-        --
-        local position = 4
-        --
-        for i,v in pairs(window.pages) do
-            position = position + (v.page_button.Size.X+2)
-        end
-        --
-        local textbounds = utility:GetTextBounds(name, theme.textsize, theme.font)
-        --
-        local page_button = utility:Create("Frame", {Vector2.new(position,4), window.back_frame}, {
-            Size = utility:Size(0, window.pageammount and (((window.back_frame.Size.X - 8 - ((window.pageammount - 1) * 2)) / window.pageammount)) or (textbounds.X+20), 0, 21),
-            Position = utility:Position(0, position, 0, 4, window.back_frame),
-            Color = theme.outline
-        });page["page_button"] = page_button
-        --
-        library.colors[page_button] = {
-            Color = "outline"
-        }
-        --
-        local page_button_inline = utility:Create("Frame", {Vector2.new(1,1), page_button}, {
-            Size = utility:Size(1, -2, 1, -1, page_button),
-            Position = utility:Position(0, 1, 0, 1, page_button),
-            Color = theme.inline
-        });page["page_button_inline"] = page_button_inline
-        --
-        library.colors[page_button_inline] = {
-            Color = "inline"
-        }
-        --
-        local page_button_color = utility:Create("Frame", {Vector2.new(1,1), page_button_inline}, {
-            Size = utility:Size(1, -2, 1, -1, page_button_inline),
-            Position = utility:Position(0, 1, 0, 1, page_button_inline),
-            Color = theme.darkcontrast
-        });page["page_button_color"] = page_button_color
-        --
-        library.colors[page_button_color] = {
-            Color = "darkcontrast"
-        }
-        --
-        local page_button_title = utility:Create("TextLabel", {Vector2.new(utility:Position(0.5, 0, 0, 2, page_button_color).X - page_button_color.Position.X,2), page_button_color}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textdark,
-            Center = true,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0.5, 0, 0, 2, page_button_color)
-        });page["page_button_title"] = page_button_title
-        --
-        library.colors[page_button_title] = {
-            OutlineColor = "textborder",
-            Color = "textdark"
-        }
-        --
-        window.pages[#window.pages + 1] = page
-        --
-        function page:GetTotalYSize(Side)
-            local TotalYSize = 0
-            --
-            for i,v in pairs(page.sections) do
-                if v.side == Side then
-                    TotalYSize = TotalYSize + v.section_inline.Size.Y + 5
-                end
-            end
-            --
-            return TotalYSize
-        end
-        --
-        function page:Update()
-            page.sectionOffset["left"] = 0
-            page.sectionOffset["right"] = 0
-            --
-            local positions = {}
-            --
-            for i,v in pairs(page.sections) do
-                if v.side then
-                    positions[v] = page.sectionOffset[v.side]
-                    v:Update(page.sectionOffset[v.side] + 10)
-                    page.sectionOffset[v.side] = page.sectionOffset[v.side] + v.section_inline.Size.Y + 5
-                else
-                    positions[v] = page.sectionOffset["left"]
-                    local height = v["playerList_inline"].Size.Y + 5
-                    page.sectionOffset["left"] = page.sectionOffset["left"] + height
-                    page.sectionOffset["right"] = page.sectionOffset["right"] + height
-                end
-            end
-            --
-            page.scrollMax = math.max(0, (math.max(page.sectionOffset["left"], page.sectionOffset["right"]) + 4) - window.tab_frame.Size.Y)
-            page.scroll = math.clamp(page.scroll, 0, page.scrollMax)
-            --
-            for i,v in pairs(page.sections) do
-                if v.side then
-                    utility:UpdateOffset(v.section_inline, {Vector2.new(v.side == "right" and (window.tab_frame.Size.X/2)+2 or 5, 5 + positions[v] - page.scroll), window.tab_frame})
-                else
-                    utility:UpdateOffset(v["playerList_inline"], {Vector2.new(5, 5 + positions[v] - page.scroll), window.tab_frame})
-                end
-            end
-            --
-            window:Move(window.main_frame.Position)
-        end
-        --
-        function page:Show()
-            if window.currentPage then
-                window.currentPage.page_button_color.Size = utility:Size(1, -2, 1, -1, window.currentPage.page_button_inline)
-                window.currentPage.page_button_color.Color = theme.darkcontrast
-                window.currentPage.page_button_title.Color = theme.textdark
-                window.currentPage.open = false
-                --
-                library.colors[window.currentPage.page_button_color] = {
-                    Color = "darkcontrast"
-                }
-                --
-                library.colors[window.currentPage.page_button_title] = {
-                    OutlineColor = "textborder",
-                    Color = "textdark"
-                }
-                --
-                for i,v in pairs(window.currentPage.sections) do
-                    for z,x in pairs(v.visibleContent) do
-                        x.Visible = false
-                    end
-                end
-                --
-                window:CloseContent()
-            end
-            --
-            window.currentPage = page
-            page.scroll = 0
-            page_button_color.Size = utility:Size(1, -2, 1, 0, page_button_inline)
-            page_button_color.Color = theme.lightcontrast
-            page_button_title.Color = theme.textcolor
-            page.open = true
-            --
-            library.colors[page_button_color] = {
-                Color = "lightcontrast"
-            }
-            --
-            library.colors[page_button_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            for i,v in pairs(page.sections) do
-                for z,x in pairs(v.visibleContent) do
-                    x.Visible = true
-                end
-            end
-            --
-            window.callback(name, window.currentPage)
-            page:Update()
-        end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and utility:MouseOverDrawing({page_button.Position.X,page_button.Position.Y,page_button.Position.X + page_button.Size.X,page_button.Position.Y + page_button.Size.Y}) and window.currentPage ~= page then
-                page:Show()
-            end
-        end
-        --
-        utility:Connection(mouse.WheelForward, function()
-            if not window.isVisible or window.currentPage ~= page or not page.open or page.scrollMax <= 0 or window.dragging then return end
-            if window:IsOverContent() then return end
-            --
-            local tab = window.tab_frame
-            --
-            if utility:MouseOverDrawing({tab.Position.X, tab.Position.Y, tab.Position.X + tab.Size.X, tab.Position.Y + tab.Size.Y}) then
-                page.scroll = math.clamp(page.scroll - 32, 0, page.scrollMax)
-                page:Update()
-            end
-        end)
-        --
-        utility:Connection(mouse.WheelBackward, function()
-            if not window.isVisible or window.currentPage ~= page or not page.open or page.scrollMax <= 0 or window.dragging then return end
-            if window:IsOverContent() then return end
-            --
-            local tab = window.tab_frame
-            --
-            if utility:MouseOverDrawing({tab.Position.X, tab.Position.Y, tab.Position.X + tab.Size.X, tab.Position.Y + tab.Size.Y}) then
-                page.scroll = math.clamp(page.scroll + 32, 0, page.scrollMax)
-                page:Update()
-            end
-        end)
-        --
-        return setmetatable(page, pages)
+
     end
-    --
-    function pages:Section(info)
-        local window = self.window
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "New Section"
-        local size = info.size or info.Size
-        local fill = info.fill or info.Fill
-        local side = window.loader and "left" or (info.side or info.Side or "left")
-        side = side:lower()
-        local page = self
-        local section = {window = window, page = page, visibleContent = {}, currentAxis = 26, side = side}
-        --
-        local section_inline = utility:Create("Frame", {Vector2.new(side == "right" and (window.tab_frame.Size.X/2)+2 or 5,5 + page["sectionOffset"][side]), window.tab_frame}, {
-            Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, size or 30, window.tab_frame),
-            Position = utility:Position(side == "right" and 0.5 or 0, side == "right" and 2 or 5, 0, 5 + page.sectionOffset[side], window.tab_frame),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent);section["section_inline"] = section_inline
-        --
-        library.sectionOwner[section_inline] = page
-        --
-        library.colors[section_inline] = {
-            Color = "inline"
-        }
-        --
-        local section_outline = utility:Create("Frame", {Vector2.new(1,1), section_inline}, {
-            Size = utility:Size(1, -2, 1, -2, section_inline),
-            Position = utility:Position(0, 1, 0, 1, section_inline),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent);section["section_outline"] = section_outline
-        --
-        library.colors[section_outline] = {
-            Color = "outline"
-        }
-        --
-        local section_frame = utility:Create("Frame", {Vector2.new(1,1), section_outline}, {
-            Size = utility:Size(1, -2, 1, -2, section_outline),
-            Position = utility:Position(0, 1, 0, 1, section_outline),
-            Color = theme.darkcontrast,
-            Visible = page.open
-        }, section.visibleContent);section["section_frame"] = section_frame
-        --
-        library.colors[section_frame] = {
-            Color = "darkcontrast"
-        }
-        --
-        local section_accent = utility:Create("Frame", {Vector2.new(0,0), section_frame}, {
-            Size = utility:Size(1, 0, 0, 2, section_frame),
-            Position = utility:Position(0, 0, 0, 0, section_frame),
-            Color = theme.accent,
-            Visible = page.open
-        }, section.visibleContent);section["section_accent"] = section_accent
-        --
-        library.colors[section_accent] = {
-            Color = "accent"
-        }
-        --
-        local section_title = utility:Create("TextLabel", {Vector2.new(3,3), section_frame}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 3, 0, 3, section_frame),
-            Visible = page.open
-        }, section.visibleContent);section["section_title"] = section_title
-        --
-        library.colors[section_title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        function section:Update(Padding)
-            section_inline.Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or (size or (section.currentAxis+10)), window.tab_frame)
-            section_outline.Size = utility:Size(1, -2, 1, -2, section_inline)
-            section_frame.Size = utility:Size(1, -2, 1, -2, section_outline)
+
+    function self:UpdateNotifications()
+        local i = 0
+        for v in next, self.notifications do
+            utility:Tween(v.holder, 'Position', newUDim2(0,0,0, 75 + (i * 30)), .15)
+            i += 1
         end
-        --
-        page.sectionOffset[side] = page.sectionOffset[side] + 100 + 5
-        page.sections[#page.sections + 1] = section
-        --
-        return setmetatable(section, sections)
     end
-    --
-    function pages:MultiSection(info)
-        local info = info or {}
-        local msections = info.sections or info.Sections or {}
-        local side = info.side or info.Side or "left"
-        local size = info.size or info.Size or 150
-        local fill = info.fill or info.Fill
-        local callback = info.callback or info.Callback or info.callBack or info.CallBack or function() end
-        side = side:lower()
-        local window = self.window
-        local page = self
-        local multiSection = {window = window, page = page, sections = {}, backup = {}, visibleContent = {}, currentSection = nil, side = side}
-        --
-        local multiSection_inline = utility:Create("Frame", {Vector2.new(side == "right" and (window.tab_frame.Size.X/2)+2 or 5,5 + page["sectionOffset"][side]), window.tab_frame}, {
-            Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, size, window.tab_frame),
-            Position = utility:Position(side == "right" and 0.5 or 0, side == "right" and 2 or 5, 0, 5 + page.sectionOffset[side], window.tab_frame),
-            Color = theme.inline,
-            Visible = page.open
-        }, multiSection.visibleContent);multiSection["section_inline"] = multiSection_inline
-        --
-        library.sectionOwner[multiSection_inline] = page
-        --
-        library.colors[multiSection_inline] = {
-            Color = "inline"
-        }
-        --
-        local multiSection_outline = utility:Create("Frame", {Vector2.new(1,1), multiSection_inline}, {
-            Size = utility:Size(1, -2, 1, -2, multiSection_inline),
-            Position = utility:Position(0, 1, 0, 1, multiSection_inline),
-            Color = theme.outline,
-            Visible = page.open
-        }, multiSection.visibleContent);multiSection["section_outline"] = multiSection_outline
-        --
-        library.colors[multiSection_outline] = {
-            Color = "outline"
-        }
-        --
-        local multiSection_frame = utility:Create("Frame", {Vector2.new(1,1), multiSection_outline}, {
-            Size = utility:Size(1, -2, 1, -2, multiSection_outline),
-            Position = utility:Position(0, 1, 0, 1, multiSection_outline),
-            Color = theme.darkcontrast,
-            Visible = page.open
-        }, multiSection.visibleContent);multiSection["section_frame"] = multiSection_frame
-        --
-        library.colors[multiSection_frame] = {
-            Color = "darkcontrast"
-        }
-        --
-        local multiSection_backFrame = utility:Create("Frame", {Vector2.new(0,2), multiSection_frame}, {
-            Size = utility:Size(1, 0, 0, 17, multiSection_frame),
-            Position = utility:Position(0, 0, 0, 2, multiSection_frame),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, multiSection.visibleContent)
-        --
-        library.colors[multiSection_backFrame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local multiSection_bottomFrame = utility:Create("Frame", {Vector2.new(0,multiSection_backFrame.Size.Y - 1), multiSection_backFrame}, {
-            Size = utility:Size(1, 0, 0, 1, multiSection_backFrame),
-            Position = utility:Position(0, 0, 1, -1, multiSection_backFrame),
-            Color = theme.outline,
-            Visible = page.open
-        }, multiSection.visibleContent)
-        --
-        library.colors[multiSection_bottomFrame] = {
-            Color = "outline"
-        }
-        --
-        local multiSection_accent = utility:Create("Frame", {Vector2.new(0,0), multiSection_frame}, {
-            Size = utility:Size(1, 0, 0, 2, multiSection_frame),
-            Position = utility:Position(0, 0, 0, 0, multiSection_frame),
-            Color = theme.accent,
-            Visible = page.open
-        }, multiSection.visibleContent);multiSection["section_accent"] = multiSection_accent
-        --
-        library.colors[multiSection_accent] = {
-            Color = "accent"
-        }
-        --
-        function multiSection:Update(Padding)
-            multiSection_inline.Size = utility:Size(window.loader and 1 or 0.5, window.loader and -10 or -7, 0, fill and (window.tab_frame.Size.Y - (Padding or 0)) or size, window.tab_frame)
-            multiSection_outline.Size = utility:Size(1, -2, 1, -2, multiSection_inline)
-            multiSection_frame.Size = utility:Size(1, -2, 1, -2, multiSection_outline)
-            --
-            for Index, Value in pairs(multiSection.sections) do
-                Value:Update(Padding)
-            end
+
+    function self.NewIndicator(data)
+        local indicator = {
+            title = data.title or 'indicator',
+            enabled = data.enabled or false,
+            position = data.position or newUDim2(0,15,0,300),
+            values = {},
+            objects = {valueObjects = {}},
+            spacing = '   ',
+        };
+
+        table.insert(self.indicators, indicator)
+
+        -- Create Objects --
+        do
+            local z = self.zindexOrder.indicator;
+            local objs = indicator.objects;
+
+            objs.background = utility:Draw('Square', {
+                Size = newUDim2(0, 200, 0, 16);
+                Position = indicator.position;
+                ThemeColor = 'Background';
+                ZIndex = z;
+            })
+
+            objs.border1 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 2';
+                Parent = objs.background;
+                ZIndex = z-1;
+            })
+
+            objs.border2 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 3';
+                Parent = objs.border1;
+                ZIndex = z-2;
+            })
+
+            objs.topborder = utility:Draw('Square', {
+                Size = newUDim2(1,0,0,1);
+                ThemeColor = 'Accent';
+                Parent = objs.background;
+                ZIndex = z+1;
+            })
+
+            objs.textlabel = utility:Draw('Text', {
+                Position = newUDim2(.5,0,0,1);
+                ThemeColor = 'Primary Text';
+                Text = indicator.title;
+                Size = 13;
+                Font = 2;
+                ZIndex = z+2;
+                Center = true;
+                Outline = true;
+                Parent = objs.background;
+            });
+
         end
-        --
-        for i,v in pairs(msections) do
-            local msectionName = v
-            local msection = {window = window, page = page, currentAxis = 30, sections = {}, visibleContent = {}, section_inline = multiSection_inline, section_outline = multiSection_outline, section_frame = multiSection_frame, section_accent = multiSection_accent}
-            --
-            local textBounds = utility:GetTextBounds(v, theme.textsize, theme.font)
-            --
-            local msection_frame = utility:Create("Frame", {Vector2.new(((i - 1) * (1 / #msections)) * multiSection_backFrame.Size.X,0), multiSection_backFrame}, {
-                Size = utility:Size(1 / #msections, 0, 1, -1, multiSection_backFrame),
-                Position = utility:Position((i - 1) * (1 / #msections), 0, 0, 0, multiSection_backFrame),
-                Color = i == 1 and theme.darkcontrast or theme.lightcontrast,
-                Visible = page.open
-            }, multiSection.visibleContent);msection["msection_frame"] = msection_frame
-            --
-            library.colors[msection_frame] = {
-                Color = i == 1 and "darkcontrast" or "lightcontrast"
-            }
-            --
-            local msection_line = utility:Create("Frame", {Vector2.new(msection_frame.Size.X - (i == #msections and 0 or 1),0), msection_frame}, {
-                Size = utility:Size(0, 1, 1, 0, msection_frame),
-                Position = utility:Position(1, -(i == #msections and 0 or 1), 0, 0, msection_frame),
-                Color = theme.outline,
-                Visible = page.open
-            }, multiSection.visibleContent)
-            --
-            library.colors[msection_line] = {
-                Color = "outline"
-            }
-            --
-            local msection_title = utility:Create("TextLabel", {Vector2.new(msection_frame.Size.X * 0.5,1), msection_frame}, {
-                Text = v,
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Center = true,
-                Position = utility:Position(0.5, 0, 0, 1, msection_frame),
-                Visible = page.open
-            }, multiSection.visibleContent)
-            --
-            library.colors[msection_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            local msection_bottomline = utility:Create("Frame", {Vector2.new(0,msection_frame.Size.Y), msection_frame}, {
-                Size = utility:Size(1, (i == #msections and 0 or -1), 0, 1, msection_frame),
-                Position = utility:Position(0, 0, 1, 0, msection_frame),
-                Color = i == 1 and theme.darkcontrast or theme.outline,
-                Visible = page.open
-            }, multiSection.visibleContent);msection["msection_bottomline"] = msection_bottomline
-            --
-            library.colors[msection_bottomline] = {
-                Color = i == 1 and "darkcontrast" or "outline"
-            }
-            --
-            function msection:Update()
-                if multiSection.currentSection == msection then
-                    multiSection.visibleContent = utility:Combine(multiSection.backup, multiSection.currentSection.visibleContent)
-                else
-                    for z,x in pairs(msection.visibleContent) do
-                        x.Visible = false
+        --------------------
+
+        function indicator:Update()
+            local xSize  = 125
+            local yPos  = 0
+            table.sort(self.values, function(a,b)
+                return a.order < b.order;
+            end)
+
+            for _,v in next, self.values do
+                v.objects.keyLabel.Text = tostring(v.key);
+                v.objects.valueLabel.Text = tostring(v.value);
+            
+                v.objects.valueLabel.Position = newUDim2(1,-(v.objects.valueLabel.TextBounds.X + 3),0,0)
+                v.objects.background.Position = newUDim2(0,0,1,3 + yPos)
+                v.objects.background.Visible = v.enabled
+
+                if v.enabled then
+                    yPos = yPos + 16 + 3
+                    local x = (v.objects.keyLabel.TextBounds.X + 10 + v.objects.valueLabel.TextBounds.X)
+                    if x > xSize then
+                        xSize = x
                     end
                 end
             end
-            --
-            library.began[#library.began + 1] = function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and page.open and utility:MouseOverDrawing({msection_frame.Position.X,msection_frame.Position.Y,msection_frame.Position.X + msection_frame.Size.X,msection_frame.Position.Y + msection_frame.Size.Y}) and multiSection.currentSection ~= msection and not window:IsOverContent() then
-                    multiSection.currentSection.msection_frame.Color = theme.lightcontrast
-                    multiSection.currentSection.msection_bottomline.Color = theme.outline
-                    --
-                    library.colors[multiSection.currentSection.msection_frame] = {
-                        Color = "lightcontrast"
-                    }
-                    --
-                    library.colors[multiSection.currentSection.msection_bottomline] = {
-                        Color = "outline"
-                    }
-                    --
-                    for i,v in pairs(multiSection.currentSection.visibleContent) do
-                        v.Visible = false
-                    end
-                    --
-                    multiSection.currentSection = msection
-                    msection_frame.Color = theme.darkcontrast
-                    msection_bottomline.Color = theme.darkcontrast
-                    --
-                    library.colors[msection_frame] = {
-                        Color = "darkcontrast"
-                    }
-                    --
-                    library.colors[msection_bottomline] = {
-                        Color = "darkcontrast"
-                    }
-                    --
-                    for i,v in pairs(multiSection.currentSection.visibleContent) do
-                        v.Visible = true
-                    end
-                    --
-                    multiSection.visibleContent = utility:Combine(multiSection.backup, multiSection.currentSection.visibleContent)
-                    --
-                    callback(msectionName, msection)
-                    window:Move(window.main_frame.Position)
+
+            self.objects.background.Size = newUDim2(0,xSize + 8,0,16)
+            self.objects.background.Position = self.position
+        end
+
+        function indicator:AddValue(data)
+            local value = {
+                key = data.key or '',
+                value = data.value or '',
+                order = data.order or #self.values+1,
+                enabled = data.enabled == nil and true or data.enabled,
+                objects = {},
+            }
+
+            table.insert(self.values, value);
+
+            -- Create Objects --
+            do
+                local z = library.zindexOrder.indicator;
+                local objs = value.objects;
+
+                objs.background = utility:Draw('Square', {
+                    Size = newUDim2(1, 0, 0, 16);
+                    ThemeColor = 'Background';
+                    ZIndex = z;
+                    Parent = indicator.objects.background;
+                })
+    
+                objs.border1 = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border 2';
+                    Parent = objs.background;
+                    ZIndex = z-1;
+                })
+    
+                objs.border2 = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border 3';
+                    Parent = objs.border1;
+                    ZIndex = z-2;
+                })
+    
+                objs.keyLabel = utility:Draw('Text', {
+                    Position = newUDim2(0,3,0,1);
+                    ThemeColor = 'Option Text 2';
+                    Size = 13;
+                    Font = 2;
+                    ZIndex = z+2;
+                    Outline = true;
+                    Parent = objs.background;
+                });
+
+                objs.valueLabel = utility:Draw('Text', {
+                    Position = newUDim2(0,0,0,1);
+                    ThemeColor = 'Option Text 2';
+                    Size = 13;
+                    Font = 2;
+                    ZIndex = z+2;
+                    Outline = true;
+                    Parent = objs.background;
+                });
+
+            end
+            --------------------
+
+            function value:Remove()
+                table.remove(indicator.values, table.find(indicator.values, value))
+                self.objects.background:Remove()
+                table.clear(self)
+                indicator:Update();
+            end
+
+            function value:SetEnabled(bool)
+                if typeof(bool) == 'boolean' then
+                    self.enabled = bool
+                    indicator:Update()
                 end
             end
-            --
-            if i == 1 then
-                multiSection.currentSection = msection
-                callback(msectionName, msection)
+
+            function value:SetValue(str)
+                if typeof(str) == 'string' then
+                    self.value = str
+                    indicator:Update()
+                end
             end
-            --
-            multiSection.sections[#multiSection.sections + 1] = setmetatable(msection, sections)
+
+            function value:SetKey(str)
+                if typeof(str) == 'string' then
+                    self.key = str
+                    indicator:Update()
+                end
+            end
+
+            self:Update()
+            return value
         end
-        --
-        for z,x in pairs(multiSection.visibleContent) do
-            multiSection.backup[z] = x
+
+        function indicator:GetValue(idx)
+            if typeof(idx) == 'number' then
+                return self.values[idx]
+            else
+                for i,v in next, self.values do
+                    if v.key == idx then
+                        return v
+                    end
+                end
+            end
         end
-        --
-        page.sectionOffset[side] = page.sectionOffset[side] + 100 + 5
-        page.sections[#page.sections + 1] = multiSection
-        --
-        return Unpack(multiSection.sections)
+
+        function indicator:SetEnabled(bool)
+            if typeof(bool) == 'boolean' then
+                self.enabled = bool;
+                self.objects.background.Visible = bool;
+                self:Update();
+            end
+        end
+
+        function indicator:SetPosition(udim2)
+            if typeof(udim2) == 'UDim2' then
+                self.position = udim2
+                self.objects.background.Position = udim2;
+            end
+        end
+
+        for i,v in next, data.values or {} do
+            indicator:AddValue({key = tostring(i), value = tostring(v)})
+        end
+
+        indicator:SetEnabled(indicator.enabled);
+        return indicator
     end
-    --
-    function pages:PlayerList(info)
-        local info = info or {}
-        --
-        local window = self.window
-        local page = self
-        --
-        local playerList = {window = window, page = page, visibleContent = {}, buttons = {}, currentAxis = 26, scrollingindex = 0, scrolling = {false, nil}, items = {}, players = {}}
-        --
-        local playerList_inline = utility:Create("Frame", {Vector2.new(5,5), window.tab_frame}, {
-            Size = utility:Size(1, -10, 0, ((10 * 22) + 4) + 20 + 60 + 12, window.tab_frame),
-            Position = utility:Position(0, 5, 0, 5, window.tab_frame),
-            Color = theme.inline,
-            Visible = page.open
-        }, playerList.visibleContent);playerList["playerList_inline"] = playerList_inline
-        --
-        library.sectionOwner[playerList_inline] = page
-        --
-        library.colors[playerList_inline] = {
-            Color = "inline"
-        }
-        --
-        local playerList_outline = utility:Create("Frame", {Vector2.new(1,1), playerList_inline}, {
-            Size = utility:Size(1, -2, 1, -2, playerList_inline),
-            Position = utility:Position(0, 1, 0, 1, playerList_inline),
-            Color = theme.outline,
-            Visible = page.open
-        }, playerList.visibleContent);playerList["playerList_outline"] = playerList_outline
-        --
-        library.colors[playerList_outline] = {
-            Color = "outline"
-        }
-        --
-        local playerList_frame = utility:Create("Frame", {Vector2.new(1,1), playerList_outline}, {
-            Size = utility:Size(1, -2, 1, -2, playerList_outline),
-            Position = utility:Position(0, 1, 0, 1, playerList_outline),
-            Color = theme.darkcontrast,
-            Visible = page.open
-        }, playerList.visibleContent);playerList["playerList_frame"] = playerList_frame
-        --
-        library.colors[playerList_frame] = {
-            Color = "darkcontrast"
-        }
-        --
-        local playerList_accent = utility:Create("Frame", {Vector2.new(0,0), playerList_frame}, {
-            Size = utility:Size(1, 0, 0, 2, playerList_frame),
-            Position = utility:Position(0, 0, 0, 0, playerList_frame),
-            Color = theme.accent,
-            Visible = page.open
-        }, playerList.visibleContent);playerList["playerList_accent"] = playerList_accent
-        --
-        library.colors[playerList_accent] = {
-            Color = "accent"
-        }
-        --
-        local playerList_title = utility:Create("TextLabel", {Vector2.new(3,3), playerList_frame}, {
-            Text = "Player List - 0 Players",
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 3, 0, 3, playerList_frame),
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[playerList_title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        local list_outline = utility:Create("Frame", {Vector2.new(4,20), playerList_frame}, {
-            Size = utility:Size(1, -8, 0, ((10 * 22) + 4), playerList_frame),
-            Position = utility:Position(0, 4, 0, 20, playerList_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[list_outline] = {
-            Color = "outline"
-        }
-        --
-        local list_inline = utility:Create("Frame", {Vector2.new(1,1), list_outline}, {
-            Size = utility:Size(1, -2, 1, -2, list_outline),
-            Position = utility:Position(0, 1, 0, 1, list_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[list_inline] = {
-            Color = "inline"
-        }
-        --
-        local list_frame = utility:Create("Frame", {Vector2.new(1,1), list_inline}, {
-            Size = utility:Size(1, -10, 1, -2, list_inline),
-            Position = utility:Position(0, 1, 0, 1, list_inline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[list_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local list_scroll = utility:Create("Frame", {Vector2.new(list_inline.Size.X - 9,1), list_inline}, {
-            Size = utility:Size(0, 8, 1, -2, list_inline),
-            Position = utility:Position(1, -9, 0, 1, list_inline),
-            Color = theme.darkcontrast,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[list_scroll] = {
-            Color = "darkcontrast"
-        }
-        --
-        local list_bar = utility:Create("Frame", {Vector2.new(1,1), list_scroll}, {
-            Size = utility:Size(1, -2, 0.5, -2, list_scroll),
-            Position = utility:Position(0, 1, 0, 1, list_scroll),
-            Color = theme.accent,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[list_bar] = {
-            Color = "accent"
-        }
-        --
-        local list_gradient = utility:Create("Image", {Vector2.new(0,0), list_frame}, {
-            Size = utility:Size(1, 0, 1, 0, list_frame),
-            Position = utility:Position(0, 0, 0 , 0, list_frame),
-            Transparency = 0.25,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        for Index = 1, 10 do
-            local item = {}
-            local listitemposition = (Index - 1) * 22
-            --
-            local listitem_line
-            --
-            if Index ~= 10 then
-                listitem_line = utility:Create("Frame", {Vector2.new(3,listitemposition + 21), list_frame}, {
-                    Size = utility:Size(1, -6, 0, 2, list_frame),
-                    Position = utility:Position(0, 3, 0, listitemposition + 21, list_frame),
-                    Transparency = 0,
-                    Color = theme.outline,
-                    Visible = page.open
-                }, playerList.visibleContent)
-                --
-                library.colors[listitem_line] = {
-                    Color = "outline"
-                }
-            end
-            --
-            local listitem_firstline = utility:Create("Frame", {Vector2.new(1/3 * list_frame.Size.X,listitemposition + 3), list_frame}, {
-                Size = utility:Size(0, 2, 0, 16, list_frame),
-                Position = utility:Position(1/3, 1, 0, listitemposition + 3, list_frame),
-                Transparency = 0,
-                Color = theme.outline,
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            library.colors[listitem_firstline] = {
-                Color = "outline"
+
+    function self.NewWindow(data)
+        local window = {
+            title = data.title or '',
+            selectedTab = nil;
+            tabs = {},
+            objects = {},
+            colorpicker = {
+                objects = {};
+                color = c3new(1,0,0);
+                trans = 0;
+            };
+            dropdown = {
+                objects = {
+                    values = {};
+                };
+                max = 5;
             }
-            --
-            local listitem_secondline = utility:Create("Frame", {Vector2.new(2/3 * list_frame.Size.X,listitemposition + 3), list_frame}, {
-                Size = utility:Size(0, 2, 0, 16, list_frame),
-                Position = utility:Position(2/3, 1, 0, listitemposition + 3, list_frame),
-                Transparency = 0,
-                Color = theme.outline,
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            library.colors[listitem_secondline] = {
-                Color = "outline"
-            }
-            --
-            local listitem_username = utility:Create("TextLabel", {Vector2.new(4, 4 + listitemposition), list_frame}, {
-                Text = "",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(0, 4, 0, 4 + listitemposition, list_frame),
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            library.colors[listitem_username] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            local listitem_team = utility:Create("TextLabel", {Vector2.new(6 + (1/3 * list_frame.Size.X), 4 + listitemposition), list_frame}, {
-                Text = "",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(1/3, 6, 0, 4 + listitemposition, list_frame),
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            library.colors[listitem_team] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            local listitem_status = utility:Create("TextLabel", {Vector2.new(6 + (2/3 * list_frame.Size.X), 4 + listitemposition), list_frame}, {
-                Text = "",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(2/3, 6, 0, 4 + listitemposition, list_frame),
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            library.colors[listitem_status] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            function item:Set(enabled, selected)
-                if listitem_line then
-                    if window.isVisible then
-                        listitem_line.Transparency = enabled and 0.3 or 0
-                    end
-                    --
-                    utility:UpdateTransparency(listitem_line, enabled and 0.3 or 0)
-                end
-                --
-                if window.isVisible then
-                    listitem_firstline.Transparency = enabled and 0.3 or 0
-                    listitem_secondline.Transparency = enabled and 0.3 or 0
-                end
-                --
-                utility:UpdateTransparency(listitem_firstline, enabled and 0.3 or 0)
-                utility:UpdateTransparency(listitem_secondline, enabled and 0.3 or 0)
-                --
-                if enabled then
-                    listitem_username.Text = selected[2]
-                    listitem_team.Text = selected[1].Team and tostring(selected[1].Team) or "None"
-                    listitem_status.Text = selected[3]
-                    --
-                    listitem_username.Color = selected[4] and theme.accent or theme.textcolor
-                    listitem_status.Color = selected[3] == "Local Player" and Color3.fromRGB(200, 55, 200) or selected[3] == "Priority" and Color3.fromRGB(55, 55, 200) or selected[3] == "Friend" and Color3.fromRGB(55, 200, 55) or selected[3] == "Enemy" and Color3.fromRGB(200, 55, 55) or theme.textcolor
-                    --
-                    library.colors[listitem_username] = {
-                        OutlineColor = "textborder",
-                        Color = selected[4] and "accent" or "textcolor"
-                    }
-                    --
-                    library.colors[listitem_status] = {
-                        OutlineColor = "textborder",
-                        Color = selected[3] == "None" and "textcolor" or nil
-                    }
-                else
-                    listitem_username.Text = ""
-                    listitem_team.Text = ""
-                    listitem_status.Text = ""
-                end
-            end
-            --
-            playerList.items[#playerList.items + 1] = item
-        end
-        --
-        local options_iconoutline = utility:Create("Frame", {Vector2.new(0,list_outline.Size.Y + 4), list_outline}, {
-            Size = utility:Size(0, 60, 0, 60, list_outline),
-            Position = utility:Position(0, 0, 1, 4, list_outline),
-            Color = theme.outline,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[options_iconoutline] = {
-            Color = "outline"
-        }
-        --
-        local options_iconinline = utility:Create("Frame", {Vector2.new(1,1), options_iconoutline}, {
-            Size = utility:Size(1, -2, 1, -2, options_iconoutline),
-            Position = utility:Position(0, 1, 0, 1, options_iconoutline),
-            Color = theme.inline,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[options_iconinline] = {
-            Color = "inline"
-        }
-        --
-        local options_iconframe = utility:Create("Frame", {Vector2.new(1,1), options_iconinline}, {
-            Size = utility:Size(1, -2, 1, -2, options_iconinline),
-            Position = utility:Position(0, 1, 0, 1, options_iconinline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[options_iconframe] = {
-            Color = "lightcontrast"
-        }
-        --
-        local options_avatar = utility:Create("Image", {Vector2.new(0,0), options_iconframe}, {
-            Size = utility:Size(1, 0, 1, 0, options_iconframe),
-            Position = utility:Position(0, 0, 0 , 0, options_iconframe),
-            Transparency = 0.8,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        local options_loadingtext = utility:Create("TextLabel", {Vector2.new((options_iconoutline.Size.X / 2) - 1, (options_iconoutline.Size.X / 2) - 10), options_iconframe}, {
-            Text = "..?",
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textdark,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0.5, -1, 0.5, -10, options_iconframe),
-            Center = true,
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[options_loadingtext] = {
-            OutlineColor = "textborder",
-            Color = "textdark"
-        }
-        --
-        local options_title = utility:Create("TextLabel", {Vector2.new(options_iconoutline.Size.X + 5, 0), options_iconoutline}, {
-            Text = "No player selected.",
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(1, 5, 0, 0, options_iconoutline),
-            Visible = page.open
-        }, playerList.visibleContent)
-        --
-        library.colors[options_title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        for Index = 1, 1 do
-            local button = {
-                open = false,
-                current = "None",
-                options = {"None", "Friend", "Enemy", "Priority"},
-                holder = {buttons = {}, drawings = {}},
-                selection = nil
-            }
-            --
-            local button_outline = utility:Create("Frame", {Vector2.new(list_outline.Size.X - 180, list_outline.Size.Y + (Index == 1 and 10 or 36)), list_outline}, {
-                Size = utility:Size(0, 180, 0, 22, list_outline),
-                Position = utility:Position(1, -180, 1, Index == 1 and 10 or 36, list_outline),
-                Color = theme.outline,
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            library.colors[button_outline] = {
-                Color = "outline"
-            }
-            --
-            local button_inline = utility:Create("Frame", {Vector2.new(1,1), button_outline}, {
-                Size = utility:Size(1, -2, 1, -2, button_outline),
-                Position = utility:Position(0, 1, 0, 1, button_outline),
-                Color = theme.inline,
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            library.colors[button_inline] = {
-                Color = "inline"
-            }
-            --
-            local button_frame = utility:Create("Frame", {Vector2.new(1,1), button_inline}, {
-                Size = utility:Size(1, -2, 1, -2, button_inline),
-                Position = utility:Position(0, 1, 0, 1, button_inline),
-                Color = theme.lightcontrast,
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            library.colors[button_frame] = {
-                Color = "lightcontrast"
-            }
-            --
-            local button_gradient = utility:Create("Image", {Vector2.new(0,0), button_frame}, {
-                Size = utility:Size(1, 0, 1, 0, button_frame),
-                Position = utility:Position(0, 0, 0 , 0, button_frame),
-                Transparency = 0.5,
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            local button_title = utility:Create("TextLabel", {Vector2.new(button_frame.Size.X/2,1), button_frame}, {
-                Text = Index == 1 and "Prioritise" or "Friendly",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Center = true,
-                Position = utility:Position(0.5, 0, 0, 1, button_frame),
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            library.colors[button_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            local button_image = utility:Create("Image", {Vector2.new(button_frame.Size.X - 15,button_frame.Size.Y/2 - 3), button_frame}, {
-                Size = utility:Size(0, 9, 0, 6, button_frame),
-                Position = utility:Position(1, -15, 0.5, -3, button_frame),
-                Visible = page.open
-            }, playerList.visibleContent)
-            --
-            utility:LoadImage(button_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-            --
-            function button:Update(Selection)
-                local Visible = Selection ~= nil and (Selection[1] ~= localplayer) or false
-                --
-                for Index, Value in pairs({button_outline, button_inline, button_frame, button_gradient, button_title, button_image}) do
-                    Value.Visible = page.open and Visible or false
-                    --
-                    if Visible then
-                        local fnd = table.find(playerList.visibleContent, Value)
-                        --
-                        if not fnd then
-                            playerList.visibleContent[#playerList.visibleContent + 1] = Value
-                        end
+        };
+
+        table.insert(library.windows, window);
+
+        ----- Create Objects ----
+        do
+            local size = data.size or newUDim2(0, 525, 0, 650);
+            local position = data.position or newUDim2(0, 250, 0, 150);
+            local objs = window.objects;
+            local z = library.zindexOrder.window;
+
+            objs.background = utility:Draw('Square', {
+                Size = size;
+                Position = position;
+                ThemeColor = 'Background';
+                ZIndex = z;
+            })
+
+            objs.innerBorder1 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 3';
+                ZIndex = z-1;
+                Parent = objs.background;
+            })
+
+            objs.innerBorder2 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 1';
+                ZIndex = z-2;
+                Parent = objs.innerBorder1;
+            })
+
+            objs.midBorder = utility:Draw('Square', {
+                Size = newUDim2(1,10,1,25);
+                Position = newUDim2(0,-5,0,-20);
+                ThemeColor = 'Border 2';
+                ZIndex = z-3;
+                Parent = objs.innerBorder2;
+            })
+
+            objs.outerBorder1 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 1';
+                ZIndex = z-4;
+                Parent = objs.midBorder;
+            })
+
+            objs.outerBorder2 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 3';
+                ZIndex = z-5;
+                Parent = objs.outerBorder1;
+            })
+
+            objs.topBorder = utility:Draw('Square', {
+                Size = newUDim2(1,0,0,1);
+                ThemeColor = 'Accent';
+                ZIndex = z+1;
+                Parent = objs.background;
+            })
+
+            objs.title = utility:Draw('Text', {
+                Position = newUDim2(0,7,0,2);
+                ThemeColor = 'Primary Text';
+                Text = window.title;
+                Font = 2;
+                Size = 13;
+                ZIndex = z+1;
+                Outline = true;
+                Parent = objs.midBorder;
+            })
+
+            objs.groupBackground = utility:Draw('Square', {
+                Size = newUDim2(1,-16,1,-(16+23));
+                Position = newUDim2(0,8,0,8+23);
+                ThemeColor = 'Group Background';
+                ZIndex = z+5;
+                Parent = objs.background;
+            })
+
+            objs.groupInnerBorder = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 1';
+                ZIndex = z+4;
+                Parent = objs.groupBackground;
+            })
+
+            objs.groupOuterBorder = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 3';
+                ZIndex = z+3;
+                Parent = objs.groupInnerBorder;
+            })
+
+            objs.tabHolder = utility:Draw('Square', {
+                Size = newUDim2(1,0,0,20);
+                Position = newUDim2(0,0,0,-21);
+                Parent = objs.groupBackground;
+                Transparency = 0;
+                ZIndex = z+1;
+            })
+
+            objs.columnholder1 = utility:Draw('Square', {
+                Size = newUDim2(.48, 0, .96, 0);
+                Position = newUDim2(.01, 0, .02, 0);
+                Transparency = 0;
+                ZIndex = z+6;
+                Parent = objs.groupBackground;
+            })
+
+            objs.columnholder2 = utility:Draw('Square', {
+                Size = newUDim2(.48, 0, .96, 0);
+                Position = newUDim2(1 - (.48 + .01), 0, .02, 0);
+                Transparency = 0;
+                ZIndex = z+6;
+                Parent = objs.groupBackground;
+            })
+
+
+            objs.dragdetector = utility:Draw('Square',{
+                Size = newUDim2(1,0,1,0);
+                Parent = objs.midBorder;
+                Transparency = 0;
+                ZIndex = z+2;
+            })
+
+            local dragging, mouseStart, objStart;
+
+            utility:Connection(objs.dragdetector.MouseButton1Down, function(pos)
+                dragging = true;
+                mouseStart = newUDim2(0, pos.X, 0, pos.Y);
+                objStart = objs.background.Position;
+            end)
+
+            utility:Connection(button1up, function()
+                dragging = false;
+            end)
+
+            utility:Connection(mousemove, function(pos)
+                if dragging then
+                    if window.open then
+                        objs.background.Position = objStart + newUDim2(0, pos.X, 0, pos.Y) - mouseStart;
                     else
-                        local fnd = table.find(playerList.visibleContent, Value)
-                        --
-                        if fnd then
-                            table.remove(playerList.visibleContent, fnd)
+                        dragging = false
+                    end
+                end
+            end)
+
+        end
+        -------------------------
+
+        -- Create Color Picker --
+        do
+            -- Objects
+            do
+                local objs = window.colorpicker.objects;
+                local z = library.zindexOrder.colorpicker;
+
+                objs.background = utility:Draw('Square', {
+                    Visible = false;
+                    Size = newUDim2(0,200,0,242);
+                    Position = newUDim2(1,-200,1,10);
+                    ThemeColor = 'Background';
+                    ZIndex = z;
+                    Parent = window.objects.background;
+                })
+
+                objs.border1 = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border';
+                    ZIndex = z-1;
+                    Parent = objs.background;
+                })
+
+                objs.border2 = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border 1';
+                    ZIndex = z-2;
+                    Parent = objs.border1;
+                })
+
+                objs.border3 = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border';
+                    ZIndex = z-3;
+                    Parent = objs.border2;
+                })
+
+                objs.statusText = utility:Draw('Text', {
+                    Position = newUDim2(0,5,0,4);
+                    Text = 'colorpicker_status_text';
+                    ThemeColor = 'Option Text 1';
+                    Size = 13;
+                    Font = 2;
+                    Outline = true;
+                    ZIndex = z+1;
+                    Parent = objs.background;
+                })
+
+                objs.mainColor = utility:Draw('Square', {
+                    Size = newUDim2(0, 175, 0, 175);
+                    Position = newUDim2(0, 5, 0, 25);
+                    Color = c3new(1,0,0);
+                    ZIndex = z+2;
+                    Parent = objs.background;
+                })
+
+                objs.sat1 = utility:Draw('Image', {
+                    Size = newUDim2(1,0,1,0);
+                    Data = syn.crypt.base64.decode"iVBORw0KGgoAAAANSUhEUgAAAaQAAAGkCAQAAADURZm+AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VGAAAAAmJLR0QA/4ePzL8AAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQflBwwSLzK3wl3KAAADrElEQVR42u3TORLCMBBFwT+6/50hMqXSZgonBN0BWCDGYPwqeSWVZPWYVHd0Pc5H86v9areu4Sz9u7XZXT/vvtZtu6dtJtYw525iGya05afnWW17ltPE8fzfTZy/yf3vmCes59xf0Sf/42l3lnvGOyyH+y/bo/X689wCPCYkEBIICYQECAmEBEICIQFCAiGBkEBIgJBASCAkEBIgJBASCAmEBAgJhARCAiEBQgIhgZAAIYGQQEggJEBIICQQEggJEBIICYQEQgKEBEICIYGQACGBkEBIICRASCAkEBIICRASCAmEBAgJhARCAiEBQgIhgZBASICQQEggJBASICQQEggJhAQICYQEQgIhAUICIYGQQEguAQgJhARCAoQEQgIhgZAAIYGQQEggJEBIICQQEggJEBIICYQEQgKEBEICIYGQACGBkEBIgJBASCAkEBIgJBASCAmEBAgJhARCAiEBQgIhgZBASICQQEggJBASICQQEggJhAQICYQEQgKEBEICIYGQACGBkEBIICRASCAkEBIICRASCAmEBEIChARCAiGBkAAhgZBASCAkQEggJBASICQQEggJhAQICYQEQgIhAUICIYGQQEiAkEBIICQQEiAkEBIICYQECAmEBEIChARCAiGBkAAhgZBASCAkQEggJBASCAkQEggJhARCAoQEQgIhgZAAIYGQQEggJEBIICQQEiAkEBIICYQECAmEBEICIQFCAiGBkEBIgJBASCAkEBIgJBASCAmEBAgJhARCAiEBQgIhgZAAIYGQQEggJEBIICQQEggJEBIICYQEQgKEBEICIYGQACGBkEBIICRASCAkEBIgJBASCAmEBAgJhARCAiEBQgIhgZBASICQQEggJBASICQQEggJhAQICYQEQgIhAUICIYGQACGBkEBIICRASCAkEBIICRASCAmEBEIChARCAiGBkAAhgZBASCAkQEggJBASCAkQEggJhAQICYQEQgIhAUICIYGQQEiAkEBIICQQEiAkEBIICYQECAmEBEICIQFCAiGBkEBILgEICYQEQgKEBEICIYGQACGBkEBIICRASCAkEBIICRASCAmEBEIChARCAiGBkAAhgZBASICQQEggJBASICQQEggJhAQICYQEQgIhAUICIYGQQEiAkEBIICQQEiAkEBIICYQECAmEBEIChARCAiGBkAAhgZBASCAkQEggJBASCAkQEggJhARCAoQEQgIhgZAAIYGQQEggJEBIICQQEiAkEBL8lzft9AVFFzN+ywAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNy0xMlQxODo0Nzo1MCswMDowMIxlM90AAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDctMTJUMTg6NDc6NTArMDA6MDD9OIthAAAAAElFTkSuQmCC";
+                    ZIndex = z+3;
+                    Parent = objs.mainColor;
+                })
+
+                objs.sat2 = utility:Draw('Image', {
+                    Size = newUDim2(1,0,1,0);
+                    Data = syn.crypt.base64.decode"iVBORw0KGgoAAAANSUhEUgAAAaQAAAGkCAQAAADURZm+AAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JQAAgIMAAPn/AACA6QAAdTAAAOpgAAA6mAAAF2+SX8VGAAAAAmJLR0QA/4ePzL8AAAAJcEhZcwAACxMAAAsTAQCanBgAAAAHdElNRQflBwwSLyBEeyyCAAAD4klEQVR42u3YwQnAQAhFQTek/5pz9eBtEYzMlBD4PDcRADDBieMjwK3HJwBDghFepx0oEhgSOO0ARQJDAqcdKBJgSGBI4I0EhgQ47cCQwJDAGwlQJDAkcNqBIgGKBIoEhgROO0CRQJFAkQBDAqcdGBI47QBFAkUCQwKnHaBIoEigSKBIgCKBIYHTDhQJUCQwJHDagSIBigSGBE47UCRAkcCQwGkHKBIoEigSGBLgtANDAkMCbyTAkMBpB4oEigQoEhgSOO1AkQBDAqcdKBIoEqBIYEjgtANFUiRQJFAkMCTAaQeKBIoEigQYEjjtQJFAkQBFAkMCpx0oEmBI4LQDRQJFAhQJDAmcdqBIgCKBIoEhAU47UCRQJFAkwJDAaQeKBIYEOO1AkUCRYHuRTAmcduC0A0UCFAkUCQwJnHaAIoEigSKBIQFOO2gvkimBIoE3EhgS4LQDRQJDAqcdoEigSKBIYEiAIYEhwXx+NoAigSGB0w5QJDAkMCQwJKDiZwMoEhgSOO0ARQJFgnlFMiVw2oHTDhQJUCRQJDAkcNoBVZFMCRQJvJHAkACnHSgSKBIoElANSZPAaQdOOzAkwGkHigSGBIYEGBK08LMBFAkUCRQJMCQwJDAkWMjPBlAkMCRw2gG5SKYEigTeSGBIgNMOFAkMCQwJMCRo4WcDKBIYEjjtgFwkUwJFAm8kMCTAaQeKBIoEigRUQ9IkcNqB0w4MCXDagSKBIsHCIpkSOO3AaQeKBCgSKBIYEhgSYEjQws8GUCQwJHDaAblIpgSKBN5IYEiA0w4UCQwJDAkwJGjhZwMoEhgSOO0ARQJDAkMCQwIqfjaAIoEigSIBhgROO5hXJFMCpx047UCRAEUCRQJDAqcdUBXJlECRwBsJDAlw2oEigSKBIgGGBIYEhgSL+dkAigSGBE47QJHAkMBpB4oEGBIYEhgSrOZnAygSKBIoEmBI4LQDRQJFAhQJDAmcdrC8SKYEigTeSGBIgNMOFAkMCZx2gCKBIoEigSEBTjtQJFAkUCTAkMBpB4oEigQoEhgSOO1AkQBDAqcdKBKgSKBIYEjgtAMUCRQJFAkMCXDagSKBIoEiAYYETjtQJFAkQJHAkMBpB4oEGBI47UCRQJEARQJDAqcdoEigSGBI4LQDFAkUCRQJFAkwJHDagSKBIQFOOzAkMCTwRgIMCZx2oEigSIAigSKBIYHTzkcARQJFAkMCnHZgSGBI4I0EGBI47UCRQJEAQwKnHSgSKBKgSGBI4LQDRQIUCRQJDAmcdoAigSGB0w5QJFAkUCQwJMBpB4oEhgROO0CRwJDAkMAbCVAkMCT4gw/reQYigE05fAAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAyMS0wNy0xMlQxODo0NzozMiswMDowMN2VK3MAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMjEtMDctMTJUMTg6NDc6MzIrMDA6MDCsyJPPAAAAAElFTkSuQmCC";
+                    ZIndex = z+4;
+                    Parent = objs.mainColor;
+                })
+
+                objs.colorBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border';
+                    ZIndex = z+1;
+                    Parent = objs.mainColor;
+                })
+
+                objs.mainDetector = utility:Draw('Square',{
+                    Size = newUDim2(1,0,1,0);
+                    Transparency = 0;
+                    ZIndex = z+10;
+                    Parent = objs.mainColor;
+                })
+
+                objs.hue = utility:Draw('Image', {
+                    Size = newUDim2(0,175,0,10);
+                    Position = newUDim2(0,5,0,205);
+                    Data = library.images.colorhue;
+                    ZIndex = z+2;
+                    Parent = objs.background;
+                })
+
+                objs.hueBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border';
+                    ZIndex = z+1;
+                    Parent = objs.hue;
+                })
+
+                objs.hueDetector = utility:Draw('Square',{
+                    Size = newUDim2(1,0,1,0);
+                    Transparency = 0;
+                    ZIndex = z+10;
+                    Parent = objs.hue;
+                })
+
+                objs.transColor = utility:Draw('Square', {
+                    Size = newUDim2(0,10,0,175);
+                    Position = newUDim2(0,185,0,25);
+                    Color = c3new(1,0,0);
+                    ZIndex = z+2;
+                    Parent = objs.background;
+                })
+
+                objs.trans = utility:Draw('Image', {
+                    Size = newUDim2(1,0,1,0);
+                    Data = library.images.colortrans;
+                    ZIndex = z+3;
+                    Parent = objs.transColor;
+                })
+
+                objs.transBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border';
+                    ZIndex = z+1;
+                    Parent = objs.transColor;
+                })
+
+                objs.transDetector = utility:Draw('Square',{
+                    Size = newUDim2(1,0,1,0);
+                    Transparency = 0;
+                    ZIndex = z+10;
+                    Parent = objs.transColor;
+                })
+
+                objs.pointer = utility:Draw('Square', {
+                    Size = newUDim2(0,2,0,2);
+                    Position = newUDim2(0,0,0,0);
+                    Color = c3new(1,1,1);
+                    ZIndex = z+6;
+                    Parent = objs.mainColor;
+                })
+
+                objs.pointerBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    Color = c3new(0,0,0);
+                    ZIndex = z+5;
+                    Parent = objs.pointer;
+                })
+
+                objs.hueSlider = utility:Draw('Square', {
+                    Size = newUDim2(0,1,1,0);
+                    Color = c3new(1,1,1);
+                    ZIndex = z+4;
+                    Parent = objs.hue;
+                })
+
+                objs.hueSliderBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    Color = c3new(0,0,0);
+                    ZIndex = z+3;
+                    Parent = objs.hueSlider;
+                })
+
+                objs.transSlider = utility:Draw('Square', {
+                    Size = newUDim2(1,0,0,1);
+                    Color = c3new(1,1,1);
+                    ZIndex = z+5;
+                    Parent = objs.trans;
+                })
+
+                objs.transSliderBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    Color = c3new(0,0,0);
+                    ZIndex = z+4;
+                    Parent = objs.transSlider;
+                })
+
+                objs.rBackground = utility:Draw('Square', {
+                    Size = newUDim2(0, 60, 0, 15);
+                    Position = newUDim2(0, 5, 1, - 20);
+                    ThemeColor = 'Option Background';
+                    Parent = objs.background;
+                    ZIndex = z+5;
+                })
+
+                objs.rBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    Color = c3new(0,0,0);
+                    ZIndex = z+4;
+                    Parent = objs.rBackground;
+                })
+
+                objs.rText = utility:Draw('Text', {
+                    Position = newUDim2(.5,0,0,0);
+                    Color = c3new(1,.1,.1);
+                    Text = 'R';
+                    Size = 13;
+                    Font = 2;
+                    Outline = true;
+                    Center = true;
+                    ZIndex = z+6;
+                    Parent = objs.rBackground;
+                })
+
+                objs.gBackground = utility:Draw('Square', {
+                    Size = newUDim2(0, 60, 0, 15);
+                    Position = newUDim2(0, 70, 1, - 20);
+                    ThemeColor = 'Option Background';
+                    Parent = objs.background;
+                    ZIndex = z+5;
+                })
+
+                objs.gBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    Color = c3new(0,0,0);
+                    ZIndex = z+4;
+                    Parent = objs.gBackground;
+                })
+
+                objs.gText = utility:Draw('Text', {
+                    Position = newUDim2(.5,0,0,0);
+                    Color = c3new(.1,1,.1);
+                    Text = 'G';
+                    Size = 13;
+                    Font = 2;
+                    Outline = true;
+                    Center = true;
+                    ZIndex = z+6;
+                    Parent = objs.gBackground;
+                })
+
+                objs.bBackground = utility:Draw('Square', {
+                    Size = newUDim2(0, 60, 0, 15);
+                    Position = newUDim2(0, 135, 1, - 20);
+                    ThemeColor = 'Option Background';
+                    Parent = objs.background;
+                    ZIndex = z+5;
+                })
+
+                objs.bBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    Color = c3new(0,0,0);
+                    ZIndex = z+4;
+                    Parent = objs.bBackground;
+                })
+
+                objs.bText = utility:Draw('Text', {
+                    Position = newUDim2(.5,0,0,0);
+                    Color = c3new(.1,.1,1);
+                    Text = 'B';
+                    Size = 13;
+                    Font = 2;
+                    Outline = true;
+                    Center = true;
+                    ZIndex = z+6;
+                    Parent = objs.bBackground;
+                })
+
+                local draggingHue, draggingSat, draggingTrans = false, false, false;
+
+                local function updateSatVal(pos)
+                    if window.colorpicker.selected ~= nil then
+                        local hue, sat, val = window.colorpicker.selected.color:ToHSV()
+                        X = (objs.mainColor.Object.Position.X + objs.mainColor.Object.Size.X) - objs.mainColor.Object.Position.X
+                        Y = (objs.mainColor.Object.Position.Y + objs.mainColor.Object.Size.Y) - objs.mainColor.Object.Position.Y
+                        X = math.clamp((pos.X - objs.mainColor.Object.Position.X) / X, 0, 0.995)
+                        Y = math.clamp((pos.Y - objs.mainColor.Object.Position.Y) / Y, 0, 0.995)
+                        sat, val = 1 - X, 1 - Y;
+                        window.colorpicker.selected:SetColor(fromhsv(hue,sat,val));
+                        window.colorpicker:Visualize(fromhsv(hue, sat, val), window.colorpicker.selected.trans);
+                    end
+                end
+
+                local function updateHue(pos)
+                    if window.colorpicker.selected ~= nil then
+                        local hue, sat, val = window.colorpicker.selected.color:ToHSV()
+                        X = (objs.hue.Object.Position.X + objs.hue.Object.Size.X) - objs.hue.Object.Position.X
+                        X = math.clamp((pos.X - objs.hue.Object.Position.X) / X, 0, 0.995)
+                        hue = 1 - X
+                        window.colorpicker.selected:SetColor(fromhsv(hue,sat,val));
+                        window.colorpicker:Visualize(fromhsv(hue, sat, val), window.colorpicker.selected.trans);
+                    end
+                end
+
+                local function updateTrans(pos)
+                    if window.colorpicker.selected ~= nil then
+                        Y = (objs.trans.Object.Position.Y + objs.trans.Object.Size.Y) - objs.trans.Object.Position.Y
+                        Y = math.clamp((pos.Y - objs.transColor.Object.Position.Y) / Y, 0, 0.995)
+                        window.colorpicker.selected:SetTrans(Y);
+                        window.colorpicker:Visualize(window.colorpicker.selected.color, Y);
+                    end
+                end
+
+                utility:Connection(objs.mainDetector.MouseButton1Down, function(pos)
+                    draggingSat = true;
+                    updateSatVal(pos)
+                end)
+
+                utility:Connection(objs.hueDetector.MouseButton1Down, function(pos)
+                    draggingHue = true;
+                    updateHue(pos)
+                end)
+
+                utility:Connection(objs.transDetector.MouseButton1Down, function(pos)
+                    draggingTrans = true;
+                    updateTrans(pos)
+                end)
+
+                utility:Connection(mousemove, function(pos)
+                    if library.open then
+                        if draggingSat then
+                            updateSatVal(pos)
+                        elseif draggingHue then
+                            updateHue(pos)
+                        elseif draggingTrans then
+                            updateTrans(pos)
                         end
                     end
-                end
-                --
-                if Selection then
-                    button_title.Text = Selection[3]
-                    button.current = Selection[3]
-                    button.selection = Selection
-                else
-                    button.selection = nil
-                end
+                end)
+
+                utility:Connection(button1up, function()
+                    draggingSat = false;
+                    draggingHue = false;
+                    draggingTrans = false;
+                end)
+
             end
-            --
-            function button:UpdateValue()
-                if button.open and button.holder.inline then
-                    for i,v in pairs(button.holder.buttons) do
-                        local value = button.options[i]
-                        --
-                        v[1].Text = value
-                        v[1].Color = value == tostring(button.current) and theme.accent or theme.textcolor
-                        v[1].Position = utility:Position(0, value == tostring(button.current) and 8 or 6, 0, 2, v[2])
-                        library.colors[v[1]] = {
-                            Color = v[1].Text == tostring(button.current) and "accent" or "textcolor"
-                        }
-                        utility:UpdateOffset(v[1], {Vector2.new(v[1].Text == tostring(button.current) and 8 or 6, 2), v[2]})
+
+            function window.colorpicker:Visualize(c3, a)
+                if typeof(c3) ~= 'Color3' then return end
+                if typeof(a) ~= 'number' then return end
+                local h,s,v = c3:ToHSV();
+                h = h == 0 and 1 or h;
+                self.color = c3;
+                self.trans = a;
+                self.objects.mainColor.Color = fromhsv(h,1,1);
+                self.objects.transColor.Color = fromhsv(h,s,v);
+                self.objects.hueSlider.Position = newUDim2(1 - h, 0,0,0);
+                self.objects.transSlider.Position = newUDim2(0,0,a,0);
+                self.objects.pointer.Position = newUDim2(1 - s, 0, 1 - v, 0);
+                self.objects.statusText.Text = 'Editing : Unknown';
+                if self.selected ~= nil then
+                    local txt = 'Editing : Unknown';
+                    if self.selected.text ~= nil and self.selected.text ~= '' then
+                        txt = tostring(self.selected.text)
+                    elseif self.selected.flag ~= nil and self.selected.flag ~= '' then
+                        txt = tostring(self.selected.flag)
                     end
+                    self.objects.statusText.Text = tostring(txt);
                 end
             end
-            --
-            function button:Close()
-                button.open = not button.open
-                utility:LoadImage(button_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                --
-                for i,v in pairs(button.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                button.holder.drawings = {}
-                button.holder.buttons = {}
-                button.holder.inline = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.button = nil
+            
+            window.colorpicker:Visualize(window.colorpicker.color, window.colorpicker.trans)
+
+        end
+        -------------------------
+
+        ---- Create Dropdown ----
+        do
+            -- Default Objects
+            do
+                local objs = window.dropdown.objects;
+                local z = library.zindexOrder.dropdown;
+
+                objs.background = utility:Draw('Square', {
+                    Visible = false;
+                    Size = newUDim2(1,-3,0,50);
+                    Position = newUDim2(0,3,1,0);
+                    ThemeColor = 'Background';
+                    ZIndex = z;
+                    Parent = window.objects.background;
+                })
+
+                objs.border1 = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border';
+                    ZIndex = z-1;
+                    Parent = objs.background;
+                })
+
+                objs.border2 = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border 1';
+                    ZIndex = z-2;
+                    Parent = objs.border1;
+                })
+
+                objs.border3 = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border';
+                    ZIndex = z-3;
+                    Parent = objs.border2;
+                })
+
             end
-            --
-            function button:Open()
-                window:CloseContent()
-                button.open = not button.open
-                utility:LoadImage(button_image, "arrow_up", "https://i.imgur.com/SL9cbQp.png")
-                --
-                local button_open_outline = utility:Create("Frame", {Vector2.new(0,21), button_outline}, {
-                    Size = utility:Size(1, 0, 0, 3 + (#button.options * 19), button_outline),
-                    Position = utility:Position(0, 0, 0, 21, button_outline),
-                    Color = theme.outline,
-                    Visible = page.open
-                }, button.holder.drawings);button.holder.outline = button_open_outline
-                --
-                library.colors[button_open_outline] = {
-                    Color = "outline"
-                }
-                --
-                local button_open_inline = utility:Create("Frame", {Vector2.new(1,1), button_open_outline}, {
-                    Size = utility:Size(1, -2, 1, -2, button_open_outline),
-                    Position = utility:Position(0, 1, 0, 1, button_open_outline),
-                    Color = theme.inline,
-                    Visible = page.open
-                }, button.holder.drawings);button.holder.inline = button_open_inline
-                --
-                library.colors[button_open_inline] = {
-                    Color = "inline"
-                }
-                --
-                for Index = 1, (#button.options) do
-                    local Value = button.options[Index]
-                    --
-                    if Value then
-                        local button_value_frame = utility:Create("Frame", {Vector2.new(1,1 + (19 * (Index-1))), button_open_inline}, {
-                            Size = utility:Size(1, -2, 0, 18, button_open_inline),
-                            Position = utility:Position(0, 1, 0, 1 + (19 * (Index-1)), button_open_inline),
-                            Color = theme.lightcontrast,
-                            Visible = page.open
-                        }, button.holder.drawings)
-                        --
-                        library.colors[button_value_frame] = {
-                            Color = "lightcontrast"
-                        }
-                        --
-                        local button_value = utility:Create("TextLabel", {Vector2.new(Value == tostring(button.current) and 8 or 6,2), button_value_frame}, {
-                            Text = Value,
-                            Size = theme.textsize,
-                            Font = theme.font,
-                            Color = Value == tostring(button.current) and theme.accent or theme.textcolor,
-                            OutlineColor = theme.textborder,
-                            Position = utility:Position(0, Value == tostring(button.current) and 8 or 6, 0, 2, button_value_frame),
-                            Visible = page.open
-                        }, button.holder.drawings)
-                        --
-                        button.holder.buttons[#button.holder.buttons + 1] = {button_value, button_value_frame}
-                        --
-                        library.colors[button_value] = {
-                            OutlineColor = "textborder",
-                            Color = Value == tostring(button.current) and "accent" or "textcolor"
-                        }
-                    end
-                end
-                --
-                window.currentContent.frame = button_open_inline
-                window.currentContent.button = button
-            end
-            --
-            utility:LoadImage(button_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-            --
-            library.began[#library.began + 1] = function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 and (button_outline.Visible or button.open) and window.isVisible then
-                    if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and button_outline.Visible then
-                        if button.open and button.holder.inline and utility:MouseOverDrawing({button.holder.inline.Position.X, button.holder.inline.Position.Y, button.holder.inline.Position.X + button.holder.inline.Size.X, button.holder.inline.Position.Y + button.holder.inline.Size.Y}) then
-                            for i,v in pairs(button.holder.buttons) do
-                                local value = button.options[i]
-                                --
-                                if utility:MouseOverDrawing({v[2].Position.X, v[2].Position.Y, v[2].Position.X + v[2].Size.X, v[2].Position.Y + v[2].Size.Y}) and value ~= button.current then
-                                    button.current = value
-                                    button_title.Text = button.current
-        
-                                    if button.selection then
-                                        button.selection[3] = value
-                                        playerList:Refresh(button.selection)
+
+            function window.dropdown:Refresh()
+                if self.selected ~= nil then
+                    local list = self.selected
+                    for idx, value in next, list.values do
+                        local valueObject = self.objects.values[idx]
+                        if valueObject == nil then
+                            valueObject = {};
+                            valueObject.background = utility:Draw('Square', {
+                                Size = newUDim2(1,-4,0,18);
+                                Color = Color3.new(.25,.25,.25);
+                                Transparency = 0;
+                                ZIndex = library.zindexOrder.dropdown+1;
+                                Parent = self.objects.background;
+                            })
+                            valueObject.text = utility:Draw('Text', {
+                                Position = newUDim2(0,3,0,1);
+                                ThemeColor = 'Option Text 2';
+                                Text = tostring(value);
+                                Size = 13;
+                                Font = 2;
+                                ZIndex = library.zindexOrder.dropdown+2;
+                                Parent = valueObject.background;
+                            })
+                            valueObject.connection = utility:Connection(valueObject.background.MouseButton1Down, function()
+                                local currentList = self.selected
+                                if currentList then
+                                    local val = currentList.values[idx]
+                                    local currentSelected = currentList.selected;
+                                    local newSelected = currentList.multi and {} or val;
+                                    
+                                    if currentList.multi then
+                                        for i,v in next, currentSelected do
+                                            if v == "none" then continue end
+                                            newSelected[i] = v;
+                                        end
+                                        if table.find(newSelected, val) then
+                                            table.remove(newSelected, table.find(newSelected, val));
+                                        else
+                                            table.insert(newSelected, val)
+                                        end
                                     end
-        
-                                    button:UpdateValue()
+
+                                    currentList:Select(newSelected);
+                                    if not currentList.multi then
+                                        currentList.open = false;
+                                        currentList.objects.openText.Text = '+';
+                                        window.dropdown.selected = nil;
+                                        window.dropdown.objects.background.Visible = false;
+                                    end
+
+                                    for idx, val in next, currentList.values do
+                                        local valueObj = self.objects.values[idx]
+                                        if valueObj then
+                                            valueObj.background.Transparency = (typeof(newSelected) == 'table' and table.find(newSelected, val) or newSelected == val) and 1 or 0
+                                        end
+                                    end
+
                                 end
-                            end
-                        elseif utility:MouseOverDrawing({button_outline.Position.X, button_outline.Position.Y, button_outline.Position.X + button_outline.Size.X, button_outline.Position.Y + button_outline.Size.Y}) and not window:IsOverContent() then
-                            task.spawn(function()
-                                utility:LoadImage(button_gradient, "gradientdown", "https://i.imgur.com/DzrzUt3.png") 
-                                --
-                                task.wait(0.15)
-                                --
-                                utility:LoadImage(button_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png") 
                             end)
-                            --
-                            if not button.open then
-                                button:Open()
-                            else
-                                button:Close()
-                            end
-                        else
-                            if button.open then
-                                button:Close()
-                            end
+                            self.objects.values[idx] = valueObject
                         end
-                    elseif Input.UserInputType == Enum.UserInputType.MouseButton1 and button.open then
-                        button:Close()
+                    end
+
+                    for idx, val in next, list.values do
+                        local valueObj = self.objects.values[idx]
+                        if valueObj then
+                            valueObj.background.Transparency = (typeof(list.selected) == 'table' and table.find(list.selected, val) or list.selected == val) and 1 or 0
+                        end
+                    end
+
+                    local y,padding = 2,2
+                    for idx, obj in next, self.objects.values do
+                        local valueStr = list.values[idx]
+                        obj.background.Visible = valueStr ~= nil
+                        if valueStr ~= nil then
+                            obj.background.Position = newUDim2(0,2,0,y);
+                            obj.text.Text = valueStr;
+                            y = y + obj.background.Object.Size.Y + padding;
+                        end
+                    end
+
+                    self.objects.background.Size = newUDim2(1,-6,0,y);    
+
+                end
+            end
+        
+            window.dropdown:Refresh();
+        end
+        -------------------------
+
+        local function tooltip(option)
+            utility:Connection(option.objects.holder.MouseEnter, function()
+                tooltipObjects.background.Visible = (not (option.tooltip == '' or option.tooltip == nil)) and true or false;
+                tooltipObjects.riskytext.Visible = option.risky;
+                tooltipObjects.text.Position = option.risky and newUDim2(0,60,0,0) or newUDim2(0,3,0,0)
+                tooltipObjects.text.Text = tostring(option.tooltip);
+                library.CurrentTooltip = option;
+            end)
+            utility:Connection(option.objects.holder.MouseLeave, function()
+                if library.CurrentTooltip == option then
+                    library.CurrentTooltip = nil;
+                    tooltipObjects.background.Visible = false
+                end
+            end)
+        end
+
+
+        local visValues = {};
+
+        function window:SetOpen(bool)
+            if typeof(bool) == 'boolean' then
+                self.open = bool;
+
+                local objs = self.objects.background:GetDescendants()
+                table.insert(objs, self.objects.background)
+
+                task.spawn(function()
+                    if not bool then
+                        task.wait(.1);
+                    end
+                    self.objects.background.Visible = bool;
+                end)
+
+                for _,v in next, objs do
+                    if v.Object.Transparency ~= 0 then
+                        task.spawn(function()
+                            if bool then
+                                utility:Tween(v.Object, 'Transparency', visValues[v] or 1, .1);
+                            else
+                                visValues[v] = v.Object.Transparency;
+                                utility:Tween(v.Object, 'Transparency', .05, .1);
+                            end
+                        end)
                     end
                 end
             end
-            --
-            playerList.buttons[#playerList.buttons + 1] = button
         end
-        --
-        utility:LoadImage(list_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function playerList:GetSelection()
-            for Index, Value in pairs(playerList.players) do
-                if Value[4] then
-                    return Value
+
+        function window:AddTab(text, order)
+            local tab = {
+                text = text;
+                order = order or #self.tabs+1;
+                callback = function() end;
+                objects = {};
+                sections = {};
+            }
+
+            table.insert(self.tabs, tab);
+
+            --- Create Objects ---
+            do
+                local objs = tab.objects;
+                local z = library.zindexOrder.window + 5;
+
+                objs.background = utility:Draw('Square', {
+                    Size = newUDim2(0,50,1,0);
+                    Parent = self.objects.tabHolder;
+                    ThemeColor = 'Unselected Tab Background';
+                    ZIndex = z;
+                })
+
+                objs.innerBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border 1';
+                    ZIndex = z-1;
+                    Parent = objs.background;
+                })
+    
+                objs.outerBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,2,1,2);
+                    Position = newUDim2(0,-1,0,-1);
+                    ThemeColor = 'Border 3';
+                    ZIndex = z-2;
+                    Parent = objs.innerBorder;
+                })
+
+                objs.topBorder = utility:Draw('Square', {
+                    Size = newUDim2(1,0,0,1);
+                    ThemeColor = 'Unselected Tab Background';
+                    ZIndex = z+1;
+                    Parent = objs.background;
+                })
+
+                objs.text = utility:Draw('Text', {
+                    ThemeColor = 'Unselected Tab Text';
+                    Text = text;
+                    Size = 13;
+                    Font = 2;
+                    ZIndex = z+1;
+                    Outline = true;
+                    Center = true;
+                    Parent = objs.background;
+                })
+
+                utility:Connection(objs.background.MouseButton1Down, function()
+                    tab:Select();
+                end)
+
+            end
+            ----------------------
+
+            function tab:AddSection(text, side, order)
+                local section = {
+                    text = tostring(text);
+                    side = side == nil and 1 or clamp(side,1,2);
+                    order = order or #self.sections+1;
+                    enabled = true;
+                    objects = {};
+                    options = {};
+                };
+
+                table.insert(self.sections, section);
+
+                --- Create Objects ---
+                do
+                    local objs = section.objects;
+                    local z = library.zindexOrder.window+15;
+
+                    objs.background = utility:Draw('Square', {
+                        ThemeColor = 'Section Background';
+                        ZIndex = z;
+                        Parent = window.objects['columnholder'..(section.side)];
+                    })
+
+                    objs.innerBorder = utility:Draw('Square', {
+                        Size = newUDim2(1,2,1,1);
+                        Position = newUDim2(0,-1,0,0);
+                        ThemeColor = 'Border 3';
+                        ZIndex = z-1;
+                        Parent = objs.background;
+                    })
+
+                    objs.outerBorder = utility:Draw('Square', {
+                        Size = newUDim2(1,2,1,1);
+                        Position = newUDim2(0,-1,0,0);
+                        ThemeColor = 'Border 1';
+                        ZIndex = z-2;
+                        Parent = objs.innerBorder;
+                    })
+
+                    objs.topBorder1 = utility:Draw('Square', {
+                        Size = newUDim2(.025,1,0,1);
+                        Position = newUDim2(0,-1,0,0);
+                        ThemeColor = 'Accent';
+                        ZIndex = z+1;
+                        Parent = objs.background;
+                    })
+
+                    objs.topBorder2 = utility:Draw('Square', {
+                        ThemeColor = 'Accent';
+                        ZIndex = z+1;
+                        Parent = objs.background;
+                    })
+
+                    objs.textlabel = utility:Draw('Text', {
+                        Position = newUDim2(.0425,0,0,-7);
+                        ThemeColor = 'Primary Text';
+                        Size = 13;
+                        Font = 2;
+                        ZIndex = z+1;
+                        Parent = objs.background;
+                    })
+
+                    objs.optionholder = utility:Draw('Square',{
+                        Size = newUDim2(1-.03,0,1,-15);
+                        Position = newUDim2(.015,0,0,13);
+                        Transparency = 0;
+                        ZIndex = z+1;
+                        Parent = objs.background;
+                    })
+                    
                 end
-            end
-        end
-        --
-        function playerList:UpdateScroll()
-            if (#playerList.players - 10) > 0 then
-                playerList.scrollingindex = math.clamp(playerList.scrollingindex, 0, (#playerList.players - 10))
-                --
-                list_bar.Transparency = window.isVisible and 1 or 0
-                list_bar.Size = utility:Size(1, -2, (10 / #playerList.players), -2, list_scroll)
-                list_bar.Position = utility:Position(0, 1, 0, 1 + ((((list_scroll.Size.Y - 2) - list_bar.Size.Y) / (#playerList.players - 10)) * playerList.scrollingindex), list_scroll)
-                utility:UpdateTransparency(list_bar, 1)
-                utility:UpdateOffset(list_bar, {Vector2.new(1, 1 + ((((list_scroll.Size.Y - 2) - list_bar.Size.Y) / (#playerList.players - 10)) * playerList.scrollingindex)), list_scroll})
-            else
-                playerList.scrollingindex = 0
-                list_bar.Transparency = 0
-                utility:UpdateTransparency(list_bar, 0)
-            end
-            --
-            playerList:Refresh()
-        end
-        --
-        local lastselection
-        --
-        function playerList:Refresh(Relation)
-            for Index, Value in pairs(playerList.items) do
-                local Found = playerList.players[Index + playerList.scrollingindex]
-                --
-                if Found then
-                    Value:Set(true, Found)
-                else
-                    Value:Set(false)
+                ----------------------
+
+                function section:SetText(text)
+                    self.text = tostring(text);
+                    self.objects.textlabel.Text = self.text;
+                    local x = self.objects.background.Object.Size.X - self.objects.textlabel.TextBounds.X - 13
+                    self.objects.topBorder2.Size = newUDim2(0, x, 0, 1)
+                    self.objects.topBorder2.Position = newUDim2(1, 1 + -x, 0, 0)
                 end
-            end
-            --
-            if Relation then
-                library.Relations[Relation[1].UserId] = Relation[3] ~= "None" and Relation[3] or nil
-            end
-            --
-            playerList_title.Text = ("Player List - %s Players"):format(#playerList.players)
-            --
-            local Selection = playerList:GetSelection()
-            --
-            if playerList.buttons[1] then
-                playerList.buttons[1]:Update(Selection)
-            end
-            --
-            window:Move(window.main_frame.Position)
-            --
-            if Selection then
-                if lastselection ~= Selection then
-                    lastselection = Selection
-                    --
-                    options_avatar.Data = ""
-                    options_loadingtext.Text = "..?"
-                    --
-                    local character = Selection[1].Character
-                    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-                    local health = humanoid and math.floor(humanoid.Health) or 0
-                    local maxhealth = humanoid and math.floor(humanoid.MaxHealth) or 0
-                    --
-                    options_title.Text = ("User ID : %s\nDisplay Name : %s\nName : %s\nHealth : %s/%s"):format(Selection[1].UserId, Selection[1].DisplayName ~= "" and Selection[1].DisplayName or Selection[1].Name, Selection[1].Name, tostring(health), tostring(maxhealth))
-                    --
-                    task.spawn(function()
-                        local userId = Selection[1].UserId
-                        local url = utility:Thumbnail(userId)
-                        local success, imagedata = pcall(function()
-                            return url and game:HttpGet(url) or nil
+
+                function section:UpdateOptions()
+                    table.sort(self.options, function(a,b)
+                        return a.order < b.order
+                    end)
+
+                    local ySize, padding = 15, 0;
+                    for i,option in next, self.options do
+                        option.objects.holder.Visible = option.enabled
+                        if option.enabled then
+                            option.objects.holder.Position = newUDim2(0,0,0,ySize-15);
+                            ySize += option.objects.holder.Object.Size.Y + padding;
+                        end
+                    end
+
+                    self.objects.background.Size = newUDim2(1,0,0,ySize);
+
+                end
+
+                function section:SetEnabled(bool)
+                    if typeof(bool) == 'boolean' then
+                        section.enabled = bool;
+                        tab:UpdateSections();
+                    end
+                end
+
+                ------- Options -------
+
+                -- // Toggle
+                function section:AddToggle(data)
+                    local toggle = {
+                        class = 'toggle';
+                        flag = data.flag;
+                        text = '';
+                        tooltip = '';
+                        order = #self.options+1;
+                        state = false;
+                        risky = false;
+                        callback = function() end;
+                        enabled = true;
+                        options = {};
+                        objects = {};
+                    };
+
+                    local blacklist = {'objects'};
+                    for i,v in next, data do
+                        if not table.find(blacklist, i) ~= toggle[i] ~= nil then
+                            toggle[i] = v
+                        end
+                    end
+
+                    table.insert(self.options, toggle)
+
+                    if toggle.flag then
+                        library.flags[toggle.flag] = toggle.state;
+                        library.options[toggle.flag] = toggle;
+                    end
+
+                    --- Create Objects ---
+                    do
+                        local objs = toggle.objects;
+                        local z = library.zindexOrder.window+25;
+
+                        objs.holder = utility:Draw('Square', {
+                            Size = newUDim2(1,0,0,17);
+                            Transparency = 0;
+                            ZIndex = z+5;
+                            Parent = section.objects.optionholder;
+                        })
+
+                        objs.background = utility:Draw('Square', {
+                            Size = newUDim2(0,8,0,8);
+                            Position = newUDim2(0,2,0,4);
+                            ThemeColor = 'Option Background';
+                            ZIndex = z+3;
+                            Parent = objs.holder;
+                        })
+
+                        objs.gradient = utility:Draw('Image', {
+                            Size = newUDim2(1,0,1,0);
+                            Data = library.images.gradientp45;
+                            Transparency = .25;
+                            ZIndex = z+4;
+                            Parent = objs.background;
+                        })
+
+                        objs.border1 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 1';
+                            ZIndex = z+2;
+                            Parent = objs.background;
+                        })
+
+                        objs.border2 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 2';
+                            ZIndex = z+1;
+                            Parent = objs.border1;
+                        })
+
+                        objs.text = utility:Draw('Text', {
+                            Position = newUDim2(0,19,0,1);
+                            ThemeColor = 'Option Text 3';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+1;
+                            Outline = true;
+                            Parent = objs.holder;
+                        })
+
+                        utility:Connection(objs.holder.MouseEnter, function()
+                            objs.border1.ThemeColor = 'Accent';
                         end)
-                        --
-                        if success and imagedata and #imagedata > 100 then
-                            local current = playerList:GetSelection()
-                            if current and current[1].UserId == userId then
-                                options_avatar.Data = imagedata
-                                options_loadingtext.Text = ""
+
+                        utility:Connection(objs.holder.MouseLeave, function()
+                            objs.border1.ThemeColor = toggle.state and 'Accent' or 'Option Border 1';
+                        end)
+
+                        utility:Connection(objs.holder.MouseButton1Down, function()
+                            toggle:SetState(not toggle.state);
+                        end)
+
+                    end
+                    ----------------------
+
+                    function toggle:SetState(bool, nocallback)
+                        if typeof(bool) == 'boolean' then
+                            self.state = bool;
+                            if self.flag then
+                                library.flags[self.flag] = bool;
+                            end
+
+                            self.objects.border1.ThemeColor = bool and 'Accent' or (self.objects.holder.Hover and 'Accent' or 'Option Border 1');
+                            self.objects.text.ThemeColor = bool and (self.risky and 'Risky Text Enabled' or 'Option Text 1') or (self.risky and 'Risky Text' or 'Option Text 3');
+                            self.objects.background.ThemeColor = bool and 'Accent' or 'Option Background';
+                            self.objects.background.ThemeColorOffset = bool and -55 or 0
+
+                            if not nocallback then
+                                self.callback(bool);
+                            end
+
+                        end
+                    end
+
+                    function toggle:SetText(str)
+                        if typeof(str) == 'string' then
+                            self.text = str;
+                            self.objects.text.Text = str;
+                        end
+                    end
+
+                    function toggle:UpdateOptions()
+                        table.sort(self.options, function(a,b)
+                            return a.order < b.order
+                        end)
+
+                        local x, y = 0, 0
+                        for i,option in next, self.options do
+                            option.objects.holder.Visible = option.enabled
+                            if option.enabled then
+                                if option.class == 'color' or option.class == 'bind' then
+                                    option.objects.holder.Position = newUDim2(1,-option.objects.holder.Object.Size.X-x,0,0);
+                                    x = x + option.objects.holder.Object.Size.X;
+                                elseif option.class == 'slider' or option.class == 'list' then
+                                    option.objects.holder.Position = newUDim2(0,0,1,-option.objects.holder.Object.Size.Y-y);
+                                    y = y + option.objects.holder.Object.Size.Y;
+                                end
                             end
                         end
-                    end)
-                end
-            else
-                options_title.Text = "No player selected."
-                options_avatar.Data = ""
-                options_loadingtext.Text = "..?"
-                lastselection = nil
-            end
-        end
-        --
-        function playerList:Update() end
-        --
-        utility:Connection(plrs.PlayerAdded, function(Player)
-            playerList.players[#playerList.players + 1] = {Player, Player.Name, "None", false}
-            --
-            playerList:UpdateScroll()
-        end)
-        --
-        utility:Connection(plrs.PlayerRemoving, function(Player)
-            for Index, Value in pairs(playerList.players) do
-                if Value[1] == Player then
-                    Remove(playerList.players, Index)
-                end
-            end
-            --
-            playerList:UpdateScroll()
-        end)
-        --
-        for Index, Value in pairs(plrs:GetPlayers()) do
-            playerList.players[#playerList.players + 1] = {Value, Value.Name, Value == localplayer and "Local Player" or "None", false}
-        end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and list_outline.Visible and window.isVisible then
-                if utility:MouseOverDrawing({list_bar.Position.X, list_bar.Position.Y, list_bar.Position.X + list_bar.Size.X, list_bar.Position.Y + list_bar.Size.Y}) then
-                    playerList.scrolling = {true, (utility:MouseLocation().Y - list_bar.Position.Y)}
-                elseif utility:MouseOverDrawing({list_frame.Position.X, list_frame.Position.Y, list_frame.Position.X + list_frame.Size.X, list_frame.Position.Y + list_frame.Size.Y}) and not window:IsOverContent() then
-                    for Index = 1, 10 do
-                        local Found = playerList.players[Index + playerList.scrollingindex]
-                        --
-                        if Found and utility:MouseOverDrawing({list_frame.Position.X, list_frame.Position.Y + 2 + (22 * (Index - 1)), list_frame.Position.X + list_frame.Size.X, list_frame.Position.Y + 2 + (22 * (Index - 1)) + 22}) then
-                            if Found[4] then
-                                Found[4] = false
+
+                        self.objects.holder.Size = newUDim2(1,0,0,17 + y);
+                        section:UpdateOptions()
+
+                    end
+
+                    -- // Toggle Addons
+                    function toggle:AddColor(data)
+                        local color = {
+                            class = 'color';
+                            flag = data.flag;
+                            text = '';
+                            tooltip = '';
+                            order = #self.options+1;
+                            callback = function() end;
+                            color = Color3.new(1,1,1);
+                            trans = 0;
+                            open = false;
+                            enabled = true;
+                            objects = {};
+                        };
+    
+                        local blacklist = {'objects'};
+                        for i,v in next, data do
+                            if not table.find(blacklist, i) and color[i] ~= nil then
+                                color[i] = v
+                            end
+                        end
+                        
+                        table.insert(self.options, color)
+    
+                        if color.flag then
+                            library.flags[color.flag] = color.color;
+                            library.options[color.flag] = color;
+                        end
+    
+                        --- Create Objects ---
+                        do
+                            local objs = color.objects;
+                            local z = library.zindexOrder.window+25;
+    
+                            objs.holder = utility:Draw('Square', {
+                                Size = newUDim2(0,21,0,17);
+                                Transparency = 0;
+                                ZIndex = z+6;
+                                Parent = self.objects.holder;
+                            })
+    
+                            objs.background = utility:Draw('Square', {
+                                Size = newUDim2(0,15,0,8);
+                                Position = newUDim2(0,4,0,5);
+                                ZIndex = z+3;
+                                Parent = objs.holder;
+                            })
+    
+                            objs.gradient = utility:Draw('Image', {
+                                Size = newUDim2(1,0,1,0);
+                                Data = library.images.gradientp45;
+                                Transparency = .25;
+                                ZIndex = z+4;
+                                Parent = objs.background;
+                            })
+    
+                            objs.border1 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 1';
+                                ZIndex = z+2;
+                                Parent = objs.background;
+                            })
+    
+                            objs.border2 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 2';
+                                ZIndex = z+1;
+                                Parent = objs.border1;
+                            })
+    
+                            utility:Connection(objs.holder.MouseEnter, function()
+                                objs.border1.ThemeColor = 'Accent';
+                            end)
+    
+                            utility:Connection(objs.holder.MouseLeave, function()
+                                objs.border1.ThemeColor = color.state and 'Accent' or 'Option Border 1';
+                            end)
+    
+                            utility:Connection(objs.holder.MouseButton1Down, function()
+                                color:SetOpen(not color.open);
+                            end)
+    
+                        end
+                        ----------------------
+
+    
+                        function color:SetColor(c3, nocallback)
+                            if typeof(c3) == 'Color3' then
+                                local h,s,v = c3:ToHSV(); c3 = fromhsv(h, clamp(s,.005,.995), clamp(v,.005,.995))
+                                self.color = c3;
+                                self.objects.background.Color = c3;
+                                if not nocallback then
+                                    self.callback(c3, self.trans);
+                                end
+                                if self.open then
+                                    window.colorpicker:Visualize(self.color, self.trans);
+                                end
+                                if self.flag then
+                                    library.flags[self.flag] = c3;
+                                end
+                            end
+                        end
+    
+                        function color:SetTrans(trans, nocallback)
+                            if typeof(trans) == 'number' then
+                                self.trans = trans;
+                                if not nocallback then
+                                    self.callback(self.color, trans);
+                                end
+                                if self.open then
+                                    window.colorpicker:Visualize(self.color, self.trans);
+                                end
+                            end
+                        end
+    
+                        function color:SetOpen(bool)
+                            if typeof(bool) == 'boolean' then
+                                self.open = bool
+                                if bool then
+                                    if window.colorpicker.selected then
+                                        window.colorpicker.selected.open = false;
+                                    end
+                                    window.colorpicker.selected = color
+                                    window.colorpicker.objects.background.Parent = self.objects.background;
+                                    window.colorpicker.objects.background.Visible = true;
+                                    window.colorpicker:Visualize(color.color, color.trans)
+                                elseif window.colorpicker.selected == color then
+                                    window.colorpicker.selected = nil;
+                                    window.colorpicker.objects.background.Parent = window.objects.background;
+                                    window.colorpicker.objects.background.Visible = false;
+                                end
+                            end
+                        end
+    
+                        tooltip(color);
+                        color:SetColor(color.color, true);
+                        color:SetTrans(color.trans, true);
+                        self:UpdateOptions();
+                        return color
+                    end
+
+                    function toggle:AddBind(data)
+                        local bind = {
+                            class = 'bind';
+                            flag = data.flag;
+                            text = '';
+                            tooltip = '';
+                            bind = 'none';
+                            mode = 'toggle';
+                            order = #self.options+1;
+                            callback = function() end;
+                            keycallback = function() end;
+                            indicatorValue = library.keyIndicator:AddValue({value = 'value', key = 'key', enabled = false});
+                            noindicator = false;
+                            invertindicator = false;
+                            state = false;
+                            nomouse = false;
+                            enabled = true;
+                            binding = false;
+                            objects = {};
+                        };
+    
+                        local blacklist = {'objects'};
+                        for i,v in next, data do
+                            if not table.find(blacklist, i) and bind[i] ~= nil then
+                                bind[i] = v
+                            end
+                        end
+                        
+                        table.insert(self.options, bind)
+    
+                        if bind.flag then
+                            library.options[bind.flag] = bind;
+                        end
+
+                        if bind.bind == 'none' then
+                            bind.state = true
+                            if bind.flag then
+                                library.flags[bind.flag] = bind.state;
+                            end
+                            bind.callback(true)
+                            local display = bind.state; if bind.invertindicator then display = not bind.state; end
+                            bind.indicatorValue:SetEnabled(display and not bind.noindicator);
+                            bind.indicatorValue:SetKey((bind.text == nil or bind.text == '') and (bind.flag == nil and 'unknown' or bind.flag) or bind.text); -- this is so dumb
+                            bind.indicatorValue:SetValue('[Always]');
+                        end
+    
+                        --- Create Objects ---
+                        do
+                            local objs = bind.objects;
+                            local z = library.zindexOrder.window+25;
+    
+                            objs.holder = utility:Draw('Square', {
+                                Size = newUDim2(0,0,0,17);
+                                Transparency = 0;
+                                ZIndex = z+6;
+                                Parent = self.objects.holder;
+                            })
+    
+                            objs.keyText = utility:Draw('Text', {
+                                ThemeColor = 'Option Text 3';
+                                Size = 13;
+                                Font = 2;
+                                ZIndex = z+1;
+                                Parent = objs.holder;
+                            })
+    
+                            utility:Connection(objs.holder.MouseEnter, function()
+                                objs.keyText.ThemeColor = 'Accent';
+                            end)
+    
+                            utility:Connection(objs.holder.MouseLeave, function()
+                                objs.keyText.ThemeColor = bind.binding and 'Accent' or 'Option Text 3';
+                            end)
+    
+                            utility:Connection(objs.holder.MouseButton1Down, function()
+                                if not bind.binding then
+                                    bind:SetKeyText('...');
+                                    bind.binding = true;
+                                end
+                            end)
+    
+                        end
+                        ----------------------
+    
+                        local c
+                        function bind:SetBind(keybind)
+                            if c then
+                                c:Disconnect();
+                                if bind.flag then
+                                    library.flags[bind.flag] = false;
+                                end
+                                bind.callback(false);
+                            end
+                            local keyName = 'NONE'
+                            self.bind = (keybind and keybind) or keybind or self.bind
+                            if self.bind == Enum.KeyCode.Backspace then
+                                self.bind = 'none';
+
+                                if bind.flag then
+                                    library.flags[bind.flag] = bind.state;
+                                end
+                                self.callback(true)
+                                local display = bind.state; if bind.invertindicator then display = not bind.state; end
+                                bind.indicatorValue:SetEnabled(display and not bind.noindicator);
                             else
-                                for Index2, Value2 in pairs(playerList.players) do
-                                    if Value2 ~= Found then
-                                        Value2[4] = false
+                                keyName = keyNames[keybind] or keybind.Name or keybind
+                            end
+                            if self.bind ~= 'none' then
+                                bind.state = false
+                                if bind.flag then
+                                    library.flags[bind.flag] = bind.state;
+                                end
+                                self.callback(false)
+                                local display = bind.state; if bind.invertindicator then display = not bind.state; end
+                                bind.indicatorValue:SetEnabled(display and not bind.noindicator);
+                            end
+                            self.keycallback(self.bind);
+                            self:SetKeyText(keyName:upper());
+                            self.indicatorValue:SetKey((self.text == nil or self.text == '') and (self.flag == nil and 'unknown' or self.flag) or self.text); -- this is so dumb
+                            self.indicatorValue:SetValue('['..keyName:upper()..']');
+                            if self.bind == 'none' then
+
+                            end
+                            self.objects.keyText.ThemeColor = self.objects.holder.Hover and 'Accent' or 'Option Text 3';
+                        end
+    
+                        function bind:SetKeyText(str)
+                            str = tostring(str);
+                            self.objects.keyText.Text = '['..str..']';
+                            self.objects.keyText.Position = newUDim2(0, 2, 0, 2);
+                            self.objects.holder.Size = newUDim2(0,self.objects.keyText.TextBounds.X+2,0,17)
+                            toggle:UpdateOptions();
+                        end
+    
+                        utility:Connection(inputservice.InputBegan, function(inp)
+                            if inputservice:GetFocusedTextBox() then
+                                return
+                            elseif bind.binding then
+                                local key = (table.find({Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3}, inp.UserInputType) and not bind.nomouse) and inp.UserInputType
+                                bind:SetBind(key or (not table.find(blacklistedKeys, inp.KeyCode)) and inp.KeyCode)
+                                bind.binding = false
+                            elseif not bind.binding and self.bind == 'none' then
+                                bind.state = true
+                                library.flags[bind.flag] = bind.state
+                                local display = bind.state; if bind.invertindicator then display = not bind.state; end
+                                bind.indicatorValue:SetEnabled(display and not bind.noindicator)
+                            elseif (inp.KeyCode == bind.bind or inp.UserInputType == bind.bind) and not bind.binding then
+                                if bind.mode == 'toggle' then
+                                    bind.state = not bind.state
+                                    if bind.flag then
+                                        library.flags[bind.flag] = bind.state;
+                                    end
+                                    bind.callback(bind.state)
+                                    local display = bind.state; if bind.invertindicator then display = not bind.state; end
+                                    bind.indicatorValue:SetEnabled(display and not bind.noindicator);
+                                elseif bind.mode == 'hold' then
+                                    if bind.flag then
+                                        library.flags[bind.flag] = true;
+                                    end
+                                    bind.indicatorValue:SetEnabled((not bind.invertindicator and true or false) and not bind.noindicator);
+                                    c = utility:Connection(runservice.RenderStepped, function()
+                                        if bind.callback then
+                                            bind.callback(true);
+                                        end
+                                    end)
+                                end
+                            end
+                        end)
+    
+                        utility:Connection(inputservice.InputEnded, function(inp)
+                            if bind.bind ~= 'none' then
+                                if inp.KeyCode == bind.bind or inp.UserInputType == bind.bind then
+                                    if c then
+                                        c:Disconnect();
+                                        if bind.flag then
+                                            library.flags[bind.flag] = false;
+                                        end
+                                        if bind.callback then
+                                            bind.callback(false);
+                                        end
+                                        bind.indicatorValue:SetEnabled(bind.invertindicator and true or false);
                                     end
                                 end
-                                --
-                                Found[4] = true
                             end
-                            --
-                            playerList:UpdateScroll()
-                            --
-                            break
-                        end
+                        end)
+    
+                        tooltip(bind);
+                        bind:SetBind(bind.bind);
+                        self:UpdateOptions();
+                        return bind
                     end
-                end
-            end
-        end
-        --
-        library.ended[#library.ended + 1] = function(Input)
-            if playerList.scrolling[1] and Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                playerList.scrolling = {false, nil}
-            end
-        end
-        --
-        library.changed[#library.changed + 1] = function(Input)
-            if playerList.scrolling[1] then
-                local MouseLocation = utility:MouseLocation()
-                local Position = math.clamp((MouseLocation.Y - list_scroll.Position.Y - playerList.scrolling[2]), 0, ((list_scroll.Size.Y - list_bar.Size.Y)))
-                --
-                playerList.scrollingindex = math.clamp(math.round((((Position + list_scroll.Position.Y) - list_scroll.Position.Y) / ((list_scroll.Size.Y - list_bar.Size.Y))) * (#playerList.players - 10)), 0, #playerList.players - 10)
-                playerList:UpdateScroll()
-            end
-        end
-        --
-        utility:Connection(mouse.WheelForward,function()
-            if (#playerList.players - 10) > 0 and page.open and list_bar.Visible and utility:MouseOverDrawing({list_frame.Position.X, list_frame.Position.Y, list_frame.Position.X + list_frame.Size.X, list_frame.Position.Y + list_frame.Size.Y}) and not window:IsOverContent() then
-                playerList.scrollingindex = math.clamp(playerList.scrollingindex - 1, 0, #playerList.players - 10)
-                playerList:UpdateScroll()
-            end
-        end)
-        --
-        utility:Connection(mouse.WheelBackward,function()
-            if (#playerList.players - 10) > 0 and page.open and list_bar.Visible and utility:MouseOverDrawing({list_frame.Position.X, list_frame.Position.Y, list_frame.Position.X + list_frame.Size.X, list_frame.Position.Y + list_frame.Size.Y}) and not window:IsOverContent() then
-                playerList.scrollingindex = math.clamp(playerList.scrollingindex + 1, 0, #playerList.players - 10)
-                playerList:UpdateScroll()
-            end
-        end)
-        --
-        playerList:UpdateScroll()
-        --
-        page.sectionOffset["left"] = page.sectionOffset["left"] + playerList_inline.Size.Y + 5
-        page.sectionOffset["right"] = page.sectionOffset["right"] + playerList_inline.Size.Y + 5
-        page.sections[#page.sections + 1] = playerList
-        return playerList
-    end
-    --
-    function sections:Label(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "New Label"
-        local middle = info.middle or info.Middle or info.center or info.Center or false
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local label = {axis = section.currentAxis}
-        --
-        local label_title = utility:Create("TextLabel", {Vector2.new(middle and (section.section_frame.Size.X/2) or 4,label.axis), section.section_frame}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Center = middle,
-            Position = utility:Position(middle and 0.5 or 0, middle and 0 or 4, 0, 0, section.section_frame),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[label_title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = label
-        end
-        --
-        section.currentAxis = section.currentAxis + label_title.TextBounds.Y + 10
-        --
-        return label
-    end
-    --
-    function sections:Toggle(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "New Toggle"
-        local def = info.def or info.Def or info.default or info.Default or false
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local toggle = {axis = section.currentAxis, current = def, addedAxis = 0, addedKeybind = nil, colorpickers = 0, keybind = nil}
-        --
-        local toggle_outline = utility:Create("Frame", {Vector2.new(4,toggle.axis), section.section_frame}, {
-            Size = utility:Size(0, 15, 0, 15),
-            Position = utility:Position(0, 4, 0, toggle.axis, section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[toggle_outline] = {
-            Color = "outline"
-        }
-        --
-        local toggle_inline = utility:Create("Frame", {Vector2.new(1,1), toggle_outline}, {
-            Size = utility:Size(1, -2, 1, -2, toggle_outline),
-            Position = utility:Position(0, 1, 0, 1, toggle_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[toggle_inline] = {
-            Color = "inline"
-        }
-        --
-        local toggle_frame = utility:Create("Frame", {Vector2.new(1,1), toggle_inline}, {
-            Size = utility:Size(1, -2, 1, -2, toggle_inline),
-            Position = utility:Position(0, 1, 0, 1, toggle_inline),
-            Color = toggle.current == true and theme.accent or theme.lightcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[toggle_frame] = {
-            Color = toggle.current == true and "accent" or "lightcontrast"
-        }
-        --
-        local toggle__gradient = utility:Create("Image", {Vector2.new(0,0), toggle_frame}, {
-            Size = utility:Size(1, 0, 1, 0, toggle_frame),
-            Position = utility:Position(0, 0, 0 , 0, toggle_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local toggle_title = utility:Create("TextLabel", {Vector2.new(23,toggle.axis + (15/2) - (utility:GetTextBounds(name, theme.textsize, theme.font).Y/2)), section.section_frame}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 23, 0, toggle.axis + (15/2) - (utility:GetTextBounds(name, theme.textsize, theme.font).Y/2), section.section_frame),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[toggle_title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        utility:LoadImage(toggle__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function toggle:Get()
-            return toggle.current
-        end
-        --
-        function toggle:Set(bool)
-            if typeof(bool) == "boolean" then
-                toggle.current = bool
-                toggle_frame.Color = toggle.current == true and theme.accent or theme.lightcontrast
-                --
-                library.colors[toggle_frame] = {
-                    Color = toggle.current == true and "accent" or "lightcontrast"
-                }
-                --
-                callback(toggle.current)
-                --
-                if toggle.keybind then
-                    toggle.keybind.active = (bool and (toggle.keybind.mode == "Always" or toggle.keybind.mode == "Off Hold") or false)
-                    toggle.keybind:Callback()
-                    --
-                    if toggle.keybind.mode == "Off Hold" and toggle.current then
-                        window.keybindslist:Add(toggle.keybind.keybindname, toggle.keybind.keybind_value.Text)
-                    else
-                        window.keybindslist:Remove(toggle.keybind.keybindname)
-                    end
-                end
-            end
-        end
-        --
-        library.colors[toggle_frame] = {
-            Color = toggle.current == true and "accent" or "lightcontrast"
-        }
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and toggle_outline.Visible and window.isVisible and page.open and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + toggle.axis, section.section_frame.Position.X + section.section_frame.Size.X - toggle.addedAxis, section.section_frame.Position.Y + toggle.axis + 15}) and not window:IsOverContent() then
-                toggle.current = not toggle.current
-                toggle_frame.Color = toggle.current == true and theme.accent or theme.lightcontrast
-                --
-                library.colors[toggle_frame] = {
-                    Color = toggle.current == true and "accent" or "lightcontrast"
-                }
-                --
-                callback(toggle.current)
-                --
-                if toggle.keybind then
-                    toggle.keybind.active = (toggle.current and (toggle.keybind.mode == "Always" or toggle.keybind.mode == "Off Hold") or false)
-                    toggle.keybind:Callback()
-                    if toggle.keybind.mode == "Off Hold" and toggle.current then
-                        window.keybindslist:Add(toggle.keybind.keybindname, toggle.keybind.keybind_value.Text)
-                    else
-                        window.keybindslist:Remove(toggle.keybind.keybindname)
-                    end
-                end
-            end
-        end
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = toggle
-        end
-        --
-        section.currentAxis = section.currentAxis + 15 + 9
-        --
-        function toggle:Colorpicker(info)
-            local info = info or {}
-            local cpinfo = info.info or info.Info or name
-            local def = info.def or info.Def or info.default or info.Default or Color3.fromRGB(255, 0, 0)
-            local transp = info.transparency or info.Transparency or info.transp or info.Transp or info.alpha or info.Alpha or nil
-            local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-            local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-            --
-            local hh, ss, vv = def:ToHSV()
-            local colorpicker = {toggle, axis = toggle.axis, index = toggle.colorpickers, current = {hh, ss, vv , (transp or 0)}, holding = {picker = false, huepicker = false, transparency = false}, holder = {inline = nil, picker = nil, picker_cursor = nil, huepicker = nil, huepicker_cursor = {}, transparency = nil, transparencybg = nil, transparency_cursor = {}, drawings = {}}}
-            --
-            local colorpicker_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(toggle.colorpickers == 0 and (30+4) or (64 + 4)),colorpicker.axis), section.section_frame}, {
-                Size = utility:Size(0, 30, 0, 15),
-                Position = utility:Position(1, -(toggle.colorpickers == 0 and (30+4) or (64 + 4)), 0, colorpicker.axis, section.section_frame),
-                Color = theme.outline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[colorpicker_outline] = {
-                Color = "outline"
-            }
-            --
-            local colorpicker_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_outline}, {
-                Size = utility:Size(1, -2, 1, -2, colorpicker_outline),
-                Position = utility:Position(0, 1, 0, 1, colorpicker_outline),
-                Color = theme.inline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[colorpicker_inline] = {
-                Color = "inline"
-            }
-            --
-            local colorpicker__transparency
-            if transp then
-                colorpicker__transparency = utility:Create("Image", {Vector2.new(1,1), colorpicker_inline}, {
-                    Size = utility:Size(1, -2, 1, -2, colorpicker_inline),
-                    Position = utility:Position(0, 1, 0 , 1, colorpicker_inline),
-                    Visible = page.open
-                }, section.visibleContent)
-            end
-            --
-            local colorpicker_frame = utility:Create("Frame", {Vector2.new(1,1), colorpicker_inline}, {
-                Size = utility:Size(1, -2, 1, -2, colorpicker_inline),
-                Position = utility:Position(0, 1, 0, 1, colorpicker_inline),
-                Color = def,
-                Transparency = transp and (1 - transp) or 1,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            local colorpicker__gradient = utility:Create("Image", {Vector2.new(0,0), colorpicker_frame}, {
-                Size = utility:Size(1, 0, 1, 0, colorpicker_frame),
-                Position = utility:Position(0, 0, 0 , 0, colorpicker_frame),
-                Transparency = 0.5,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            if transp then
-                utility:LoadImage(colorpicker__transparency, "cptransp", "https://i.imgur.com/IIPee2A.png")
-            end
-            utility:LoadImage(colorpicker__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-            --
-            function colorpicker:Set(color, transp_val)
-                if typeof(color) == "table" then
-                    if color.Color and color.Transparency ~= nil then
-                        local h, s, v = Unpack(color.Color)
-                        colorpicker.current = {h, s, v , color.Transparency}
-                    else
-                        colorpicker.current = color
-                    end
-                elseif typeof(color) == "Color3" then
-                    local h, s, v = color:ToHSV()
-                    colorpicker.current = {h, s, v, (transp_val or 0)}
-                end
-                --
-                if colorpicker.current[1] and colorpicker.current[2] and colorpicker.current[3] then
-                    colorpicker_frame.Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
-                    colorpicker_frame.Transparency = 1 - (colorpicker.current[4] or 0)
-                    callback(Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3]), colorpicker.current[4] or 0)
-                end
-            end
-            --
-            function colorpicker:Refresh()
-                local mouseLocation = utility:MouseLocation()
-                if colorpicker.open and colorpicker.holder.picker and colorpicker.holding.picker then
-                    colorpicker.current[2] = math.clamp(mouseLocation.X - colorpicker.holder.picker.Position.X, 0, colorpicker.holder.picker.Size.X) / colorpicker.holder.picker.Size.X
-                    --
-                    colorpicker.current[3] = 1-(math.clamp(mouseLocation.Y - colorpicker.holder.picker.Position.Y, 0, colorpicker.holder.picker.Size.Y) / colorpicker.holder.picker.Size.Y)
-                    --
-                    colorpicker.holder.picker_cursor.Position = utility:Position(colorpicker.current[2], -3, 1-colorpicker.current[3] , -3, colorpicker.holder.picker)
-                    --
-                    utility:UpdateOffset(colorpicker.holder.picker_cursor, {Vector2.new((colorpicker.holder.picker.Size.X*colorpicker.current[2])-3,(colorpicker.holder.picker.Size.Y*(1-colorpicker.current[3]))-3), colorpicker.holder.picker})
-                    --
-                    if colorpicker.holder.transparencybg then
-                        colorpicker.holder.transparencybg.Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
-                    end
-                elseif colorpicker.open and colorpicker.holder.huepicker and colorpicker.holding.huepicker then
-                    colorpicker.current[1] = (math.clamp(mouseLocation.Y - colorpicker.holder.huepicker.Position.Y, 0, colorpicker.holder.huepicker.Size.Y) / colorpicker.holder.huepicker.Size.Y)
-                    --
-                    colorpicker.holder.huepicker_cursor[1].Position = utility:Position(0, -3, colorpicker.current[1], -3, colorpicker.holder.huepicker)
-                    colorpicker.holder.huepicker_cursor[2].Position = utility:Position(0, 1, 0, 1, colorpicker.holder.huepicker_cursor[1])
-                    colorpicker.holder.huepicker_cursor[3].Position = utility:Position(0, 1, 0, 1, colorpicker.holder.huepicker_cursor[2])
-                    colorpicker.holder.huepicker_cursor[3].Color = Color3.fromHSV(colorpicker.current[1], 1, 1)
-                    --
-                    utility:UpdateOffset(colorpicker.holder.huepicker_cursor[1], {Vector2.new(-3,(colorpicker.holder.huepicker.Size.Y*colorpicker.current[1])-3), colorpicker.holder.huepicker})
-                    --
-                    colorpicker.holder.background.Color = Color3.fromHSV(colorpicker.current[1], 1, 1)
-                    --
-                    if colorpicker.holder.transparency_cursor and colorpicker.holder.transparency_cursor[3] then
-                        colorpicker.holder.transparency_cursor[3].Color = Color3.fromHSV(0, 0, 1 - colorpicker.current[4])
-                    end
-                    --
-                    if colorpicker.holder.transparencybg then
-                        colorpicker.holder.transparencybg.Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
-                    end
-                elseif colorpicker.open and colorpicker.holder.transparency and colorpicker.holding.transparency then
-                    colorpicker.current[4] = 1 - (math.clamp(mouseLocation.X - colorpicker.holder.transparency.Position.X, 0, colorpicker.holder.transparency.Size.X) / colorpicker.holder.transparency.Size.X)
-                    --
-                    colorpicker.holder.transparency_cursor[1].Position = utility:Position(1-colorpicker.current[4], -3, 0, -3, colorpicker.holder.transparency)
-                    colorpicker.holder.transparency_cursor[2].Position = utility:Position(0, 1, 0, 1, colorpicker.holder.transparency_cursor[1])
-                    colorpicker.holder.transparency_cursor[3].Position = utility:Position(0, 1, 0, 1, colorpicker.holder.transparency_cursor[2])
-                    colorpicker.holder.transparency_cursor[3].Color = Color3.fromHSV(0, 0, 1 - colorpicker.current[4])
-                    colorpicker_frame.Transparency = (1 - colorpicker.current[4])
-                    --
-                    utility:UpdateTransparency(colorpicker_frame, (1 - colorpicker.current[4]))
-                    utility:UpdateOffset(colorpicker.holder.transparency_cursor[1], {Vector2.new((colorpicker.holder.transparency.Size.X*(1-colorpicker.current[4]))-3,-3), colorpicker.holder.transparency})
-                    --
-                    colorpicker.holder.background.Color = Color3.fromHSV(colorpicker.current[1], 1, 1)
-                end
-                --
-                colorpicker:Set(colorpicker.current)
-            end
-            --
-            function colorpicker:Get()
-                return {Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3]), Transparency = colorpicker.current[4]}
-            end
-            --
-            library.began[#library.began + 1] = function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and colorpicker_outline.Visible then
-                    if colorpicker.open and colorpicker.holder.inline and utility:MouseOverDrawing({colorpicker.holder.inline.Position.X, colorpicker.holder.inline.Position.Y, colorpicker.holder.inline.Position.X + colorpicker.holder.inline.Size.X, colorpicker.holder.inline.Position.Y + colorpicker.holder.inline.Size.Y}) then
-                        if colorpicker.holder.picker and utility:MouseOverDrawing({colorpicker.holder.picker.Position.X - 2, colorpicker.holder.picker.Position.Y - 2, colorpicker.holder.picker.Position.X - 2 + colorpicker.holder.picker.Size.X + 4, colorpicker.holder.picker.Position.Y - 2 + colorpicker.holder.picker.Size.Y + 4}) then
-                            colorpicker.holding.picker = true
-                            colorpicker:Refresh()
-                        elseif colorpicker.holder.huepicker and utility:MouseOverDrawing({colorpicker.holder.huepicker.Position.X - 2, colorpicker.holder.huepicker.Position.Y - 2, colorpicker.holder.huepicker.Position.X - 2 + colorpicker.holder.huepicker.Size.X + 4, colorpicker.holder.huepicker.Position.Y - 2 + colorpicker.holder.huepicker.Size.Y + 4}) then
-                            colorpicker.holding.huepicker = true
-                            colorpicker:Refresh()
-                        elseif colorpicker.holder.transparency and utility:MouseOverDrawing({colorpicker.holder.transparency.Position.X - 2, colorpicker.holder.transparency.Position.Y - 2, colorpicker.holder.transparency.Position.X - 2 + colorpicker.holder.transparency.Size.X + 4, colorpicker.holder.transparency.Position.Y - 2 + colorpicker.holder.transparency.Size.Y + 4}) then
-                            colorpicker.holding.transparency = true
-                            colorpicker:Refresh()
-                        end
-                    elseif utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (colorpicker.index == 0 and (30 + 4 + 2) or (64 + 4 + 2))), section.section_frame.Position.Y + colorpicker.axis, section.section_frame.Position.X + section.section_frame.Size.X - (colorpicker.index == 1 and 36 or 0), section.section_frame.Position.Y + colorpicker.axis + 15}) and not window:IsOverContent() then
-                        if not colorpicker.open then
-                            window:CloseContent()
-                            colorpicker.open = not colorpicker.open
-                            --
-                            local colorpicker_open_outline = utility:Create("Frame", {Vector2.new(4,colorpicker.axis + 19), section.section_frame}, {
-                                Size = utility:Size(1, -8, 0, transp and 219 or 200, section.section_frame),
-                                Position = utility:Position(0, 4, 0, colorpicker.axis + 19, section.section_frame),
-                                Color = theme.outline
-                            }, colorpicker.holder.drawings);colorpicker.holder.inline = colorpicker_open_outline
-                            --
-                            library.colors[colorpicker_open_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_outline),
-                                Color = theme.inline
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_inline] = {
-                                Color = "inline"
-                            }
-                            --
-                            local colorpicker_open_frame = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_inline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_inline),
-                                Color = theme.darkcontrast
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_frame] = {
-                                Color = "darkcontrast"
-                            }
-                            --
-                            local colorpicker_open_accent = utility:Create("Frame", {Vector2.new(0,0), colorpicker_open_frame}, {
-                                Size = utility:Size(1, 0, 0, 2, colorpicker_open_frame),
-                                Position = utility:Position(0, 0, 0, 0, colorpicker_open_frame),
-                                Color = theme.accent
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_accent] = {
-                                Color = "accent"
-                            }
-                            --
-                            local colorpicker_title = utility:Create("TextLabel", {Vector2.new(4,2), colorpicker_open_frame}, {
-                                Text = cpinfo,
-                                Size = theme.textsize,
-                                Font = theme.font,
-                                Color = theme.textcolor,
-                                OutlineColor = theme.textborder,
-                                Position = utility:Position(0, 4, 0, 2, colorpicker_open_frame),
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_title] = {
-                                OutlineColor = "textborder",
-                                Color = "textcolor"
-                            }
-                            --
-                            local colorpicker_open_picker_outline = utility:Create("Frame", {Vector2.new(4,17), colorpicker_open_frame}, {
-                                Size = utility:Size(1, -27, 1, transp and -40 or -21, colorpicker_open_frame),
-                                Position = utility:Position(0, 4, 0, 17, colorpicker_open_frame),
-                                Color = theme.outline
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_picker_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_picker_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_picker_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_picker_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_picker_outline),
-                                Color = theme.inline
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_picker_inline] = {
-                                Color = "inline"
-                            }
-                            --
-                            local colorpicker_open_picker_bg = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_picker_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_picker_inline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_picker_inline),
-                                Color = Color3.fromHSV(colorpicker.current[1],1,1)
-                            }, colorpicker.holder.drawings);colorpicker.holder.background = colorpicker_open_picker_bg
-                            --
-                            local colorpicker_open_picker_image = utility:Create("Image", {Vector2.new(0,0), colorpicker_open_picker_bg}, {
-                                Size = utility:Size(1, 0, 1, 0, colorpicker_open_picker_bg),
-                                Position = utility:Position(0, 0, 0 , 0, colorpicker_open_picker_bg),
-                            }, colorpicker.holder.drawings);colorpicker.holder.picker = colorpicker_open_picker_image
-                            --
-                            local colorpicker_open_picker_cursor = utility:Create("Image", {Vector2.new((colorpicker_open_picker_image.Size.X*colorpicker.current[2])-3,(colorpicker_open_picker_image.Size.Y*(1-colorpicker.current[3]))-3), colorpicker_open_picker_image}, {
-                                Size = utility:Size(0, 6, 0, 6, colorpicker_open_picker_image),
-                                Position = utility:Position(colorpicker.current[2], -3, 1-colorpicker.current[3] , -3, colorpicker_open_picker_image),
-                            }, colorpicker.holder.drawings);colorpicker.holder.picker_cursor = colorpicker_open_picker_cursor
-                            --
-                            local colorpicker_open_huepicker_outline = utility:Create("Frame", {Vector2.new(colorpicker_open_frame.Size.X-19,17), colorpicker_open_frame}, {
-                                Size = utility:Size(0, 15, 1, transp and -40 or -21, colorpicker_open_frame),
-                                Position = utility:Position(1, -19, 0, 17, colorpicker_open_frame),
-                                Color = theme.outline
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_huepicker_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_huepicker_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_huepicker_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_huepicker_outline),
-                                Color = theme.inline
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_huepicker_inline] = {
-                                Color = "inline"
-                            }
-                            --
-                            local colorpicker_open_huepicker_image = utility:Create("Image", {Vector2.new(1,1), colorpicker_open_huepicker_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_inline),
-                                Position = utility:Position(0, 1, 0 , 1, colorpicker_open_huepicker_inline),
-                            }, colorpicker.holder.drawings);colorpicker.holder.huepicker = colorpicker_open_huepicker_image
-                            --
-                            local colorpicker_open_huepicker_cursor_outline = utility:Create("Frame", {Vector2.new(-3,(colorpicker_open_huepicker_image.Size.Y*colorpicker.current[1])-3), colorpicker_open_huepicker_image}, {
-                                Size = utility:Size(1, 6, 0, 6, colorpicker_open_huepicker_image),
-                                Position = utility:Position(0, -3, colorpicker.current[1], -3, colorpicker_open_huepicker_image),
-                                Color = theme.outline
-                            }, colorpicker.holder.drawings);colorpicker.holder.huepicker_cursor[1] = colorpicker_open_huepicker_cursor_outline
-                            --
-                            library.colors[colorpicker_open_huepicker_cursor_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_huepicker_cursor_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_huepicker_cursor_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_cursor_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_huepicker_cursor_outline),
-                                Color = theme.textcolor
-                            }, colorpicker.holder.drawings);colorpicker.holder.huepicker_cursor[2] = colorpicker_open_huepicker_cursor_inline
-                            --
-                            library.colors[colorpicker_open_huepicker_cursor_inline] = {
-                                Color = "textcolor"
-                            }
-                            --
-                            local colorpicker_open_huepicker_cursor_color = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_huepicker_cursor_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_cursor_inline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_huepicker_cursor_inline),
-                                Color = Color3.fromHSV(colorpicker.current[1], 1, 1)
-                            }, colorpicker.holder.drawings);colorpicker.holder.huepicker_cursor[3] = colorpicker_open_huepicker_cursor_color
-                            --
-                            if transp then
-                                local colorpicker_open_transparency_outline = utility:Create("Frame", {Vector2.new(4,colorpicker_open_frame.Size.Y-19), colorpicker_open_frame}, {
-                                    Size = utility:Size(1, -27, 0, 15, colorpicker_open_frame),
-                                    Position = utility:Position(0, 4, 1, -19, colorpicker_open_frame),
-                                    Color = theme.outline
-                                }, colorpicker.holder.drawings)
-                                --
-                                library.colors[colorpicker_open_transparency_outline] = {
-                                    Color = "outline"
-                                }
-                                --
-                                local colorpicker_open_transparency_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_outline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_outline),
-                                    Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_outline),
-                                    Color = theme.inline
-                                }, colorpicker.holder.drawings)
-                                --
-                                library.colors[colorpicker_open_transparency_inline] = {
-                                    Color = "inline"
-                                }
-                                --
-                                local colorpicker_open_transparency_bg = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_inline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_inline),
-                                    Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_inline),
-                                    Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
-                                }, colorpicker.holder.drawings);colorpicker.holder.transparencybg = colorpicker_open_transparency_bg
-                                --
-                                local colorpicker_open_transparency_image = utility:Create("Image", {Vector2.new(1,1), colorpicker_open_transparency_inline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_inline),
-                                    Position = utility:Position(0, 1, 0 , 1, colorpicker_open_transparency_inline),
-                                }, colorpicker.holder.drawings);colorpicker.holder.transparency = colorpicker_open_transparency_image
-                                --
-                                local colorpicker_open_transparency_cursor_outline = utility:Create("Frame", {Vector2.new((colorpicker_open_transparency_image.Size.X*(1-colorpicker.current[4]))-3,-3), colorpicker_open_transparency_image}, {
-                                    Size = utility:Size(0, 6, 1, 6, colorpicker_open_transparency_image),
-                                    Position = utility:Position(1-colorpicker.current[4], -3, 0, -3, colorpicker_open_transparency_image),
-                                    Color = theme.outline
-                                }, colorpicker.holder.drawings);colorpicker.holder.transparency_cursor[1] = colorpicker_open_transparency_cursor_outline
-                                --
-                                library.colors[colorpicker_open_transparency_cursor_outline] = {
-                                    Color = "outline"
-                                }
-                                --
-                                local colorpicker_open_transparency_cursor_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_cursor_outline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_cursor_outline),
-                                    Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_cursor_outline),
-                                    Color = theme.textcolor
-                                }, colorpicker.holder.drawings);colorpicker.holder.transparency_cursor[2] = colorpicker_open_transparency_cursor_inline
-                                --
-                                library.colors[colorpicker_open_transparency_cursor_inline] = {
-                                    Color = "textcolor"
-                                }
-                                --
-                                local colorpicker_open_transparency_cursor_color = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_cursor_inline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_cursor_inline),
-                                    Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_cursor_inline),
-                                    Color = Color3.fromHSV(0, 0, 1 - colorpicker.current[4]),
-                                }, colorpicker.holder.drawings);colorpicker.holder.transparency_cursor[3] = colorpicker_open_transparency_cursor_color
-                                --
-                                utility:LoadImage(colorpicker_open_transparency_image, "transp", "https://i.imgur.com/ncssKbH.png")
-                            end
-                            --
-                            utility:LoadImage(colorpicker_open_picker_image, "valsat", "https://i.imgur.com/wpDRqVH.png")
-                            utility:LoadImage(colorpicker_open_picker_cursor, "valsat_cursor", "https://raw.githubusercontent.com/mvonwalk/splix-assets/main/Images-cursor.png")
-                            utility:LoadImage(colorpicker_open_huepicker_image, "hue", "https://i.imgur.com/iEOsHFv.png")
-                            --
-                            window.currentContent.frame = colorpicker_open_inline
-                            window.currentContent.colorpicker = colorpicker
-                        else
-                            colorpicker.open = not colorpicker.open
-                            --
-                            for i,v in pairs(colorpicker.holder.drawings) do
-                                utility:Remove(v)
-                            end
-                            --
-                            colorpicker.holder.drawings = {}
-                            colorpicker.holder.inline = nil
-                            --
-                            window.currentContent.frame = nil
-                            window.currentContent.colorpicker = nil
-                        end
-                    else
-                        if colorpicker.open then
-                            colorpicker.open = not colorpicker.open
-                            --
-                            for i,v in pairs(colorpicker.holder.drawings) do
-                                utility:Remove(v)
-                            end
-                            --
-                            colorpicker.holder.drawings = {}
-                            colorpicker.holder.inline = nil
-                            --
-                            window.currentContent.frame = nil
-                            window.currentContent.colorpicker = nil
-                        end
-                    end
-                elseif Input.UserInputType == Enum.UserInputType.MouseButton1 and colorpicker.open then
-                    colorpicker.open = not colorpicker.open
-                    --
-                    for i,v in pairs(colorpicker.holder.drawings) do
-                        utility:Remove(v)
-                    end
-                    --
-                    colorpicker.holder.drawings = {}
-                    colorpicker.holder.inline = nil
-                    --
-                    window.currentContent.frame = nil
-                    window.currentContent.colorpicker = nil
-                end
-            end
-            --
-            library.ended[#library.ended + 1] = function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    if colorpicker.holding.picker then
-                        colorpicker.holding.picker = not colorpicker.holding.picker
-                    end
-                    if colorpicker.holding.huepicker then
-                        colorpicker.holding.huepicker = not colorpicker.holding.huepicker
-                    end
-                    if colorpicker.holding.transparency then
-                        colorpicker.holding.transparency = not colorpicker.holding.transparency
-                    end
-                end
-            end
-            --
-            library.changed[#library.changed + 1] = function()
-                if colorpicker.open and colorpicker.holding.picker or colorpicker.holding.huepicker or colorpicker.holding.transparency then
-                    if window.isVisible then
-                        colorpicker:Refresh()
-                    else
-                        if colorpicker.holding.picker then
-                            colorpicker.holding.picker = not colorpicker.holding.picker
-                        end
-                        if colorpicker.holding.huepicker then
-                            colorpicker.holding.huepicker = not colorpicker.holding.huepicker
-                        end
-                        if colorpicker.holding.transparency then
-                            colorpicker.holding.transparency = not colorpicker.holding.transparency
-                        end
-                    end
-                end
-            end
-            --
-            if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-                library.pointers[tostring(pointer)] = colorpicker
-            end
-            --
-            toggle.addedAxis = toggle.addedAxis + 30 + 4 + 2
-            toggle.colorpickers = toggle.colorpickers + 1
-            --
-            return colorpicker, toggle
-        end
-        --
-        function toggle:Keybind(info)
-            local info = info or {}
-            local def = info.def or info.Def or info.default or info.Default or nil
-            local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-            local mode = info.mode or info.Mode or "Always"
-            local keybindname = info.keybindname or info.keybindName or info.KeybindName or info.Keybindname or nil
-            local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-            --
-            toggle.addedAxis = toggle.addedAxis + 54 + 4 + 2
-            --
-            local keybind = {keybindname = keybindname or name, axis = toggle.axis, current = {}, selecting = false, mode = mode, open = false, modemenu = {buttons = {}, drawings = {}}, active = false}
-            --
-            toggle.keybind = keybind
-            --
-            local allowedKeyCodes = {"Q","W","E","R","T","Y","U","I","O","P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N","M","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Zero", "Minus", "Equals","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","Insert","Tab","Home","End","LeftAlt","LeftControl","LeftShift","RightAlt","RightControl","RightShift","CapsLock"}
-            local allowedInputTypes = {"MouseButton1","MouseButton2","MouseButton3"}
-            local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
-            --
-            local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(54+4),keybind.axis), section.section_frame}, {
-                Size = utility:Size(0, 54, 0, 17),
-                Position = utility:Position(1, -(54+4), 0, keybind.axis, section.section_frame),
-                Color = theme.outline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_outline] = {
-                Color = "outline"
-            }
-            --
-            local keybind_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_outline}, {
-                Size = utility:Size(1, -2, 1, -2, keybind_outline),
-                Position = utility:Position(0, 1, 0, 1, keybind_outline),
-                Color = theme.inline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_inline] = {
-                Color = "inline"
-            }
-            --
-            local keybind_frame = utility:Create("Frame", {Vector2.new(1,1), keybind_inline}, {
-                Size = utility:Size(1, -2, 1, -2, keybind_inline),
-                Position = utility:Position(0, 1, 0, 1, keybind_inline),
-                Color = theme.lightcontrast,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_frame] = {
-                Color = "lightcontrast"
-            }
-            --
-            local keybind__gradient = utility:Create("Image", {Vector2.new(0,0), keybind_frame}, {
-                Size = utility:Size(1, 0, 1, 0, keybind_frame),
-                Position = utility:Position(0, 0, 0 , 0, keybind_frame),
-                Transparency = 0.5,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            local keybind_value = utility:Create("TextLabel", {Vector2.new(20,1), keybind_outline}, {
-                Text = "...",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder, 
-                Center = true,
-                Position = utility:Position(0, 20, 0, 1, keybind_outline),
-                Visible = page.open
-            }, section.visibleContent);keybind["keybind_value"] = keybind_value
-            --
-            local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_inline.Size.X - 13, 2), keybind_inline}, {
-                Size = utility:Size(0, 11, 0, 11, keybind_inline),
-                Position = utility:Position(1, -13, 0, 2, keybind_inline),
-                Color = theme.outline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_clear] = {
-                Color = "outline"
-            }
-            --
-            local keybind_clear_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_clear}, {
-                Size = utility:Size(1, -2, 1, -2, keybind_clear),
-                Position = utility:Position(0, 1, 0, 1, keybind_clear),
-                Color = theme.darkcontrast,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_clear_inline] = {
-                Color = "darkcontrast"
-            }
-            --
-            local keybind_clear_glyph_x, keybind_clear_glyph_y = ClearGlyphOffset(keybind_clear_inline)
-            local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(keybind_clear_glyph_x, keybind_clear_glyph_y), keybind_clear_inline}, {
-                Text = "x",
-                Size = theme.textsize - 2,
-                Font = theme.font,
-                Color = theme.textdark,
-                OutlineColor = theme.textborder,
-                Center = true,
-                Position = utility:Position(0, keybind_clear_glyph_x, 0, keybind_clear_glyph_y, keybind_clear_inline),
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_clear_title] = {
-                OutlineColor = "textborder",
-                Color = "textdark"
-            }
-            --
-            library.colors[keybind_value] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-            --
-            function keybind:Shorten(str)
-                for i,v in pairs(shortenedInputs) do
-                    str = str:gsub(i, v)
-                end
-                return str
-            end
-            --
-            function keybind:Change(input)
-                input = input or "..."
-                local inputTable = {}
-                --
-                if input.EnumType then
-                    if input.EnumType == Enum.KeyCode or input.EnumType == Enum.UserInputType then
-                        if Find(allowedKeyCodes, input.Name) or Find(allowedInputTypes, input.Name) then
-                            inputTable = {input.EnumType == Enum.KeyCode and "KeyCode" or "UserInputType", input.Name}
-                            --
-                            keybind.current = inputTable
-                            keybind_value.Text = #keybind.current > 0 and keybind:Shorten(keybind.current[2]) or "..."
-                            --
-                            return true
-                        end
-                    end
-                end
-                --
-                return false
-            end
-            --
-            function keybind:Get()
-                return keybind.current
-            end
-            --
-            function keybind:Set(tbl)
-                if type(tbl) ~= "table" then return end
-                --
-                keybind.current = {tbl[1], tbl[2]}
-                keybind_value.Text = #keybind.current > 0 and keybind:Shorten(tostring(keybind.current[2])) or "..."
-                --
-                if tbl[3] then
-                    keybind.mode = tbl[3]
-                    keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and (toggle.current) or false
-                    --
-                    if keybind.mode == "Off Hold" then
-                        window.keybindslist:Add(keybindname or name, keybind_value.Text)
-                    else
-                        window.keybindslist:Remove(keybindname or name)
-                    end
-                end
-                --
-                if keybind.current[1] and keybind.current[2] then
-                    callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                end
-            end
-            --
-            function keybind:Active()
-                return keybind.active
-            end
-            --
-            function keybind:Reset()
-                for i,v in pairs(keybind.modemenu.buttons) do
-                    v.Color = v.Text == keybind.mode and theme.accent or theme.textcolor
-                    --
-                    library.colors[v] = {
-                        Color = v.Text == keybind.mode and "accent" or "textcolor"
-                    }
-                end
-                --
-                keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold")
-                --
-                if keybind.mode == "Off Hold" then
-                    window.keybindslist:Add(keybindname or name, keybind_value.Text)
-                else
-                    window.keybindslist:Remove(keybindname or name)
-                end
-                --
-                if keybind.current[1] and keybind.current[2] then
-                    callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                end
-            end
-            --
-            function keybind:Callback()
-                if keybind.current[1] and keybind.current[2] then
-                    callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                end
-            end
-            --
-            function keybind:Clear()
-                local old = {keybind.current[1], keybind.current[2]}
-                --
-                keybind.current = {}
-                keybind.active = false
-                keybind.selecting = false
-                keybind_value.Text = "..."
-                keybind_frame.Color = theme.lightcontrast
-                --
-                library.colors[keybind_frame] = {
-                    Color = "lightcontrast"
-                }
-                --
-                window.keybindslist:Remove(keybindname or name)
-                --
-                if old[1] and old[2] then
-                    pcall(callback, Enum[old[1]][old[2]], false)
-                end
-            end
-            --
-            keybind:Change(def)
-            --
-            library.began[#library.began + 1] = function(Input)
-                if keybind.current[1] and keybind.current[2] then
-                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not window:IsMouseBlocked(Input) then
-                        if keybind.mode == "On Hold" then
-                            local old = keybind.active
-                            keybind.active = toggle:Get()
-                            if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                            if keybind.active ~= old then callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active) end
-                        elseif keybind.mode == "Off Hold" then
-                            local old = keybind.active
-                            keybind.active = false
-                            if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                            if keybind.active ~= old then callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active) end
-                        elseif keybind.mode == "Toggle" then
-                            local old = keybind.active
-                            keybind.active = (not keybind.active) and toggle:Get() or false
-                            if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                            if keybind.active ~= old then callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active) end
-                        end
-                    end
-                end
-                --
-                if keybind.selecting and window.isVisible then
-                    local done = keybind:Change(Input.KeyCode.Name ~= "Unknown" and Input.KeyCode or Input.UserInputType)
-                    if done then
-                        keybind.selecting = false
-                        keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and true or false
-                        keybind_frame.Color = theme.lightcontrast
-                        --
-                        library.colors[keybind_frame] = {
-                            Color = "lightcontrast"
-                        }
-                        --
-                        window.keybindslist:Remove(keybindname or name)
-                        if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                        callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                    end
-                end
-                --
-                if not window.isVisible and keybind.selecting then
-                    keybind.selecting = false
-                    keybind_frame.Color = theme.lightcontrast
-                    --
-                    library.colors[keybind_frame] = {
-                        Color = "lightcontrast"
-                    }
-                end
-                --
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and keybind_outline.Visible then
-                    if utility:MouseOverDrawing({keybind_clear.Position.X - 1, keybind_clear.Position.Y - 1, keybind_clear.Position.X + keybind_clear.Size.X + 1, keybind_clear.Position.Y + keybind_clear.Size.Y + 1}) then
-                        keybind:Clear()
-                    elseif utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                        keybind.selecting = true
-                        keybind_frame.Color = theme.darkcontrast
-                        --
-                        library.colors[keybind_frame] = {
-                            Color = "darkcontrast"
-                        }
-                    end
-                    if keybind.open and keybind.modemenu.frame then
-                        if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y, keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + keybind.modemenu.frame.Size.Y}) then
-                            local changed = false
-                            --
-                            for i,v in pairs(keybind.modemenu.buttons) do
-                                if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)), keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)) + 15}) then
-                                    keybind.mode = v.Text
-                                    changed = true
-                                end
-                            end
-                            --
-                            if changed then keybind:Reset() end
-                        else
-                            keybind.open = not keybind.open
-                            --
-                            for i,v in pairs(keybind.modemenu.drawings) do
-                                utility:Remove(v)
-                            end
-                            --
-                            keybind.modemenu.drawings = {}
-                            keybind.modemenu.buttons = {}
-                            keybind.modemenu.frame = nil
-                            --
-                            window.currentContent.frame = nil
-                            window.currentContent.keybind = nil
-                        end
-                    end
-                end
-                --
-                if Input.UserInputType == Enum.UserInputType.MouseButton2 and window.isVisible and keybind_outline.Visible then
-                    if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                        window:CloseContent()
-                        keybind.open = not keybind.open
-                        --
-                        local modemenu = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X + 2,0), keybind_outline}, {
-                            Size = utility:Size(0, 68, 0, 79),
-                            Position = utility:Position(1, 2, 0, 0, keybind_outline),
-                            Color = theme.outline,
-                            Visible = page.open
-                        }, keybind.modemenu.drawings);keybind.modemenu.frame = modemenu
-                        --
-                        library.colors[modemenu] = {
-                            Color = "outline"
-                        }
-                        --
-                        local modemenu_inline = utility:Create("Frame", {Vector2.new(1,1), modemenu}, {
-                            Size = utility:Size(1, -2, 1, -2, modemenu),
-                            Position = utility:Position(0, 1, 0, 1, modemenu),
-                            Color = theme.inline,
-                            Visible = page.open
-                        }, keybind.modemenu.drawings)
-                        --
-                        library.colors[modemenu_inline] = {
-                            Color = "inline"
-                        }
-                        --
-                        local modemenu_frame = utility:Create("Frame", {Vector2.new(1,1), modemenu_inline}, {
-                            Size = utility:Size(1, -2, 1, -2, modemenu_inline),
-                            Position = utility:Position(0, 1, 0, 1, modemenu_inline),
-                            Color = theme.lightcontrast,
-                            Visible = page.open
-                        }, keybind.modemenu.drawings)
-                        --
-                        library.colors[modemenu_frame] = {
-                            Color = "lightcontrast"
-                        }
-                        --
-                        local keybind__gradient = utility:Create("Image", {Vector2.new(0,0), modemenu_frame}, {
-                            Size = utility:Size(1, 0, 1, 0, modemenu_frame),
-                            Position = utility:Position(0, 0, 0 , 0, modemenu_frame),
-                            Transparency = 0.5,
-                            Visible = page.open
-                        }, keybind.modemenu.drawings)
-                        --
-                        utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-                        --
-                        for i,v in pairs({"Always", "Toggle", "On Hold", "Off Hold", "Clear"}) do
-                            local button_title = utility:Create("TextLabel", {Vector2.new(modemenu_frame.Size.X/2,15 * (i-1)), modemenu_frame}, {
-                                Text = v,
-                                Size = theme.textsize,
-                                Font = theme.font,
-                                Color = v == keybind.mode and theme.accent or theme.textcolor,
-                                Center = true,
-                                OutlineColor = theme.textborder,
-                                Position = utility:Position(0.5, 0, 0, 15 * (i-1), modemenu_frame),
-                                Visible = page.open
-                            }, keybind.modemenu.drawings);keybind.modemenu.buttons[#keybind.modemenu.buttons + 1] = button_title
-                            --
-                            library.colors[button_title] = {
-                                OutlineColor = "textborder",
-                                Color = v == keybind.mode and "accent" or "textcolor"
-                            }
-                        end
-                        --
-                        window.currentContent.frame = modemenu
-                        window.currentContent.keybind = keybind
-                    end
-                end
-            end
-            --
-            library.ended[#library.ended + 1] = function(Input)
-                if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
-                    if keybind.current[1] and keybind.current[2] then
-                        if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) then
-                            if keybind.mode == "On Hold" and keybind.active then
-                                keybind.active = false
-                                window.keybindslist:Remove(keybindname or name)
-                                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                            elseif keybind.mode == "Off Hold" and not keybind.active then
-                                keybind.active = toggle:Get()
-                                if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
+
+                    function toggle:AddSlider(data)
+                        local slider = {
+                            class = 'slider';
+                            flag = data.flag;
+                            suffix = '';
+                            tooltip = '';
+                            order = #self.options+1;
+                            value = 0;
+                            min = 0;
+                            max = 100;
+                            increment = 1;
+                            callback = function() end;
+                            enabled = true;
+                            dragging = false;
+                            focused = false;
+                            objects = {};
+                        };
+    
+                        local blacklist = {'objects', 'dragging'};
+                        for i,v in next, data do
+                            if not table.find(blacklist, i) and (slider[i] ~= nil and typeof(slider[i]) == typeof(v)) then
+                                slider[i] = v;
                             end
                         end
-                    end
-                end
-            end
-            --
-            if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-                library.pointers[tostring(pointer)] = keybind
-            end
-            --
-            return keybind
-        end
-        --
-        return toggle
-    end
-    --
-    function sections:Slider(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title
-        local def = info.def or info.Def or info.default or info.Default or 10
-        local min = info.min or info.Min or info.minimum or info.Minimum or 0
-        local max = info.max or info.Max or info.maximum or info.Maximum or 100
-        local maxtext = info.maximumtext or info.Maximumtext or info.maximumText or info.MaximumText or max
-        local sub = info.suffix or info.Suffix or info.ending or info.Ending or info.prefix or info.Prefix or info.measurement or info.Measurement or ""
-        local disable = info.disable or info.Disable or info.disabled or info.disabled or false
-        local decimals = info.decimals or info.Decimals or 1
-        decimals = 1 / decimals
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-        def = math.clamp(def, min, max)
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local slider = {min = min, max = max, Disabled = false, sub = sub, decimals = decimals, axis = section.currentAxis, current = -99999, holding = false}
-        --
-        if name then
-            local slider_title = utility:Create("TextLabel", {Vector2.new(4,slider.axis), section.section_frame}, {
-                Text = name,
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(0, 4, 0, slider.axis, section.section_frame),
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[slider_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-        end
-        --
-        local slider_outline = utility:Create("Frame", {Vector2.new(4,slider.axis + (name and 15 or 0)), section.section_frame}, {
-            Size = utility:Size(1, -8, 0, 14, section.section_frame),
-            Position = utility:Position(0, 4, 0, slider.axis + (name and 15 or 0), section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[slider_outline] = {
-            Color = "outline"
-        }
-        --
-        local slider_inline = utility:Create("Frame", {Vector2.new(1,1), slider_outline}, {
-            Size = utility:Size(1, -2, 1, -2, slider_outline),
-            Position = utility:Position(0, 1, 0, 1, slider_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[slider_inline] = {
-            Color = "inline"
-        }
-        --
-        local slider_frame = utility:Create("Frame", {Vector2.new(1,1), slider_inline}, {
-            Size = utility:Size(1, -2, 1, -2, slider_inline),
-            Position = utility:Position(0, 1, 0, 1, slider_inline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[slider_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local slider_slide = utility:Create("Frame", {Vector2.new(1,1), slider_inline}, {
-            Size = utility:Size(0, 0, 1, -2, slider_inline),
-            Position = utility:Position(0, 1, 0, 1, slider_inline),
-            Color = theme.accent,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[slider_slide] = {
-            Color = "accent"
-        }
-        --
-        local slider__gradient = utility:Create("Image", {Vector2.new(0,0), slider_frame}, {
-            Size = utility:Size(1, 0, 1, 0, slider_frame),
-            Position = utility:Position(0, 0, 0 , 0, slider_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local textBounds = utility:GetTextBounds(name, theme.textsize, theme.font)
-        local slider_value = utility:Create("TextLabel", {Vector2.new(slider_outline.Size.X/2,(slider_outline.Size.Y/2) - (textBounds.Y/2)), slider_outline}, {
-            Text = tostring(slider.current)..slider.sub.."/"..tostring(maxtext)..slider.sub,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            Center = true,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0.5, 0, 0, (slider_outline.Size.Y/2) - (textBounds.Y/2), slider_outline),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[slider_value] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        utility:LoadImage(slider__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function slider:Set(value)
-            local oldval = slider.current
-            --
-            slider.current = math.clamp(math.round(value * slider.decimals) / slider.decimals, slider.min, slider.max)
-            --
-            if slider.current ~= oldval then
-                local disabledtext = disable and ((slider.current <= disable[2] or slider.current >= disable[3]) and disable[1])
-                local percent = 1 - ((slider.max - slider.current) / (slider.max - slider.min))
-                slider_value.Text = disabledtext or (tostring(slider.current)..slider.sub.."/"..tostring(maxtext)..slider.sub)
-                slider_slide.Size = utility:Size(0, percent * slider_frame.Size.X, 1, -2, slider_inline)
-                slider.Disabled = disabledtext ~= nil and disabledtext ~= false
-                callback(slider.current)
-            end
-        end
-        --
-        function slider:Refresh()
-            local mouseLocation = utility:MouseLocation()
-            local percent = math.clamp(mouseLocation.X - slider_slide.Position.X, 0, slider_frame.Size.X) / slider_frame.Size.X
-            local value = math.round((slider.min + (slider.max - slider.min) * percent) * slider.decimals) / slider.decimals
-            value = math.clamp(value, slider.min, slider.max)
-            slider:Set(value)
-        end
-        --
-        function slider:Get()
-            return slider.current
-        end
-        --
-        slider:Set(def)
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and slider_outline.Visible and window.isVisible and page.open and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + slider.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + slider.axis + (name and 29 or 14)}) and not window:IsOverContent() then
-                slider.holding = true
-                slider:Refresh()
-            end
-        end
-        --
-        library.ended[#library.ended + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and slider.holding and window.isVisible then
-                slider.holding = false
-            end
-        end
-        --
-        library.changed[#library.changed + 1] = function(Input)
-            if slider.holding and window.isVisible then
-                slider:Refresh()
-            end
-        end
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = slider
-        end
-        --
-        section.currentAxis = section.currentAxis + (name and 29 or 14) + 9
-        --
-        return slider
-    end
-    --
-    function sections:Button(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "New Button"
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local button = {axis = section.currentAxis}
-        --
-        local button_outline = utility:Create("Frame", {Vector2.new(4,button.axis), section.section_frame}, {
-            Size = utility:Size(1, -8, 0, 20, section.section_frame),
-            Position = utility:Position(0, 4, 0, button.axis, section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[button_outline] = {
-            Color = "outline"
-        }
-        --
-        local button_inline = utility:Create("Frame", {Vector2.new(1,1), button_outline}, {
-            Size = utility:Size(1, -2, 1, -2, button_outline),
-            Position = utility:Position(0, 1, 0, 1, button_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[button_inline] = {
-            Color = "inline"
-        }
-        --
-        local button_frame = utility:Create("Frame", {Vector2.new(1,1), button_inline}, {
-            Size = utility:Size(1, -2, 1, -2, button_inline),
-            Position = utility:Position(0, 1, 0, 1, button_inline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[button_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local button_gradient = utility:Create("Image", {Vector2.new(0,0), button_frame}, {
-            Size = utility:Size(1, 0, 1, 0, button_frame),
-            Position = utility:Position(0, 0, 0 , 0, button_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local button_title = utility:Create("TextLabel", {Vector2.new(button_frame.Size.X/2,1), button_frame}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Center = true,
-            Position = utility:Position(0.5, 0, 0, 1, button_frame),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[button_title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        utility:LoadImage(button_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function button:Get()
-            return name
-        end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and button_outline.Visible and window.isVisible and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + button.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + button.axis + 20}) and not window:IsOverContent() then
-                task.spawn(function()
-                    utility:LoadImage(button_gradient, "gradientdown", "https://i.imgur.com/DzrzUt3.png") 
-                    --
-                    task.wait(0.15)
-                    --
-                    utility:LoadImage(button_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png") 
-                end)
-                --
-                callback()
-            end
-        end
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = button
-        end
-        --
-        section.currentAxis = section.currentAxis + 20 + 9
-        --
-        return button
-    end
-    --
-    function sections:TextBox(info)
-        local info = info or {}
-        local def = info.def or info.Def or info.default or info.Default or ""
-        local max = info.max or info.Max or info.maximum or info.Maximum or 200
-        local placeholder = info.placeholder or info.Placeholder or info.placeHolder or info.PlaceHolder
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        local reactive = info.reactive or info.Reactive;reactive = reactive == nil or reactive
-        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-        local identifier = tostring(math.random(500, 500000)) .. "-" .. tostring(math.random(500, 500000)) .. "-" .. tostring(math.random(500, 500000))
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local textbox = {axis = section.currentAxis, max = max, current = def, oldenter = "", callback = callback}
-        --
-        local textbox_outline = utility:Create("Frame", {Vector2.new(4,textbox.axis), section.section_frame}, {
-            Size = utility:Size(1, -8, 0, 20, section.section_frame),
-            Position = utility:Position(0, 4, 0, textbox.axis, section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[textbox_outline] = {
-            Color = "outline"
-        }
-        --
-        local textbox_inline = utility:Create("Frame", {Vector2.new(1,1), textbox_outline}, {
-            Size = utility:Size(1, -2, 1, -2, textbox_outline),
-            Position = utility:Position(0, 1, 0, 1, textbox_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[textbox_inline] = {
-            Color = "inline"
-        }
-        --
-        local textbox_inneroutline = utility:Create("Frame", {Vector2.new(1,1), textbox_inline}, {
-            Size = utility:Size(1, -2, 1, -2, textbox_inline),
-            Position = utility:Position(0, 1, 0, 1, textbox_inline),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[textbox_inneroutline] = {
-            Color = "outline"
-        }
-        --
-        local textbox_frame = utility:Create("Frame", {Vector2.new(1,1), textbox_inneroutline}, {
-            Size = utility:Size(1, -2, 1, -2, textbox_inneroutline),
-            Position = utility:Position(0, 1, 0, 1, textbox_inneroutline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[textbox_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local textbox_gradient = utility:Create("Image", {Vector2.new(0,0), textbox_frame}, {
-            Size = utility:Size(1, 0, 1, 0, textbox_frame),
-            Position = utility:Position(0, 0, 0 , 0, textbox_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local textbox_value = utility:Create("TextLabel", {Vector2.new(textbox_frame.Size.X/2,0), textbox_frame}, {
-            Text = textbox.current == "" and placeholder or textbox.current,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = textbox.current == "" and (placeholder and theme.textdark) or theme.textcolor,
-            OutlineColor = theme.textborder,
-            Center = true,
-            Position = utility:Position(0.5, 0, 0, 0, textbox_frame),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[textbox_value] = {
-            OutlineColor = "textborder",
-            Color = textbox.current == "" and (placeholder and "textdark") or "textcolor"
-        }
-        --
-        utility:LoadImage(textbox_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function textbox:Get()
-            return textbox.current
-        end
-        --
-        function textbox:Set(state, first)
-            textbox.current = state or ""
-            --
-            local newtext = utility:WrapText(textbox.current == "" and (placeholder or "") or textbox.current, textbox_frame.Size.X - 30)
-            textbox_value.Text = (textbox.current == "" and placeholder or textbox.current) ~= newtext and (newtext .. "...") or newtext
-            textbox_value.Color = textbox.current == "" and (placeholder and theme.textdark) or theme.textcolor
-            --
-            library.colors[textbox_value] = {
-                OutlineColor = "textborder",
-                Color = textbox.current == "" and (placeholder and "textdark") or "textcolor"
-            }
-            --
-            if not first then
-                callback(textbox.current)
-            end
-        end
-        --
-        textbox:Set(textbox.current, true)
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and textbox_outline.Visible and window.isVisible then
-                if reactive and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + textbox.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + textbox.axis + 20}) and not window:IsOverContent() then
-                    task.spawn(function()
-                        utility:LoadImage(textbox_gradient, "gradientdown", "https://i.imgur.com/DzrzUt3.png") 
-                        --
-                        task.wait(0.15)
-                        --
-                        utility:LoadImage(textbox_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png") 
-                    end)
-                    --
-                    if not (window.currentContent.textbox and window.currentContent.textbox.Name == identifier) then
-                        window:CloseContent()
-                        --
-                        textbox_value.Color = theme.accent
-                        --
-                        library.colors[textbox_value] = {
-                            OutlineColor = "textborder",
-                            Color = "accent"
-                        }
-                        --
-                        cas:BindActionAtPriority("DisableKeyboard", function() return Enum.ContextActionResult.Sink end, false, 3000, Enum.UserInputType.Keyboard)
-                        --
-                        window.currentContent.textbox = {
-                            Name = identifier,
-                            Item = textbox,
-                            Fire = function(Text)
-                                textbox.current = (Text == "Backspace" and textbox.current:sub(1, #textbox.current - 1) or (textbox.current .. Text)):sub(1, textbox.max)
-                                --
-                                local newtext = utility:WrapText(textbox.current == "" and (placeholder or "") or textbox.current, textbox_frame.Size.X - 30)
-                                textbox_value.Text = (textbox.current == "" and placeholder or textbox.current) ~= newtext and (newtext .. "...") or newtext
-                                textbox.callback(textbox.current)
-                            end,
-                            Disconnect = function()
-                                pcall(function() cas:UnbindAction('DisableKeyboard') end)
-                                --
-                                textbox_value.Color = textbox.current == "" and (placeholder and theme.textdark) or theme.textcolor
-                                --
-                                library.colors[textbox_value] = {
-                                    OutlineColor = "textborder",
-                                    Color = textbox.current == "" and (placeholder and "textdark") or "textcolor"
-                                }
-                            end
-                        }
-                    else
-                        if window.currentContent.textbox.Name == identifier then
-                            window:CloseContent()
+                
+                        table.insert(self.options, slider)
+
+                        if slider.flag then
+                            library.flags[slider.flag] = slider.value;
+                            library.options[slider.flag] = slider;
                         end
-                    end
-                elseif reactive then
-                    if window.currentContent.textbox and window.currentContent.textbox.Name == identifier then
-                        window:CloseContent()
-                    end
-                end
-                --
-                if uis:IsKeyDown(Enum.KeyCode.LeftControl) and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + textbox.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + textbox.axis + 20}) and not window:IsOverContent() then
-                    task.spawn(function()
-                        textbox_value.Color = theme.accent
-                        --
-                        library.colors[textbox_value] = {
-                            OutlineColor = "textborder",
-                            Color = "accent"
-                        }
-                        --
-                        utility:LoadImage(textbox_gradient, "gradientdown", "https://i.imgur.com/DzrzUt3.png") 
-                        --
-                        task.wait(0.15)
-                        --
-                        textbox_value.Color = textbox.current == "" and (placeholder and theme.textdark) or theme.textcolor
-                        --
-                        library.colors[textbox_value] = {
-                            OutlineColor = "textborder",
-                            Color = textbox.current == "" and (placeholder and "textdark") or "textcolor"
-                        }
-                        --
-                        utility:LoadImage(textbox_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-                    end)
-                    --
-                    setclipboard(textbox.current)
-                end
-            elseif Input.KeyCode and Input.KeyCode == Enum.KeyCode.Return then
-                if window.currentContent.textbox and window.currentContent.textbox.Name == identifier then
-                    window:CloseContent()
-                end
-            end
-        end
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = textbox
-        end
-        --
-        section.currentAxis = section.currentAxis + 20 + 9
-        --
-        return textbox
-    end
-    --
-    function sections:ButtonHolder(info)
-        local info = info or {}
-        local buttons = info.buttons or info.Buttons or {}
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local buttonHolder = {buttons = {}}
-        --
-        for i=1, 2 do
-            local entry = buttons[i] or {"", function() end}
-            local button = {axis = section.currentAxis}
-            --
-            local button_outline = utility:Create("Frame", {Vector2.new(i == 2 and ((section.section_frame.Size.X / 2) + 2) or 4,button.axis), section.section_frame}, {
-                Size = utility:Size(0.5, -6, 0, 20, section.section_frame),
-                Position = utility:Position(0, i == 2 and 2 or 4, 0, button.axis, section.section_frame),
-                Color = theme.outline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[button_outline] = {
-                Color = "outline"
-            }
-            --
-            local button_inline = utility:Create("Frame", {Vector2.new(1,1), button_outline}, {
-                Size = utility:Size(1, -2, 1, -2, button_outline),
-                Position = utility:Position(0, 1, 0, 1, button_outline),
-                Color = theme.inline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[button_inline] = {
-                Color = "inline"
-            }
-            --
-            local button_frame = utility:Create("Frame", {Vector2.new(1,1), button_inline}, {
-                Size = utility:Size(1, -2, 1, -2, button_inline),
-                Position = utility:Position(0, 1, 0, 1, button_inline),
-                Color = theme.lightcontrast,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[button_frame] = {
-                Color = "lightcontrast"
-            }
-            --
-            local button_gradient = utility:Create("Image", {Vector2.new(0,0), button_frame}, {
-                Size = utility:Size(1, 0, 1, 0, button_frame),
-                Position = utility:Position(0, 0, 0 , 0, button_frame),
-                Transparency = 0.5,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            local button_title = utility:Create("TextLabel", {Vector2.new(button_frame.Size.X/2,1), button_frame}, {
-                Text = entry[1] or "",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Center = true,
-                Position = utility:Position(0.5, 0, 0, 1, button_frame),
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[button_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            utility:LoadImage(button_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-            --
-            library.began[#library.began + 1] = function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 and button_outline.Visible and window.isVisible and utility:MouseOverDrawing({section.section_frame.Position.X + (i == 2 and (section.section_frame.Size.X/2) or 0), section.section_frame.Position.Y + button.axis, section.section_frame.Position.X + section.section_frame.Size.X - (i == 1 and (section.section_frame.Size.X/2) or 0), section.section_frame.Position.Y + button.axis + 20}) and not window:IsOverContent() then
-                    task.spawn(function()
-                        utility:LoadImage(button_gradient, "gradientdown", "https://i.imgur.com/DzrzUt3.png") 
-                        --
-                        task.wait(0.15)
-                        --
-                        utility:LoadImage(button_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png") 
-                    end)
-                    --
-                    if type(entry[2]) == "function" then
-                        pcall(entry[2])
-                    end
-                end
-            end
-        end
-        --
-        section.currentAxis = section.currentAxis + 20 + 9
-    end
-    --
-    function sections:Dropdown(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title
-        local max = info.max or info.Max
-        local options = info.options or info.Options or {"1", "2", "3"}
-        local def = info.def or info.Def or info.default or info.Default or options[1]
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local dropdown = {open = false, scrollindex = max and 0, scrolling = max and {false, nil}, current = tostring(def), options = options, holder = {buttons = {}, drawings = {}}, axis = section.currentAxis}
-        --
-        local dropdown_outline = utility:Create("Frame", {Vector2.new(4,name and (dropdown.axis + 15) or dropdown.axis), section.section_frame}, {
-            Size = utility:Size(1, -8, 0, 20, section.section_frame),
-            Position = utility:Position(0, 4, 0, name and (dropdown.axis + 15) or dropdown.axis, section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[dropdown_outline] = {
-            Color = "outline"
-        }
-        --
-        local dropdown_inline = utility:Create("Frame", {Vector2.new(1,1), dropdown_outline}, {
-            Size = utility:Size(1, -2, 1, -2, dropdown_outline),
-            Position = utility:Position(0, 1, 0, 1, dropdown_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[dropdown_inline] = {
-            Color = "inline"
-        }
-        --
-        local dropdown_frame = utility:Create("Frame", {Vector2.new(1,1), dropdown_inline}, {
-            Size = utility:Size(1, -2, 1, -2, dropdown_inline),
-            Position = utility:Position(0, 1, 0, 1, dropdown_inline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[dropdown_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        if name then
-            local dropdown_title = utility:Create("TextLabel", {Vector2.new(4,dropdown.axis), section.section_frame}, {
-                Text = name,
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(0, 4, 0, dropdown.axis, section.section_frame),
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[dropdown_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-        end
-        --
-        local dropdown__gradient = utility:Create("Image", {Vector2.new(0,0), dropdown_frame}, {
-            Size = utility:Size(1, 0, 1, 0, dropdown_frame),
-            Position = utility:Position(0, 0, 0 , 0, dropdown_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local dropdown_value = utility:Create("TextLabel", {Vector2.new(3,dropdown_frame.Size.Y/2 - 7), dropdown_frame}, {
-            Text = dropdown.current,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 3, 0, (dropdown_frame.Size.Y/2) - 7, dropdown_frame),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[dropdown_value] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        local dropdown_image = utility:Create("Image", {Vector2.new(dropdown_frame.Size.X - 15,dropdown_frame.Size.Y/2 - 3), dropdown_frame}, {
-            Size = utility:Size(0, 9, 0, 6, dropdown_frame),
-            Position = utility:Position(1, -15, 0.5, -3, dropdown_frame),
-            Visible = page.open
-        }, section.visibleContent);dropdown["dropdown_image"] = dropdown_image
-        --
-        utility:LoadImage(dropdown_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-        utility:LoadImage(dropdown__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        if max then
-            local lastupdate = dropdown.scrollindex
-            --
-            function dropdown:UpdateScroll()
-                if dropdown.scrollindex ~= lastupdate then
-                    if max and dropdown.bar and dropdown.scroll then
-                        lastupdate = dropdown.scrollindex
-                        --
-                        if (#dropdown.options - max) > 0 then
-                            dropdown.bar.Size = utility:Size(1, 0, (max / #dropdown.options), 0, dropdown.scroll)
-                            dropdown.bar.Position = utility:Position(0, 0, 0, (((dropdown.scroll.Size.Y - dropdown.bar.Size.Y) / (#dropdown.options - max)) * dropdown.scrollindex), dropdown.scroll)
-                            utility:UpdateTransparency(dropdown.bar, 1)
-                            utility:UpdateOffset(dropdown.bar, {Vector2.new(1, (((dropdown.scroll.Size.Y - dropdown.bar.Size.Y) / (#dropdown.options - max)) * dropdown.scrollindex)), dropdown.scroll})
-                        else
-                            dropdown.scrollindex = 0
-                            dropdown.bar.Transparency = 0
-                            utility:UpdateTransparency(dropdown.bar, 0)
-                        end
-                        --
-                        dropdown:Update()
-                    end
-                end
-            end
-        end
-        --
-        function dropdown:Update()
-            if dropdown.open and dropdown.holder.inline then
-                for i,v in pairs(dropdown.holder.buttons) do
-                    local value = max and dropdown.options[i + dropdown.scrollindex] or dropdown.options[i]
-                    --
-                    v[1].Text = value or ""
-                    v[1].Color = value == tostring(dropdown.current) and theme.accent or theme.textcolor
-                    v[1].Position = utility:Position(0, value == tostring(dropdown.current) and 8 or 6, 0, 2, v[2])
-                    library.colors[v[1]] = {
-                        Color = v[1].Text == tostring(dropdown.current) and "accent" or "textcolor"
-                    }
-                    utility:UpdateOffset(v[1], {Vector2.new(v[1].Text == tostring(dropdown.current) and 8 or 6, 2), v[2]})
-                end
-            end
-        end
-        --
-        function dropdown:Set(value)
-            if typeof(value) == "string" and Find(dropdown.options, value) then
-                dropdown.current = value
-                dropdown_value.Text = value
-                callback(value)
-            end
-        end
-        --
-        function dropdown:Get()
-            return dropdown.current
-        end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and dropdown_outline.Visible then
-                if dropdown.open and dropdown.holder.inline and utility:MouseOverDrawing({dropdown.holder.inline.Position.X, dropdown.holder.inline.Position.Y, dropdown.holder.inline.Position.X + dropdown.holder.inline.Size.X, dropdown.holder.inline.Position.Y + dropdown.holder.inline.Size.Y}) then
-                    if max and dropdown.bar and utility:MouseOverDrawing({dropdown.bar.Position.X - 1, dropdown.bar.Position.Y - 1, dropdown.bar.Position.X - 1 + dropdown.bar.Size.X + 2, dropdown.bar.Position.Y - 1 + dropdown.bar.Size.Y + 2}) then
-                        dropdown.scrolling = {true, (utility:MouseLocation().Y - dropdown.bar.Position.Y)}
-                    else
-                        for i,v in pairs(dropdown.holder.buttons) do
-                            local value = max and dropdown.options[(i + dropdown.scrollindex)] or dropdown.options[i]
-                            --
-                            if value and utility:MouseOverDrawing({v[2].Position.X, v[2].Position.Y, v[2].Position.X + v[2].Size.X, v[2].Position.Y + v[2].Size.Y}) and v[1].Text ~= dropdown.current then
-                                dropdown.current = value
-                                dropdown_value.Text = dropdown.current
-                                callback(value)
-                                dropdown:Update()
-                            end
-                        end
-                    end
-                elseif utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + dropdown.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + dropdown.axis + (name and (15 + 20) or (20))}) and not window:IsOverContent() then
-                    task.spawn(function()
-                        utility:LoadImage(dropdown__gradient, "gradientdown", "https://i.imgur.com/DzrzUt3.png") 
-                        --
-                        task.wait(0.15)
-                        --
-                        utility:LoadImage(dropdown__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png") 
-                    end)
-                    --
-                    if not dropdown.open then
-                        window:CloseContent()
-                        dropdown.open = not dropdown.open
-                        utility:LoadImage(dropdown_image, "arrow_up", "https://i.imgur.com/SL9cbQp.png")
-                        --
-                        local dropdown_open_outline = utility:Create("Frame", {Vector2.new(0,19), dropdown_outline}, {
-                            Size = utility:Size(1, 0, 0, 3 + ((max and max or #dropdown.options) * 19), dropdown_outline),
-                            Position = utility:Position(0, 0, 0, 19, dropdown_outline),
-                            Color = theme.outline,
-                            Visible = page.open
-                        }, dropdown.holder.drawings);dropdown.holder.outline = dropdown_open_outline
-                        --
-                        library.colors[dropdown_open_outline] = {
-                            Color = "outline"
-                        }
-                        --
-                        local dropdown_open_inline = utility:Create("Frame", {Vector2.new(1,1), dropdown_open_outline}, {
-                            Size = utility:Size(1, -2, 1, -2, dropdown_open_outline),
-                            Position = utility:Position(0, 1, 0, 1, dropdown_open_outline),
-                            Color = theme.inline,
-                            Visible = page.open
-                        }, dropdown.holder.drawings);dropdown.holder.inline = dropdown_open_inline
-                        --
-                        library.colors[dropdown_open_inline] = {
-                            Color = "inline"
-                        }
-                        --
-                        if max then
-                            local dropdown_open_scroll = utility:Create("Frame", {Vector2.new(dropdown_open_inline.Size.X - 5,1), dropdown_open_inline}, {
-                                Size = utility:Size(0, 4, 1, -2, dropdown_open_inline),
-                                Position = utility:Position(1, -5, 0, 1, dropdown_open_inline),
-                                Color = theme.darkcontrast,
-                                Visible = page.open
-                            }, dropdown.holder.drawings);dropdown.scroll = dropdown_open_scroll
-                            --
-                            library.colors[dropdown_open_scroll] = {
-                                Color = "darkcontrast"
-                            }
-                            --
-                            local dropdown_open_bar = utility:Create("Frame", {Vector2.new(0, (((dropdown_open_scroll.Size.Y - ((max / #dropdown.options) * dropdown_open_scroll.Size.Y)) / (#dropdown.options - max)) * dropdown.scrollindex)), dropdown_open_scroll}, {
-                                Size = utility:Size(1, 0, (max / #dropdown.options), 0, dropdown_open_scroll),
-                                Position = utility:Position(0, 0, 0, (((dropdown_open_scroll.Size.Y - ((max / #dropdown.options) * dropdown_open_scroll.Size.Y)) / (#dropdown.options - max)) * dropdown.scrollindex), dropdown_open_scroll),
-                                Color = theme.accent,
-                                Visible = page.open
-                            }, dropdown.holder.drawings);dropdown.bar = dropdown_open_bar
-                            --
-                            library.colors[dropdown_open_bar] = {
-                                Color = "accent"
-                            }
-                        end
-                        --
-                        for Index = 1, (max and max or #dropdown.options) do
-                            local Value = max and dropdown.options[Index + dropdown.scrollindex] or dropdown.options[Index]
-                            --
-                            if Value then
-                                local dropdown_value_frame = utility:Create("Frame", {Vector2.new(1,1 + (19 * (Index-1))), dropdown_open_inline}, {
-                                    Size = utility:Size(1, -(max and 7 or 2), 0, 18, dropdown_open_inline),
-                                    Position = utility:Position(0, 1, 0, 1 + (19 * (Index-1)), dropdown_open_inline),
-                                    Color = theme.lightcontrast,
-                                    Visible = page.open
-                                }, dropdown.holder.drawings)
-                                --
-                                library.colors[dropdown_value_frame] = {
-                                    Color = "lightcontrast"
-                                }
-                                --
-                                local dropdown_value = utility:Create("TextLabel", {Vector2.new(Value == tostring(dropdown.current) and 8 or 6,2), dropdown_value_frame}, {
-                                    Text = Value,
-                                    Size = theme.textsize,
-                                    Font = theme.font,
-                                    Color = Value == tostring(dropdown.current) and theme.accent or theme.textcolor,
-                                    OutlineColor = theme.textborder,
-                                    Position = utility:Position(0, Value == tostring(dropdown.current) and 8 or 6, 0, 2, dropdown_value_frame),
-                                    Visible = page.open
-                                }, dropdown.holder.drawings)
-                                --
-                                dropdown.holder.buttons[#dropdown.holder.buttons + 1] = {dropdown_value, dropdown_value_frame}
-                                --
-                                library.colors[dropdown_value] = {
-                                    OutlineColor = "textborder",
-                                    Color = Value == tostring(dropdown.current) and "accent" or "textcolor"
-                                }
-                            end
-                        end
-                        --
-                        window.currentContent.frame = dropdown_open_inline
-                        window.currentContent.dropdown = dropdown
-                    else
-                        dropdown.open = not dropdown.open
-                        utility:LoadImage(dropdown_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                        --
-                        for i,v in pairs(dropdown.holder.drawings) do
-                            utility:Remove(v)
-                        end
-                        --
-                        dropdown.holder.drawings = {}
-                        dropdown.holder.buttons = {}
-                        dropdown.holder.inline = nil
-                        --
-                        window.currentContent.frame = nil
-                        window.currentContent.dropdown = nil
-                    end
-                else
-                    if dropdown.open then
-                        dropdown.open = not dropdown.open
-                        utility:LoadImage(dropdown_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                        --
-                        for i,v in pairs(dropdown.holder.drawings) do
-                            utility:Remove(v)
-                        end
-                        --
-                        dropdown.holder.drawings = {}
-                        dropdown.holder.buttons = {}
-                        dropdown.holder.inline = nil
-                        --
-                        window.currentContent.frame = nil
-                        window.currentContent.dropdown = nil
-                    end
-                end
-            elseif Input.UserInputType == Enum.UserInputType.MouseButton1 and dropdown.open then
-                dropdown.open = not dropdown.open
-                utility:LoadImage(dropdown_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                --
-                for i,v in pairs(dropdown.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                dropdown.holder.drawings = {}
-                dropdown.holder.buttons = {}
-                dropdown.holder.inline = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.dropdown = nil
-            end
-        end
-        --
-        if max then
-            library.ended[#library.ended + 1] = function(Input)
-                if dropdown.scrolling and dropdown.scrolling[1] and Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    dropdown.scrolling = {false, nil}
-                end
-            end
-            --
-            library.changed[#library.changed + 1] = function(Input)
-                if dropdown.scrolling and dropdown.scrolling[1] then
-                    local MouseLocation = utility:MouseLocation()
-                    local Position = math.clamp((MouseLocation.Y - dropdown.scroll.Position.Y - dropdown.scrolling[2]), 0, ((dropdown.scroll.Size.Y - dropdown.bar.Size.Y)))
-                    --
-                    dropdown.scrollindex = math.clamp(math.round((((Position + dropdown.scroll.Position.Y) - dropdown.scroll.Position.Y) / ((dropdown.scroll.Size.Y - dropdown.bar.Size.Y))) * (#dropdown.options - max)), 0, #dropdown.options - max)
-                    dropdown:UpdateScroll()
-                end
-            end
-            --
-            utility:Connection(mouse.WheelForward,function()
-                if page.open and dropdown.open and dropdown.bar and dropdown.bar.Visible and utility:MouseOverDrawing({dropdown.holder.inline.Position.X, dropdown.holder.inline.Position.Y, dropdown.holder.inline.Position.X + dropdown.holder.inline.Size.X, dropdown.holder.inline.Position.Y + dropdown.holder.inline.Size.Y}) then
-                    dropdown.scrollindex = math.clamp(dropdown.scrollindex - 1, 0, #dropdown.options - max)
-                    dropdown:UpdateScroll()
-                end
-            end)
-            --
-            utility:Connection(mouse.WheelBackward,function()
-                if page.open and dropdown.open and dropdown.bar and dropdown.bar.Visible and utility:MouseOverDrawing({dropdown.holder.inline.Position.X, dropdown.holder.inline.Position.Y, dropdown.holder.inline.Position.X + dropdown.holder.inline.Size.X, dropdown.holder.inline.Position.Y + dropdown.holder.inline.Size.Y}) then
-                    dropdown.scrollindex = math.clamp(dropdown.scrollindex + 1, 0, #dropdown.options - max)
-                    dropdown:UpdateScroll()
-                end
-            end)
-        end
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = dropdown
-        end
-        --
-        section.currentAxis = section.currentAxis + (name and 35 or 20) + 9
-        --
-        return dropdown
-    end
-    --
-    function sections:Multibox(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title
-        local options = info.options or info.Options or {"1", "2", "3"}
-        local def = info.def or info.Def or info.default or info.Default or {options[1]}
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-        local min = info.min or info.Min or info.minimum or info.Minimum or 0
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local multibox = {open = false, current = def, options = options, holder = {buttons = {}, drawings = {}}, axis = section.currentAxis}
-        --
-        local multibox_outline = utility:Create("Frame", {Vector2.new(4, name and (multibox.axis + 15) or multibox.axis), section.section_frame}, {
-            Size = utility:Size(1, -8, 0, 20, section.section_frame),
-            Position = utility:Position(0, 4, 0, name and (multibox.axis + 15) or multibox.axis, section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[multibox_outline] = {
-            Color = "outline"
-        }
-        --
-        local multibox_inline = utility:Create("Frame", {Vector2.new(1,1), multibox_outline}, {
-            Size = utility:Size(1, -2, 1, -2, multibox_outline),
-            Position = utility:Position(0, 1, 0, 1, multibox_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[multibox_inline] = {
-            Color = "inline"
-        }
-        --
-        local multibox_frame = utility:Create("Frame", {Vector2.new(1,1), multibox_inline}, {
-            Size = utility:Size(1, -2, 1, -2, multibox_inline),
-            Position = utility:Position(0, 1, 0, 1, multibox_inline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[multibox_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        if name then
-            local multibox_title = utility:Create("TextLabel", {Vector2.new(4,multibox.axis), section.section_frame}, {
-                Text = name,
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder,
-                Position = utility:Position(0, 4, 0, multibox.axis, section.section_frame),
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[multibox_title] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-        end
-        --
-        local multibox__gradient = utility:Create("Image", {Vector2.new(0,0), multibox_frame}, {
-            Size = utility:Size(1, 0, 1, 0, multibox_frame),
-            Position = utility:Position(0, 0, 0 , 0, multibox_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local multibox_value = utility:Create("TextLabel", {Vector2.new(3,multibox_frame.Size.Y/2 - 7), multibox_frame}, {
-            Text = "",
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 3, 0, (multibox_frame.Size.Y/2) - 7, multibox_frame),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[multibox_value] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        local multibox_image = utility:Create("Image", {Vector2.new(multibox_frame.Size.X - 15,multibox_frame.Size.Y/2 - 3), multibox_frame}, {
-            Size = utility:Size(0, 9, 0, 6, multibox_frame),
-            Position = utility:Position(1, -15, 0.5, -3, multibox_frame),
-            Visible = page.open
-        }, section.visibleContent);multibox["multibox_image"] = multibox_image
-        --
-        utility:LoadImage(multibox_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-        utility:LoadImage(multibox__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function multibox:Update()
-            if multibox.open and multibox.holder.inline then
-                for i,v in pairs(multibox.holder.buttons) do
-                    v[1].Color = Find(multibox.current, v[1].Text) and theme.accent or theme.textcolor
-                    v[1].Position = utility:Position(0, Find(multibox.current, v[1].Text) and 8 or 6, 0, 2, v[2])
-                    --
-                    library.colors[v[1]] = {
-                        Color = Find(multibox.current, v[1].Text) and "accent" or "textcolor"
-                    }
-                    --
-                    utility:UpdateOffset(v[1], {Vector2.new(Find(multibox.current, v[1].Text) and 8 or 6, 2), v[2]})
-                end
-            end
-        end
-        --
-        function multibox:Serialize(tbl)
-            local str = ""
-            --
-            for i,v in pairs(tbl) do
-                str = str..v..", "
-            end
-            --
-            return string.sub(str, 1, math.max(0, #str - 2))
-        end
-        --
-        function multibox:Resort(tbl,original)
-            local newtbl = {}
-            --
-            for i,v in pairs(original) do
-                if Find(tbl, v) then
-                    newtbl[#newtbl + 1] = v
-                end
-            end
-            --
-            return newtbl
-        end
-        --
-        function multibox:Set(tbl)
-            if typeof(tbl) == "table" then
-                multibox.current = tbl
-                --
-                local text = multibox:Serialize(multibox:Resort(multibox.current, multibox.options))
-                multibox_value.Text = utility:WrapText(text, multibox_frame.Size.X - 25)
-            end
-        end
-        --
-        function multibox:Get()
-            return multibox.current
-        end
-        --
-        multibox_value.Text = utility:WrapText(multibox:Serialize(multibox:Resort(multibox.current, multibox.options)), multibox_frame.Size.X - 25)
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and multibox_outline.Visible then
-                if multibox.open and multibox.holder.inline and utility:MouseOverDrawing({multibox.holder.inline.Position.X, multibox.holder.inline.Position.Y, multibox.holder.inline.Position.X + multibox.holder.inline.Size.X, multibox.holder.inline.Position.Y + multibox.holder.inline.Size.Y}) then
-                    for i,v in pairs(multibox.holder.buttons) do
-                        if utility:MouseOverDrawing({v[2].Position.X, v[2].Position.Y, v[2].Position.X + v[2].Size.X, v[2].Position.Y + v[2].Size.Y}) and v[1].Text ~= multibox.current then
-                            if not Find(multibox.current, v[1].Text) then
-                                multibox.current[#multibox.current + 1] = v[1].Text
-                                multibox_value.Text = utility:WrapText(multibox:Serialize(multibox:Resort(multibox.current, multibox.options)), multibox_frame.Size.X - 25)
-                                multibox:Update()
-                            else
-                                if #multibox.current > min then
-                                    Remove(multibox.current, Find(multibox.current, v[1].Text))
-                                    multibox_value.Text = utility:WrapText(multibox:Serialize(multibox:Resort(multibox.current, multibox.options)), multibox_frame.Size.X - 25)
-                                    multibox:Update()
-                                end
-                            end
-                        end
-                    end
-                elseif utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + multibox.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + multibox.axis + (name and 15 or 0) + 20}) and not window:IsOverContent() then
-                    task.spawn(function()
-                        utility:LoadImage(multibox__gradient, "gradientdown", "https://i.imgur.com/DzrzUt3.png") 
-                        --
-                        task.wait(0.15)
-                        --
-                        utility:LoadImage(multibox__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png") 
-                    end)
-                    --
-                    if not multibox.open then
-                        window:CloseContent()
-                        multibox.open = not multibox.open
-                        utility:LoadImage(multibox_image, "arrow_up", "https://i.imgur.com/SL9cbQp.png")
-                        --
-                        local multibox_open_outline = utility:Create("Frame", {Vector2.new(0,19), multibox_outline}, {
-                            Size = utility:Size(1, 0, 0, 3 + (#multibox.options * 19), multibox_outline),
-                            Position = utility:Position(0, 0, 0, 19, multibox_outline),
-                            Color = theme.outline,
-                            Visible = page.open
-                        }, multibox.holder.drawings);multibox.holder.outline = multibox_open_outline
-                        --
-                        library.colors[multibox_open_outline] = {
-                            Color = "outline"
-                        }
-                        --
-                        local multibox_open_inline = utility:Create("Frame", {Vector2.new(1,1), multibox_open_outline}, {
-                            Size = utility:Size(1, -2, 1, -2, multibox_open_outline),
-                            Position = utility:Position(0, 1, 0, 1, multibox_open_outline),
-                            Color = theme.inline,
-                            Visible = page.open
-                        }, multibox.holder.drawings);multibox.holder.inline = multibox_open_inline
-                        --
-                        library.colors[multibox_open_inline] = {
-                            Color = "inline"
-                        }
-                        --
-                        for i,v in pairs(multibox.options) do
-                            local multibox_value_frame = utility:Create("Frame", {Vector2.new(1,1 + (19 * (i-1))), multibox_open_inline}, {
-                                Size = utility:Size(1, -2, 0, 18, multibox_open_inline),
-                                Position = utility:Position(0, 1, 0, 1 + (19 * (i-1)), multibox_open_inline),
-                                Color = theme.lightcontrast,
-                                Visible = page.open
-                            }, multibox.holder.drawings)
-                            --
-                            library.colors[multibox_value_frame] = {
-                                Color = "lightcontrast"
-                            }
-                            --
-                            local multibox_value = utility:Create("TextLabel", {Vector2.new(Find(multibox.current, v) and 8 or 6,2), multibox_value_frame}, {
-                                Text = v,
-                                Size = theme.textsize,
-                                Font = theme.font,
-                                Color = Find(multibox.current, v) and theme.accent or theme.textcolor,
-                                OutlineColor = theme.textborder,
-                                Position = utility:Position(0, Find(multibox.current, v) and 8 or 6, 0, 2, multibox_value_frame),
-                                Visible = page.open
-                            }, multibox.holder.drawings);multibox.holder.buttons[#multibox.holder.buttons + 1] = {multibox_value, multibox_value_frame}
-                            --
-                            library.colors[multibox_value] = {
-                                OutlineColor = "textborder",
-                                Color = Find(multibox.current, v) and "accent" or "textcolor"
-                            }
-                        end
-                        --
-                        window.currentContent.frame = multibox_open_inline
-                        window.currentContent.multibox = multibox
-                    else
-                        multibox.open = not multibox.open
-                        utility:LoadImage(multibox_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                        --
-                        for i,v in pairs(multibox.holder.drawings) do
-                            utility:Remove(v)
-                        end
-                        --
-                        multibox.holder.drawings = {}
-                        multibox.holder.buttons = {}
-                        multibox.holder.inline = nil
-                        --
-                        window.currentContent.frame = nil
-                        window.currentContent.multibox = nil
-                    end
-                else
-                    if multibox.open then
-                        multibox.open = not multibox.open
-                        utility:LoadImage(multibox_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                        --
-                        for i,v in pairs(multibox.holder.drawings) do
-                            utility:Remove(v)
-                        end
-                        --
-                        multibox.holder.drawings = {}
-                        multibox.holder.buttons = {}
-                        multibox.holder.inline = nil
-                        --
-                        window.currentContent.frame = nil
-                        window.currentContent.multibox = nil
-                    end
-                end
-            elseif Input.UserInputType == Enum.UserInputType.MouseButton1 and multibox.open then
-                multibox.open = not multibox.open
-                utility:LoadImage(multibox_image, "arrow_down", "https://i.imgur.com/tVqy0nL.png")
-                --
-                for i,v in pairs(multibox.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                multibox.holder.drawings = {}
-                multibox.holder.buttons = {}
-                multibox.holder.inline = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.multibox = nil
-            end
-        end
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = multibox
-        end
-        --
-        section.currentAxis = section.currentAxis + (name and 35 or 20) + 9
-        --
-        return multibox
-    end
-    --
-    function sections:Keybind(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "New Keybind"
-        local def = info.def or info.Def or info.default or info.Default or nil
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        local mode = info.mode or info.Mode or "Always"
-        local keybindname = info.keybindname or info.keybindName or info.Keybindname or info.KeybindName or nil
-        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local keybind = {keybindname = keybindname or name, axis = section.currentAxis, current = {}, selecting = false, mode = mode, open = false, modemenu = {buttons = {}, drawings = {}}, active = false}
-        --
-        local allowedKeyCodes = {"Q","W","E","R","T","Y","U","I","O","P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N","M","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Zero", "Minus", "Equals","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","Insert","Tab","Home","End","LeftAlt","LeftControl","LeftShift","RightAlt","RightControl","RightShift","CapsLock"}
-        local allowedInputTypes = {"MouseButton1","MouseButton2","MouseButton3"}
-        local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
-        --
-        local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(54+4),keybind.axis), section.section_frame}, {
-            Size = utility:Size(0, 54, 0, 17),
-            Position = utility:Position(1, -(54+4), 0, keybind.axis, section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_outline] = {
-            Color = "outline"
-        }
-        --
-        local keybind_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_outline}, {
-            Size = utility:Size(1, -2, 1, -2, keybind_outline),
-            Position = utility:Position(0, 1, 0, 1, keybind_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_inline] = {
-            Color = "inline"
-        }
-        --
-        local keybind_frame = utility:Create("Frame", {Vector2.new(1,1), keybind_inline}, {
-            Size = utility:Size(1, -2, 1, -2, keybind_inline),
-            Position = utility:Position(0, 1, 0, 1, keybind_inline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local keybind_title = utility:Create("TextLabel", {Vector2.new(4,keybind.axis + (17/2) - (utility:GetTextBounds(name, theme.textsize, theme.font).Y/2)), section.section_frame}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 4, 0, keybind.axis + (17/2) - (utility:GetTextBounds(name, theme.textsize, theme.font).Y/2), section.section_frame),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        local keybind__gradient = utility:Create("Image", {Vector2.new(0,0), keybind_frame}, {
-            Size = utility:Size(1, 0, 1, 0, keybind_frame),
-            Position = utility:Position(0, 0, 0 , 0, keybind_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local keybind_value = utility:Create("TextLabel", {Vector2.new(20,1), keybind_outline}, {
-            Text = "...",
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder, 
-            Center = true,
-            Position = utility:Position(0, 20, 0, 1, keybind_outline),
-            Visible = page.open
-        }, section.visibleContent);keybind["keybind_value"] = keybind_value
-        --
-        local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_inline.Size.X - 13, 2), keybind_inline}, {
-            Size = utility:Size(0, 11, 0, 11, keybind_inline),
-            Position = utility:Position(1, -13, 0, 2, keybind_inline),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_clear] = {
-            Color = "outline"
-        }
-        --
-        local keybind_clear_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_clear}, {
-            Size = utility:Size(1, -2, 1, -2, keybind_clear),
-            Position = utility:Position(0, 1, 0, 1, keybind_clear),
-            Color = theme.darkcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_clear_inline] = {
-            Color = "darkcontrast"
-        }
-        --
-        local keybind_clear_glyph_x, keybind_clear_glyph_y = ClearGlyphOffset(keybind_clear_inline)
-        local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(keybind_clear_glyph_x, keybind_clear_glyph_y), keybind_clear_inline}, {
-            Text = "x",
-            Size = theme.textsize - 2,
-            Font = theme.font,
-            Color = theme.textdark,
-            OutlineColor = theme.textborder,
-            Center = true,
-            Position = utility:Position(0, keybind_clear_glyph_x, 0, keybind_clear_glyph_y, keybind_clear_inline),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_clear_title] = {
-            OutlineColor = "textborder",
-            Color = "textdark"
-        }
-        --
-        library.colors[keybind_value] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function keybind:Shorten(str)
-            for i,v in pairs(shortenedInputs) do
-                str = str:gsub(i, v)
-            end
-            return str
-        end
-        --
-        function keybind:Change(input)
-            input = input or "..."
-            local inputTable = {}
-            --
-            if input.EnumType then
-                if input.EnumType == Enum.KeyCode or input.EnumType == Enum.UserInputType then
-                    if Find(allowedKeyCodes, input.Name) or Find(allowedInputTypes, input.Name) then
-                        inputTable = {input.EnumType == Enum.KeyCode and "KeyCode" or "UserInputType", input.Name}
-                        --
-                        keybind.current = inputTable
-                        keybind_value.Text = #keybind.current > 0 and keybind:Shorten(keybind.current[2]) or "..."
-                        --
-                        return true
-                    end
-                end
-            end
-            --
-            return false
-        end
-        --
-        function keybind:Get()
-            return keybind.current
-        end
-        --
-        function keybind:Set(tbl)
-            if type(tbl) ~= "table" then return end
-            --
-            keybind.current = {tbl[1], tbl[2]}
-            keybind_value.Text = #keybind.current > 0 and keybind:Shorten(tostring(keybind.current[2])) or "..."
-            --
-            if tbl[3] then
-                keybind.mode = tbl[3]
-            end
-            --
-            keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and true or false
-            --
-            if keybind.mode == "Off Hold" then
-                window.keybindslist:Add(keybindname or name, keybind_value.Text)
-            else
-                window.keybindslist:Remove(keybindname or name)
-            end
-            --
-            if keybind.current[1] and keybind.current[2] then
-                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-            end
-        end
-        --
-        function keybind:Active()
-            return keybind.active
-        end
-        --
-        function keybind:Reset()
-            for i,v in pairs(keybind.modemenu.buttons) do
-                v.Color = v.Text == keybind.mode and theme.accent or theme.textcolor
-                --
-                library.colors[v] = {
-                    Color = v.Text == keybind.mode and "accent" or "textcolor"
-                }
-            end
-            --
-            keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and true or false
-            --
-            if keybind.mode == "Off Hold" then
-                window.keybindslist:Add(keybindname or name, keybind_value.Text)
-            else
-                window.keybindslist:Remove(keybindname or name)
-            end
-            --
-            if keybind.current[1] and keybind.current[2] then
-                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-            end
-        end
-        --
-        function keybind:Callback()
-            if keybind.current[1] and keybind.current[2] then
-                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-            end
-        end
-        --
-        function keybind:Clear()
-            local old = {keybind.current[1], keybind.current[2]}
-            --
-            keybind.current = {}
-            keybind.active = false
-            keybind.selecting = false
-            keybind_value.Text = "..."
-            keybind_frame.Color = theme.lightcontrast
-            --
-            library.colors[keybind_frame] = {
-                Color = "lightcontrast"
-            }
-            --
-            if keybind.open then
-                keybind.open = false
-                --
-                for i,v in pairs(keybind.modemenu.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                keybind.modemenu.drawings = {}
-                keybind.modemenu.buttons = {}
-                keybind.modemenu.frame = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.keybind = nil
-            end
-            --
-            window.keybindslist:Remove(keybindname or name)
-            --
-            if old[1] and old[2] then
-                pcall(callback, Enum[old[1]][old[2]], false)
-            end
-        end
-        --
-        keybind:Change(def)
-        --
-        library.began[#library.began + 1] = function(Input)
-            if keybind.current[1] and keybind.current[2] then
-                if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not window:IsMouseBlocked(Input) then
-                    if keybind.mode == "On Hold" then
-                        keybind.active = true
-                        if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                        callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                    elseif keybind.mode == "Off Hold" then
-                        keybind.active = false
-                        if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                        callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                    elseif keybind.mode == "Toggle" then
-                        keybind.active = not keybind.active
-                        if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                        callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                    end
-                end
-            end
-            --
-            if keybind.selecting and window.isVisible then
-                local done = keybind:Change(Input.KeyCode.Name ~= "Unknown" and Input.KeyCode or Input.UserInputType)
-                if done then
-                    keybind.selecting = false
-                    keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and true or false
-                    keybind_frame.Color = theme.lightcontrast
-                    --
-                    library.colors[keybind_frame] = {
-                        Color = "lightcontrast"
-                    }
-                    --
-                    if keybind.mode == "Off Hold" then
-                        window.keybindslist:Add(keybindname or name, keybind_value.Text)
-                    else
-                        window.keybindslist:Remove(keybindname or name)
-                    end
-                    --
-                    callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                end
-            end
-            --
-            if not window.isVisible and keybind.selecting then
-                keybind.selecting = false
-                keybind_frame.Color = theme.lightcontrast
-                --
-                library.colors[keybind_frame] = {
-                    Color = "lightcontrast"
-                }
-            end
-            --
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and keybind_outline.Visible then
-                if utility:MouseOverDrawing({keybind_clear.Position.X - 1, keybind_clear.Position.Y - 1, keybind_clear.Position.X + keybind_clear.Size.X + 1, keybind_clear.Position.Y + keybind_clear.Size.Y + 1}) then
-                    keybind:Clear()
-                elseif utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                    keybind.selecting = true
-                    keybind_frame.Color = theme.darkcontrast
-                    --
-                    library.colors[keybind_frame] = {
-                        Color = "darkcontrast"
-                    }
-                end
-                if keybind.open and keybind.modemenu.frame then
-                    if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y, keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + keybind.modemenu.frame.Size.Y}) then
-                        local changed = false
-                        local cleared = false
-                        --
-                        for i,v in pairs(keybind.modemenu.buttons) do
-                            if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)), keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)) + 15}) then
-                                if v.Text == "Clear" then
-                                    cleared = true
+
+                        --- Create Objects ---
+                        do
+                            local objs = slider.objects;
+                            local z = library.zindexOrder.window+25;
+
+                            objs.holder = utility:Draw('Square', {
+                                Size = newUDim2(1,0,0,20);
+                                Transparency = 0;
+                                ZIndex = z+6;
+                                Parent = toggle.objects.holder;
+                            })
+
+                            objs.background = utility:Draw('Square', {
+                                Size = newUDim2(1,-4,1,-8);
+                                Position = newUDim2(0,2,0,4);
+                                ThemeColor = 'Option Background';
+                                ZIndex = z+2;
+                                Parent = objs.holder;
+                            })
+
+                            objs.slider = utility:Draw('Square', {
+                                Size = newUDim2(0,0,1,0);
+                                ThemeColor = 'Accent';
+                                ZIndex = z+3;
+                                Parent = objs.background;
+                            })
+
+                            objs.border1 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 1';
+                                ZIndex = z+1;
+                                Parent = objs.background;
+                            })
+
+                            objs.border2 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 2';
+                                ZIndex = z;
+                                Parent = objs.border1;
+                            })
+    
+                            objs.gradient = utility:Draw('Image', {
+                                Size = newUDim2(1,0,1,0);
+                                Data = library.images.gradientp90;
+                                Transparency = .65;
+                                ZIndex = z+4;
+                                Parent = objs.background;
+                            })
+    
+                            objs.text = utility:Draw('Text', {
+                                Position = newUDim2(.5,0,0,-1);
+                                ThemeColor = 'Option Text 3';
+                                Size = 13;
+                                Font = 2;
+                                ZIndex = z+5;
+                                Outline = true;
+                                Center = true;
+                                Parent = objs.background;
+                            })
+
+                            utility:Connection(objs.holder.MouseEnter, function()
+                                objs.border1.ThemeColor = 'Accent';
+                            end)
+    
+                            utility:Connection(objs.holder.MouseLeave, function()
+                                objs.border1.ThemeColor = slider.dragging and 'Accent' or 'Option Border 1';
+                            end)
+    
+                            local c;
+                            local inputNumber = '';
+                            utility:Connection(slider.objects.holder.MouseButton1Down, function()
+                                if inputservice:IsKeyDown(Enum.KeyCode.LeftControl) then
+                                    if slider.focused then
+                                        slider.focused = false;
+                                        c:Disconnect();
+                                    else
+                                        objs.text.Text = tostring(slider.value)..tostring(slider.suffix)..'/'..tostring(slider.max)..tostring(slider.suffix)..' []';
+                                        slider.focused = true;
+                                        inputNumber = '';
+                                        c = utility:Connection(inputservice.InputBegan, function(inp)
+                                            if library.numberStrings[inp.KeyCode.Name] then
+                                                local number = library.numberStrings[inp.KeyCode.Name];
+                                                inputNumber = inputNumber..tostring(number);
+                                                objs.text.Text = string.format("%.14g", slider.value) .. tostring(slider.suffix) .. "/" .. slider.max .. tostring(slider.suffix) .. " [" .. inputNumber .. "]";
+                                            elseif inp.KeyCode == Enum.KeyCode.Backspace then
+                                                inputNumber = inputNumber:sub(1,-2);
+                                                objs.text.Text = string.format("%.14g", slider.value)..tostring(slider.suffix)..'/'..slider.max..tostring(slider.suffix)..' ['..inputNumber..']';
+                                            elseif inp.KeyCode == Enum.KeyCode.Return then
+                                                slider:SetValue(tonumber(inputNumber))
+                                                slider.focused = false;
+                                                c:Disconnect();
+                                            elseif inp.KeyCode == Enum.KeyCode.Escape then
+                                                slider:SetValue(slider.value, true)
+                                                slider.focused = false;
+                                                c:Disconnect();
+                                            end
+                                        end)
+                                    end
                                 else
-                                    keybind.mode = v.Text
-                                    changed = true
+                                    slider.dragging = true;
+                                    library.draggingSlider = slider;
+                                end
+                            end)
+    
+                            utility:Connection(button1up, function()
+                                objs.border1.ThemeColor = objs.holder.Hover and 'Accent' or 'Option Border 1';
+                                slider.dragging = false;
+                                library.draggingSlider = nil;
+                            end)
+    
+                        end
+                        ----------------------
+    
+                        function slider:SetValue(value, nocallback)
+                            if typeof(value) == 'number' then
+                                local newValue = clamp(self.increment * floor(value/self.increment), self.min, self.max);
+                                local size, pos = self.objects.slider.Size, self.objects.slider.Position;
+    
+                                if self.min >= 0 then
+                                    size = newUDim2((newValue - self.min) / (self.max - self.min), 0, 1, 0);
+                                else
+                                    size = newUDim2(newValue / (self.max - self.min), 0, 1, 0);
+                                    pos = newUDim2((0 - self.min) / (self.max - self.min), 0, 0, 0);
+                                end
+    
+                                utility:Tween(self.objects.slider, 'Size', size, .05, Enum.EasingDirection.Out, Enum.EasingStyle.Quad);
+                                utility:Tween(self.objects.slider, 'Position', pos, .05, Enum.EasingDirection.Out, Enum.EasingStyle.Quad);
+    
+                                self.value = newValue;
+                                library.flags[self.flag] = newValue;
+                                self.objects.text.Text = string.format("%.14g",newValue)..tostring(self.suffix)..'/'..self.max..tostring(self.suffix);
+                                self.objects.text.ThemeColor = (self.min < 0 and newValue == 0 or newValue == self.min)  and (self.risky and 'Risky Text' or 'Option Text 3') or (self.risky and 'Risky Text Enabled' or 'Option Text 1');
+    
+                                if not nocallback then
+                                    self.callback(newValue);
+                                end
+    
+                            end
+                        end
+
+                        tooltip(slider);
+                        slider:SetValue(slider.value, true);
+                        self:UpdateOptions();
+                        return slider
+                    end
+
+                    function toggle:AddList(data)
+                        local list = {
+                            class = 'list';
+                            flag = data.flag;
+                            text = '';
+                            selected = '';
+                            tooltip = '';
+                            order = #self.options+1;
+                            callback = function() end;
+                            enabled = true;
+                            multi = false;
+                            open = false;
+                            values = {};
+                            objects = {};
+                        }
+    
+                        table.insert(self.options, list);
+    
+                        local blacklist = {'objects'};
+                        for i,v in next, data do
+                            if not table.find(blacklist, i) ~= list[i] ~= nil then
+                                list[i] = v
+                            end
+                        end
+    
+                        if list.flag then
+                            library.flags[list.flag] = list.selected;
+                            library.options[list.flag] = list;
+                        end
+    
+                        -- Create Objects --
+                        do
+                            local objs = list.objects;
+                            local z = library.zindexOrder.window+25;
+    
+                            objs.holder = utility:Draw('Square', {
+                                Size = newUDim2(1,0,0,22);
+                                Transparency = 0;
+                                ZIndex = z+6;
+                                Parent = toggle.objects.holder;
+                            })
+    
+                            objs.background = utility:Draw('Square', {
+                                Size = newUDim2(1,-4,1,-8);
+                                Position = newUDim2(0,2,0,4);
+                                ThemeColor = 'Option Background';
+                                ZIndex = z+2;
+                                Parent = objs.holder;
+                            })
+    
+                            objs.border1 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 1';
+                                ZIndex = z+1;
+                                Parent = objs.background;
+                            })
+    
+                            objs.border2 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 2';
+                                ZIndex = z;
+                                Parent = objs.border1;
+                            })
+    
+                            objs.gradient = utility:Draw('Image', {
+                                Size = newUDim2(1,0,1,0);
+                                Data = library.images.gradientp90;
+                                Transparency = .65;
+                                ZIndex = z+4;
+                                Parent = objs.background;
+                            })
+    
+                            objs.inputText = utility:Draw('Text', {
+                                Position = newUDim2(0,4,0,0);
+                                ThemeColor = 'Option Text 2';
+                                Text = 'none',
+                                Size = 13;
+                                Font = 2;
+                                ZIndex = z+5;
+                                Outline = true;
+                                Parent = objs.background;
+                            })
+    
+                            objs.openText = utility:Draw('Text', {
+                                Position = newUDim2(1,-10,0,0);
+                                ThemeColor = 'Option Text 3';
+                                Text = '+';
+                                Size = 13;
+                                Font = 2;
+                                ZIndex = z+5;
+                                Outline = true;
+                                Parent = objs.background;
+                            })
+    
+                            utility:Connection(objs.holder.MouseEnter, function()
+                                objs.border1.ThemeColor = 'Accent';
+                            end)
+    
+                            utility:Connection(objs.holder.MouseLeave, function()
+                                objs.border1.ThemeColor = 'Option Border 1';
+                            end)
+    
+                            utility:Connection(objs.holder.MouseButton1Down, function()
+                                if list.open then
+                                    list.open = false;
+                                    objs.openText.Text = '+';
+                                    if window.dropdown.selected == list then
+                                        window.dropdown.selected = nil;
+                                        window.dropdown.objects.background.Visible = false;
+                                    end
+                                else
+                                    if window.dropdown.selected ~= nil then
+                                        window.dropdown.selected.open = false
+                                    end
+                                    list.open = true;
+                                    objs.openText.Text = '-';
+                                    window.dropdown.selected = list;
+                                    window.dropdown.objects.background.Visible = true;
+                                    window.dropdown.objects.background.Parent = objs.holder;
+                                    window.dropdown:Refresh();
+                                end
+                            end)
+    
+    
+                        end
+                        --------------------
+    
+                        function list:Select(option, nocallback)
+                            option = typeof(option) == 'table' and (self.multi == true and option or (#option == 0 and nil or option[1])) or self.multi == true and {option} or option;
+                            if option ~= nil then
+                                self.selected = option;
+                                local text = typeof(option) == 'table' and (#option == 0 and "none" or table.concat(option, ', ')) or tostring(option);
+                                local label = self.objects.inputText
+                                label.Text = text;
+                                if label.TextBounds.X > self.objects.background.Object.Size.X - 10 then
+                                    local split = text:split('');
+                                    for i = 1,#split do
+                                        label.Text = table.concat(split, '', 1, i)
+                                        if label.TextBounds.X > self.objects.background.Object.Size.X - 10 then
+                                            label.Text = label.Text:sub(1,-6)..'...';
+                                            break
+                                        end
+                                    end
+                                end
+                                if self.flag then
+                                    library.flags[self.flag] = self.selected
+                                end
+                                if not nocallback then
+                                    self.callback(self.selected);
                                 end
                             end
                         end
-                        --
-                        if cleared then
-                            keybind:Clear()
-                            window:CloseContent()
-                        elseif changed then
-                            keybind:Reset()
-                        end
-                    else
-                        keybind.open = not keybind.open
-                        --
-                        for i,v in pairs(keybind.modemenu.drawings) do
-                            utility:Remove(v)
-                        end
-                        --
-                        keybind.modemenu.drawings = {}
-                        keybind.modemenu.buttons = {}
-                        keybind.modemenu.frame = nil
-                        --
-                        window.currentContent.frame = nil
-                        window.currentContent.keybind = nil
-                    end
-                end
-            end
-            --
-            if Input.UserInputType == Enum.UserInputType.MouseButton2 and window.isVisible and keybind_outline.Visible then
-                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                    window:CloseContent()
-                    keybind.open = not keybind.open
-                    --
-                    local modemenu = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X + 2,0), keybind_outline}, {
-                        Size = utility:Size(0, 68, 0, 79),
-                        Position = utility:Position(1, 2, 0, 0, keybind_outline),
-                        Color = theme.outline,
-                        Visible = page.open
-                    }, keybind.modemenu.drawings);keybind.modemenu.frame = modemenu
-                    --
-                    library.colors[modemenu] = {
-                        Color = "outline"
-                    }
-                    --
-                    local modemenu_inline = utility:Create("Frame", {Vector2.new(1,1), modemenu}, {
-                        Size = utility:Size(1, -2, 1, -2, modemenu),
-                        Position = utility:Position(0, 1, 0, 1, modemenu),
-                        Color = theme.inline,
-                        Visible = page.open
-                    }, keybind.modemenu.drawings)
-                    --
-                    library.colors[modemenu_inline] = {
-                        Color = "inline"
-                    }
-                    --
-                    local modemenu_frame = utility:Create("Frame", {Vector2.new(1,1), modemenu_inline}, {
-                        Size = utility:Size(1, -2, 1, -2, modemenu_inline),
-                        Position = utility:Position(0, 1, 0, 1, modemenu_inline),
-                        Color = theme.lightcontrast,
-                        Visible = page.open
-                    }, keybind.modemenu.drawings)
-                    --
-                    library.colors[modemenu_frame] = {
-                        Color = "lightcontrast"
-                    }
-                    --
-                    local keybind__gradient = utility:Create("Image", {Vector2.new(0,0), modemenu_frame}, {
-                        Size = utility:Size(1, 0, 1, 0, modemenu_frame),
-                        Position = utility:Position(0, 0, 0 , 0, modemenu_frame),
-                        Transparency = 0.5,
-                        Visible = page.open
-                    }, keybind.modemenu.drawings)
-                    --
-                    utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-                    --
-                    for i,v in pairs({"Always", "Toggle", "On Hold", "Off Hold", "Clear"}) do
-                        local button_title = utility:Create("TextLabel", {Vector2.new(modemenu_frame.Size.X/2,15 * (i-1)), modemenu_frame}, {
-                            Text = v,
-                            Size = theme.textsize,
-                            Font = theme.font,
-                            Color = v == keybind.mode and theme.accent or theme.textcolor,
-                            Center = true,
-                            OutlineColor = theme.textborder,
-                            Position = utility:Position(0.5, 0, 0, 15 * (i-1), modemenu_frame),
-                            Visible = page.open
-                        }, keybind.modemenu.drawings);keybind.modemenu.buttons[#keybind.modemenu.buttons + 1] = button_title
-                        --
-                        library.colors[button_title] = {
-                            OutlineColor = "textborder",
-                            Color = v == keybind.mode and "accent" or "textcolor"
-                        }
-                    end
-                    --
-                    window.currentContent.frame = modemenu
-                    window.currentContent.keybind = keybind
-                end
-            end
-        end
-        --
-        library.ended[#library.ended + 1] = function(Input)
-            if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
-                if keybind.current[1] and keybind.current[2] then
-                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) then
-                        if keybind.mode == "On Hold" then
-                            if keybind.active then
-                                keybind.active = false
-                                window.keybindslist:Remove(keybindname or name)
-                                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
+    
+                        function list:AddValue(value)
+                            table.insert(list.values, tostring(value));
+                            if window.dropdown.selected == list then
+                                window.dropdown:Refresh()
                             end
+                        end
+    
+                        function list:RemoveValue(value)
+                            if table.find(list.values, value) then
+                                table.remove(list.values, table.find(list.values, value));
+                                if window.dropdown.selected == list then
+                                    window.dropdown:Refresh()
+                                end
+                            end
+                        end
+    
+                        function list:ClearValues()
+                            table.clear(list.values);
+                            if window.dropdown.selected == list then
+                                window.dropdown:Refresh()
+                            end
+                        end
+    
+                        tooltip(list);
+                        list:Select((data.value or data.selected) or (list.multi and 'none' or list.values[1]), true);
+                        self:UpdateOptions();
+                        return list
+                    end
+
+                    tooltip(toggle);
+                    toggle:SetText(toggle.text);
+                    toggle:SetState(toggle.state, true);
+                    self:UpdateOptions();
+                    return toggle
+                end
+
+                -- // Slider
+                function section:AddSlider(data)
+                    local slider = {
+                        class = 'slider';
+                        flag = data.flag;
+                        text = '';
+                        tooltip = '';
+                        suffix = '';
+                        order = #self.options+1;
+                        value = 0;
+                        min = 0;
+                        max = 100;
+                        increment = 1;
+                        callback = function() end;
+                        enabled = true;
+                        dragging = false;
+                        focused = false;
+                        risky = false;
+                        objects = {};
+                    };
+
+                    local blacklist = {'objects', 'dragging'};
+                    for i,v in next, data do
+                        if not table.find(blacklist, i) and (slider[i] ~= nil and typeof(slider[i]) == typeof(v)) then
+                            slider[i] = v;
+                        end
+                    end
+                    
+                    table.insert(self.options, slider)
+
+                    if slider.flag then
+                        library.flags[slider.flag] = slider.value;
+                        library.options[slider.flag] = slider;
+                    end
+
+                    --- Create Objects ---
+                    do
+                        local objs = slider.objects;
+                        local z = library.zindexOrder.window+25;
+
+                        objs.holder = utility:Draw('Square', {
+                            Size = newUDim2(1,0,0,32);
+                            Transparency = 0;
+                            ZIndex = z+4;
+                            Parent = section.objects.optionholder;
+                        })
+
+                        objs.background = utility:Draw('Square', {
+                            Size = newUDim2(1,-4,0,11);
+                            Position = newUDim2(0,2,1,-14);
+                            ThemeColor = 'Option Background';
+                            ZIndex = z+2;
+                            Parent = objs.holder;
+                        })
+
+                        objs.slider = utility:Draw('Square', {
+                            Size = newUDim2(0,0,1,0);
+                            ThemeColor = 'Accent';
+                            ZIndex = z+3;
+                            Parent = objs.background;
+                        })
+
+                        objs.border1 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 1';
+                            ZIndex = z+1;
+                            Parent = objs.background;
+                        })
+
+                        objs.border2 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 2';
+                            ZIndex = z;
+                            Parent = objs.border1;
+                        })
+
+                        objs.gradient = utility:Draw('Image', {
+                            Size = newUDim2(1,0,1,0);
+                            Data = library.images.gradientp90;
+                            Transparency = .65;
+                            ZIndex = z+4;
+                            Parent = objs.background;
+                        })
+
+                        objs.text = utility:Draw('Text', {
+                            Position = newUDim2(0,2,0,1);
+                            ThemeColor = 'Option Text 3';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+1;
+                            Outline = true;
+                            Parent = objs.holder;
+                        })
+
+                        objs.plusDetector = utility:Draw('Square', {
+                            Size = newUDim2(0,14,0,14);
+                            Position = newUDim2(1,-28,0,1);
+                            Transparency = 0;
+                            ZIndex = z+5;
+                            Parent = objs.holder;
+                        })
+
+                        objs.minusDetector = utility:Draw('Square', {
+                            Size = newUDim2(0,14,0,14);
+                            Position = newUDim2(1,-14,0,1);
+                            Transparency = 0;
+                            ZIndex = z+5;
+                            Parent = objs.holder;
+                        })
+
+                        objs.plusText = utility:Draw('Text', {
+                            Position = newUDim2(.5,0,0,-1);
+                            ThemeColor = 'Option Text 3';
+                            Text = '+';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+4;
+                            Center = true;
+                            Outline = true;
+                            Parent = objs.plusDetector;
+                        })
+
+                        objs.minusText = utility:Draw('Text', {
+                            Position = newUDim2(.5,0,0,-1);
+                            ThemeColor = 'Option Text 3';
+                            Text = '-';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+4;
+                            Center = true;
+                            Outline = true;
+                            Parent = objs.minusDetector;
+                        })
+
+                        utility:Connection(objs.holder.MouseEnter, function()
+                            objs.border1.ThemeColor = 'Accent';
+                        end)
+
+                        utility:Connection(objs.holder.MouseLeave, function()
+                            objs.border1.ThemeColor = slider.dragging and 'Accent' or 'Option Border 1';
+                        end)
+
+                        utility:Connection(slider.objects.plusDetector.MouseButton1Down,function()
+                            slider:SetValue(slider.value + (inputservice:IsKeyDown(Enum.KeyCode.LeftShift) and 10 or slider.increment))
+                        end)
+    
+                        utility:Connection(slider.objects.minusDetector.MouseButton1Down,function()
+                            slider:SetValue(slider.value - (inputservice:IsKeyDown(Enum.KeyCode.LeftShift) and 10 or slider.increment))
+                        end)
+
+
+                        local c;
+                        local inputNumber = '';
+                        utility:Connection(slider.objects.holder.MouseButton1Down, function()
+                            if inputservice:IsKeyDown(Enum.KeyCode.LeftControl) then
+                                if slider.focused then
+                                    slider.focused = false;
+                                    c:Disconnect();
+                                else
+                                    objs.text.Text = slider.text..': '..tostring(slider.value)..tostring(slider.suffix)..' []';
+                                    slider.focused = true;
+                                    inputNumber = '';
+                                    c = utility:Connection(inputservice.InputBegan, function(inp)
+                                        if library.numberStrings[inp.KeyCode.Name] then
+                                            local number = library.numberStrings[inp.KeyCode.Name];
+                                            inputNumber = inputNumber..tostring(number);
+                                            objs.text.Text = slider.text..': '..string.format("%.14g",slider.value)..tostring(slider.suffix)..' ['..inputNumber..']';
+                                        elseif inp.KeyCode == Enum.KeyCode.Backspace then
+                                            inputNumber = inputNumber:sub(1,-2);
+                                            objs.text.Text = slider.text..': '..string.format("%.14g",slider.value)..tostring(slider.suffix)..' ['..inputNumber..']';
+                                        elseif inp.KeyCode == Enum.KeyCode.Return then
+                                            slider:SetValue(tonumber(inputNumber))
+                                            slider.focused = false;
+                                            c:Disconnect();
+                                        elseif inp.KeyCode == Enum.KeyCode.Escape then
+                                            slider:SetValue(slider.value, true)
+                                            slider.focused = false;
+                                            c:Disconnect();
+                                        end
+                                    end)
+
+                                end
+
+
+                            else
+                                slider.dragging = true;
+                                library.draggingSlider = slider;
+                            end
+                        end)
+
+                        utility:Connection(button1up, function()
+                            objs.border1.ThemeColor = objs.holder.Hover and 'Accent' or 'Option Border 1';
+                            slider.dragging = false;
+                            library.draggingSlider = nil;
+                        end)
+
+                    end
+                    ----------------------
+
+                    function slider:SetValue(value, nocallback)
+                        if typeof(value) == 'number' then
+                            local newValue = clamp(self.increment * floor(value/self.increment), self.min, self.max);
+                            local size, pos = self.objects.slider.Size, self.objects.slider.Position;
+
+                            if self.min >= 0 then
+                                size = newUDim2((newValue - self.min) / (self.max - self.min), 0, 1, 0);
+                            else
+                                size = newUDim2(newValue / (self.max - self.min), 0, 1, 0);
+                                pos = newUDim2((0 - self.min) / (self.max - self.min), 0, 0, 0);
+                            end
+
+                            utility:Tween(self.objects.slider, 'Size', size, .05, Enum.EasingDirection.Out, Enum.EasingStyle.Quad);
+                            utility:Tween(self.objects.slider, 'Position', pos, .05, Enum.EasingDirection.Out, Enum.EasingStyle.Quad);
+
+                            self.value = newValue;
+                            library.flags[self.flag] = newValue;
+                            self.objects.text.Text = slider.text..': '..string.format("%.14g",newValue)..tostring(self.suffix);
+                            self.objects.text.ThemeColor = (self.min < 0 and newValue == 0 or newValue == self.min)  and (self.risky and 'Risky Text' or 'Option Text 3') or (self.risky and 'Risky Text Enabled' or 'Option Text 1');
+
+                            if not nocallback then
+                                self.callback(newValue);
+                            end
+
+                        end
+                    end
+
+                    function slider:SetText(str)
+                        if typeof(str) == 'string' then
+                            self.text = str;
+                            self.objects.text.Text = str..': '..tostring(self.value)..tostring(self.suffix);
+                        end
+                    end
+
+                    tooltip(slider);
+                    slider:SetText(slider.text);
+                    slider:SetValue(slider.value, true);
+                    self:UpdateOptions();
+                    return slider
+                end
+
+                -- // Button
+                function section:AddButton(data)
+                    local button = {
+                        class = 'button';
+                        flag = data.flag;
+                        text = '';
+                        suffix = '';
+                        tooltip = '';
+                        order = #self.options+1;
+                        callback = function() end;
+                        confirm = false;
+                        enabled = true;
+                        risky = false;
+                        objects = {};
+                        subbuttons = {};
+                    };
+
+                    local blacklist = {'objects'};
+                    for i,v in next, data do
+                        if not table.find(blacklist, i) and button[i] ~= nil then
+                            button[i] = v;
+                        end
+                    end
+        
+                    table.insert(self.options, button)
+
+                    if button.flag then
+                        library.options[button.flag] = button;
+                    end
+
+                    --- Create Objects ---
+                    do
+                        local objs = button.objects;
+                        local z = library.zindexOrder.window+25;
+
+                        objs.holder = utility:Draw('Square', {
+                            Size = newUDim2(1,0,0,22);
+                            Transparency = 0;
+                            ZIndex = z+4;
+                            Parent = section.objects.optionholder;
+                        })
+
+                        objs.background = utility:Draw('Square', {
+                            Size = newUDim2(1,-4,0,14);
+                            Position = newUDim2(0,2,0,4);
+                            ThemeColor = 'Option Background';
+                            ZIndex = z+2;
+                            Parent = objs.holder;
+                        })
+
+                        objs.border1 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 1';
+                            ZIndex = z+1;
+                            Parent = objs.background;
+                        })
+
+                        objs.border2 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 2';
+                            ZIndex = z;
+                            Parent = objs.border1;
+                        })
+
+                        objs.gradient = utility:Draw('Image', {
+                            Size = newUDim2(1,0,1,0);
+                            Data = library.images.gradientp90;
+                            Transparency = .65;
+                            ZIndex = z+3;
+                            Parent = objs.background;
+                        })
+
+                        objs.text = utility:Draw('Text', {
+                            Position = newUDim2(.5,0,0,0);
+                            ThemeColor = 'Option Text 3';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+4;
+                            Outline = true;
+                            Center = true;
+                            Parent = objs.background;
+                        })
+
+                        utility:Connection(objs.holder.MouseEnter, function()
+                            objs.border1.ThemeColor = 'Accent';
+                        end)
+
+                        utility:Connection(objs.holder.MouseLeave, function()
+                            objs.border1.ThemeColor = 'Option Border 1';
+                            objs.text.ThemeColor = self.risky and 'Risky Text' or 'Option Text 3';
+                            objs.background.ThemeColor = 'Option Background';
+                            objs.background.ThemeColorOffset = 0;
+                        end)
+
+                        utility:Connection(objs.holder.MouseButton1Up, function()
+                            objs.text.ThemeColor = self.risky and 'Risky Text' or  'Option Text 3';
+                            objs.background.ThemeColor = 'Option Background';
+                            objs.background.ThemeColorOffset = 0;
+                        end)
+
+                        local clicked, counting = false, false
+                        utility:Connection(objs.holder.MouseButton1Down, function()
+                            objs.text.ThemeColor = self.risky and 'Risky Text Enabled' or 'Option Text 2';
+                            objs.background.ThemeColor = 'Accent';
+                            objs.background.ThemeColorOffset = -95;
+
+                            task.spawn(function() -- this is ugly and i do not care :)
+                                if button.confirm then
+                                    if clicked then
+                                        clicked = false
+                                        counting = false
+                                        objs.text.Text = button.text
+                                        button.callback()
+                                    else
+                                        clicked = true
+                                        counting = true
+                                        for i = 3,1,-1 do
+                                            if not counting then
+                                                break
+                                            end
+                                            objs.text.Text = 'Confirm '..button.text..'? '..tostring(i)
+                                            wait(1)
+                                        end
+                                        clicked = false
+                                        counting = false
+                                        objs.text.Text = button.text
+                                    end
+                                else
+                                    button.callback()
+                                end
+                            end)
+
+                        end)
+
+                    end
+                    ----------------------
+                    function button:AddButton(data)
+                        local button = {
+                            class = 'button';
+                            flag = data.flag;
+                            text = '';
+                            suffix = '';
+                            tooltip = '';
+                            order = #self.subbuttons+1;
+                            callback = function() end;
+                            confirm = false;
+                            enabled = true;
+                            objects = {};
+                        };
+    
+                        local blacklist = {'objects'};
+                        for i,v in next, data do
+                            if not table.find(blacklist, i) and button[i] ~= nil then
+                                button[i] = v;
+                            end
+                        end
+            
+                        table.insert(self.subbuttons, button)
+    
+                        if button.flag then
+                            library.options[button.flag] = button;
+                        end
+    
+                        --- Create Objects ---
+                        do
+                            local objs = button.objects;
+                            local z = library.zindexOrder.window+25;
+    
+                            objs.holder = utility:Draw('Square', {
+                                Size = newUDim2(1,0,1,0);
+                                Transparency = 0;
+                                ZIndex = z+5;
+                                Parent = self.objects.holder;
+                            })
+    
+                            objs.background = utility:Draw('Square', {
+                                Size = newUDim2(1,-4,1,-8);
+                                Position = newUDim2(0,2,0,4);
+                                ThemeColor = 'Option Background';
+                                ZIndex = z+2;
+                                Parent = objs.holder;
+                            })
+    
+                            objs.border1 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 1';
+                                ZIndex = z+1;
+                                Parent = objs.background;
+                            })
+    
+                            objs.border2 = utility:Draw('Square', {
+                                Size = newUDim2(1,2,1,2);
+                                Position = newUDim2(0,-1,0,-1);
+                                ThemeColor = 'Option Border 2';
+                                ZIndex = z;
+                                Parent = objs.border1;
+                            })
+    
+                            objs.gradient = utility:Draw('Image', {
+                                Size = newUDim2(1,0,1,0);
+                                Data = library.images.gradientp90;
+                                Transparency = .65;
+                                ZIndex = z+3;
+                                Parent = objs.background;
+                            })
+    
+                            objs.text = utility:Draw('Text', {
+                                Position = newUDim2(.5,0,0,0);
+                                ThemeColor = 'Option Text 3';
+                                Size = 13;
+                                Font = 2;
+                                ZIndex = z+4;
+                                Outline = true;
+                                Center = true;
+                                Parent = objs.background;
+                            })
+    
+                            utility:Connection(objs.holder.MouseEnter, function()
+                                objs.border1.ThemeColor = 'Accent';
+                            end)
+    
+                            utility:Connection(objs.holder.MouseLeave, function()
+                                objs.border1.ThemeColor = 'Option Border 1';
+                                objs.text.ThemeColor = self.risky and 'Risky Text' or 'Option Text 3';
+                                objs.background.ThemeColor = 'Option Background';
+                                objs.background.ThemeColorOffset = 0;
+                            end)
+    
+                            utility:Connection(objs.holder.MouseButton1Up, function()
+                                objs.text.ThemeColor = self.risky and 'Risky Text' or 'Option Text 3';
+                                objs.background.ThemeColor = 'Option Background';
+                                objs.background.ThemeColorOffset = 0;
+                            end)
+    
+                            local clicked, counting = false, false
+                            utility:Connection(objs.holder.MouseButton1Down, function()
+                                objs.text.ThemeColor = self.risky and 'Risky Text Enabled' or 'Option Text 2';
+                                objs.background.ThemeColor = 'Accent';
+                                objs.background.ThemeColorOffset = -95;
+    
+                                task.spawn(function() -- this is ugly and i do not care :)
+                                    if button.confirm then
+                                        if clicked then
+                                            clicked = false
+                                            counting = false
+                                            objs.text.Text = button.text
+                                            button.callback()
+                                        else
+                                            clicked = true
+                                            counting = true
+                                            for i = 3,1,-1 do
+                                                if not counting then
+                                                    break
+                                                end
+                                                objs.text.Text = 'Confirm '..button.text..'? '..tostring(i)
+                                                wait(1)
+                                            end
+                                            clicked = false
+                                            counting = false
+                                            objs.text.Text = button.text
+                                        end
+                                    else
+                                        button.callback()
+                                    end
+                                end)
+    
+                            end)
+    
+                        end
+                        ----------------------
+    
+                        function button:SetText(str)
+                            if typeof(str) == 'string' then
+                                self.text = str;
+                                self.objects.text.Text = str;
+                            end
+                        end
+    
+                        tooltip(button);
+                        button:SetText(button.text);
+                        self:UpdateOptions();
+                        return button
+                    end
+                    ----------------------
+
+                    function button:UpdateOptions() -- this so dumb XD
+                        local buttons = 1 + #self.subbuttons;
+                        local buttonSize = (1 / buttons) - .005;
+                        self.objects.background.Size = newUDim2(buttonSize,-4,0,14);
+                        for i,v in next, self.subbuttons do
+                            v.objects.holder.Size = newUDim2(buttonSize,0,1,0);
+                            v.objects.holder.Position = newUDim2(i * buttonSize + .01, 0, 0, 0)
+                        end
+                    end
+
+                    function button:SetText(str)
+                        if typeof(str) == 'string' then
+                            self.text = str;
+                            self.objects.text.Text = str;
+                        end
+                    end
+
+                    tooltip(button);
+                    button:SetText(button.text);
+                    self:UpdateOptions();
+                    return button
+                end
+
+                -- // Separator
+                function section:AddSeparator(data)
+                    local separator = {
+                        class = 'separator';
+                        flag = data.flag;
+                        text = '';
+                        order = #self.options+1;
+                        enabled = true;
+                        objects = {};
+                    };
+
+                    local blacklist = {'objects', 'dragging'};
+                    for i,v in next, data do
+                        if not table.find(blacklist, i) and (separator[i] ~= nil and typeof(separator[i]) == typeof(v)) then
+                            separator[i] = v;
+                        end
+                    end
+        
+                    table.insert(self.options, separator)
+
+                    --- Create Objects ---
+                    do
+                        local objs = separator.objects;
+                        local z = library.zindexOrder.window+25;
+
+                        objs.holder = utility:Draw('Square', {
+                            Size = newUDim2(1,0,0,18);
+                            Transparency = 0;
+                            ZIndex = z;
+                            Parent = section.objects.optionholder;
+                        })
+
+                        objs.line1 = utility:Draw('Square', {
+                            Position = newUDim2(0,0,0,1);
+                            ThemeColor = 'Option Background';
+                            ZIndex = z+1;
+                            Parent = objs.holder;
+                        })
+
+                        objs.line2 = utility:Draw('Square', {
+                            Position = newUDim2(0,0,0,1);
+                            ThemeColor = 'Option Background';
+                            ZIndex = z+1;
+                            Parent = objs.holder;
+                        })
+
+                        objs.border1 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 2';
+                            ZIndex = z;
+                            Parent = objs.line1;
+                        })
+
+                        objs.border2 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 2';
+                            ZIndex = z;
+                            Parent = objs.line2;
+                        })
+
+                        objs.text = utility:Draw('Text', {
+                            Position = newUDim2(.5,0,0,1);
+                            ThemeColor = 'Option Text 2';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z;
+                            Outline = true;
+                            Center = true;
+                            Parent = objs.holder;
+                        })
+
+                    end
+                    ----------------------
+
+                    function separator:SetText(str)
+                        if typeof(str) == 'string' then
+                            self.text = str;
+                            self.objects.text.Text = str;
+                            local xScale = ( 1- utility:ConvertNumberRange(self.objects.text.TextBounds.X, 0, self.objects.holder.Object.Size.X, 0, 1)) / 2 - (str == '' and 0 or .04)
+                            self.objects.line1.Size = newUDim2(xScale, 0, 0, 1)
+                            self.objects.line2.Size = newUDim2(xScale, 0, 0, 1)
+                            self.objects.line1.Position = newUDim2(0,1,.5,-1)
+                            self.objects.line2.Position = newUDim2(1 - self.objects.line2.Size.X.Scale,-1,.5,-1)
+                        end
+                    end
+
+                    separator:SetText(separator.text);
+                    self:UpdateOptions();
+                    return separator
+                end
+
+                -- // Color Picker
+                function section:AddColor(data)
+                    local color = {
+                        class = 'color';
+                        flag = data.flag;
+                        text = '';
+                        tooltip = '';
+                        order = #self.options+1;
+                        callback = function() end;
+                        color = Color3.new(1,1,1);
+                        trans = 0;
+                        open = false;
+                        enabled = true;
+                        risky = false;
+                        objects = {};
+                    };
+
+                    local blacklist = {'objects'};
+                    for i,v in next, data do
+                        if not table.find(blacklist, i) and color[i] ~= nil then
+                            color[i] = v
+                        end
+                    end
+                    
+                    table.insert(self.options, color)
+
+                    if color.flag then
+                        library.flags[color.flag] = color.color;
+                        library.options[color.flag] = color;
+                    end
+
+                    --- Create Objects ---
+                    do
+                        local objs = color.objects;
+                        local z = library.zindexOrder.window+25;
+
+                        objs.holder = utility:Draw('Square', {
+                            Size = newUDim2(1,0,0,19);
+                            Transparency = 0;
+                            ZIndex = z+5;
+                            Parent = section.objects.optionholder;
+                        })
+
+                        objs.background = utility:Draw('Square', {
+                            Size = newUDim2(0,15,0,8);
+                            Position = newUDim2(1,-16,0,5);
+                            ZIndex = z+3;
+                            Parent = objs.holder;
+                        })
+
+                        objs.gradient = utility:Draw('Image', {
+                            Size = newUDim2(1,0,1,0);
+                            Data = library.images.gradientp45;
+                            Transparency = .25;
+                            ZIndex = z+4;
+                            Parent = objs.background;
+                        })
+
+                        objs.border1 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 1';
+                            ZIndex = z+2;
+                            Parent = objs.background;
+                        })
+
+                        objs.border2 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 2';
+                            ZIndex = z+1;
+                            Parent = objs.border1;
+                        })
+
+                        objs.text = utility:Draw('Text', {
+                            Position = newUDim2(0,2,0,2);
+                            ThemeColor = color.risky and 'Risky Text Enabled' or 'Option Text 3';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+1;
+                            Outline = true;
+                            Parent = objs.holder;
+                        })
+
+                        utility:Connection(objs.holder.MouseEnter, function()
+                            objs.border1.ThemeColor = 'Accent';
+                        end)
+
+                        utility:Connection(objs.holder.MouseLeave, function()
+                            objs.border1.ThemeColor = color.state and 'Accent' or 'Option Border 1';
+                        end)
+
+                        utility:Connection(objs.holder.MouseButton1Down, function()
+                            color:SetOpen(not color.open);
+                        end)
+
+                    end
+                    ----------------------
+
+                    function color:SetText(str)
+                        if typeof(str) == 'string' then
+                            self.text = str;
+                            self.objects.text.Text = str;
+                        end
+                    end
+
+                    function color:SetColor(c3, nocallback)
+                        if typeof(c3) == 'Color3' then
+                            local h,s,v = c3:ToHSV(); c3 = fromhsv(h, clamp(s,.005,.995), clamp(v,.005,.995));
+                            self.color = c3;
+                            self.objects.background.Color = c3;
+                            if not nocallback then
+                                self.callback(c3, self.trans);
+                            end
+                            if self.open then
+                                window.colorpicker:Visualize(self.color, self.trans);
+                            end
+                            if self.flag then
+                                library.flags[self.flag] = c3;
+                            end
+                        end
+                    end
+
+                    function color:SetTrans(trans, nocallback)
+                        if typeof(trans) == 'number' then
+                            self.trans = trans;
+                            if not nocallback then
+                                self.callback(self.color, trans);
+                            end
+                            if self.open then
+                                window.colorpicker:Visualize(self.color, self.trans);
+                            end
+                        end
+                    end
+
+                    function color:SetOpen(bool)
+                        if typeof(bool) == 'boolean' then
+                            self.open = bool
+                            if bool then
+                                if window.colorpicker.selected then
+                                    window.colorpicker.selected.open = false;
+                                end
+                                window.colorpicker.selected = color
+                                window.colorpicker.objects.background.Parent = self.objects.background;
+                                window.colorpicker.objects.background.Visible = true;
+                                window.colorpicker:Visualize(color.color, color.trans)
+                            elseif window.colorpicker.selected == color then
+                                window.colorpicker.selected = nil;
+                                window.colorpicker.objects.background.Parent = window.objects.background;
+                                window.colorpicker.objects.background.Visible = false;
+                            end
+                        end
+                    end
+
+                    tooltip(color);
+                    color:SetText(color.text);
+                    color:SetColor(color.color, true);
+                    color:SetTrans(color.trans, true);
+                    self:UpdateOptions();
+                    return color
+                end
+
+                -- // Text Box
+                function section:AddBox(data)
+                    local box = {
+                        class = 'box';
+                        flag = data.flag;
+                        text = '';
+                        input = '';
+                        order = #self.options+1;
+                        callback = function() end;
+                        enabled = true;
+                        focused = false;
+                        risky = false;
+                        objects = {};
+                    };
+
+                    local blacklist = {'objects', 'dragging'};
+                    for i,v in next, data do
+                        if not table.find(blacklist, i) and box[i] ~= nil then
+                            box[i] = v;
+                        end
+                    end
+                    
+                    table.insert(self.options, box)
+
+                    if box.flag then
+                        library.flags[box.flag] = box.input;
+                        library.options[box.flag] = box;
+                    end
+
+                    --- Create Objects ---
+                    do
+                        local objs = box.objects;
+                        local z = library.zindexOrder.window+25;
+
+                        objs.holder = utility:Draw('Square', {
+                            Size = newUDim2(1,0,0,37);
+                            Transparency = 0;
+                            ZIndex = z+4;
+                            Parent = section.objects.optionholder;
+                        })
+
+                        objs.background = utility:Draw('Square', {
+                            Size = newUDim2(1,-4,0,15);
+                            Position = newUDim2(0,2,1,-17);
+                            ThemeColor = 'Option Background';
+                            ZIndex = z+2;
+                            Parent = objs.holder;
+                        })
+
+                        objs.border1 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 1';
+                            ZIndex = z+1;
+                            Parent = objs.background;
+                        })
+
+                        objs.border2 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 2';
+                            ZIndex = z;
+                            Parent = objs.border1;
+                        })
+
+                        objs.gradient = utility:Draw('Image', {
+                            Size = newUDim2(1,0,1,0);
+                            Data = library.images.gradientp90;
+                            Transparency = .65;
+                            ZIndex = z+4;
+                            Parent = objs.background;
+                        })
+
+                        objs.text = utility:Draw('Text', {
+                            Position = newUDim2(0,2,0,2);
+                            ThemeColor = box.risky and 'Risky Text Enabled' or 'Option Text 2';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+1;
+                            Outline = true;
+                            Parent = objs.holder;
+                        })
+
+                        objs.inputText = utility:Draw('Text', {
+                            Position = newUDim2(0,2,0,0);
+                            ThemeColor = 'Option Text 2';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+5;
+                            Outline = true;
+                            Parent = objs.background;
+                        })
+
+                        utility:Connection(objs.holder.MouseEnter, function()
+                            objs.border1.ThemeColor = 'Accent';
+                        end)
+
+                        utility:Connection(objs.holder.MouseLeave, function()
+                            objs.border1.ThemeColor = 'Option Border 1';
+                        end)
+
+                        utility:Connection(objs.holder.MouseButton1Down, function()
+                            if box.focused then
+                                box:ReleaseFocus();
+                                actionservice:UnbindAction('FreezeMovement');
+                            else
+                                actionservice:BindAction(
+                                    'FreezeMovement',
+                                    function()
+                                        return Enum.ContextActionResult.Sink
+                                    end,
+                                    false,
+                                    unpack(Enum.PlayerActions:GetEnumItems())
+                                )
+                                box:CaptureFocus(inputservice:IsKeyDown(Enum.KeyCode.LeftControl));
+                                if inputservice:IsKeyDown(Enum.KeyCode.LeftControl) then
+                                    objs.inputText.Text = '';
+                                end
+                            end
+                        end)
+
+                    end
+                    ----------------------
+
+                    function box:SetText(str)
+                        if typeof(str) == 'string' then
+                            self.text = str;
+                            self.objects.text.Text = str;
+                        end
+                    end
+
+                    function box:SetInput(str, nocallback)
+                        if typeof(str) == 'string' then
+                            self.input = str;
+                            self.objects.inputText.Text = str;
+                            if not nocallback then
+                                self.callback(str);
+                            end
+                            if self.flag then
+                                library.flags[self.flag] = str;
+                            end
+                        end
+                    end
+
+                    local c
+                    local input = box.input;
+                    function box:CaptureFocus(clear)
+                        box.focused = true
+
+                        if clear then
+                            input = '';
+                        end
+
+                        self.objects.inputText.ThemeColor = 'Option Text 1';
+                        c = utility:Connection(inputservice.InputBegan, function(inp)
+                            if inp.KeyCode == Enum.KeyCode.Return or inp.UserInputType == Enum.UserInputType.MouseButton1 then
+                                box:ReleaseFocus(true);
+                            elseif inp.KeyCode == Enum.KeyCode.Escape then
+                                input = self.input
+                                self.objects.inputText.Text = input;
+                                box:ReleaseFocus();
+                            elseif inp.KeyCode == Enum.KeyCode.Backspace then
+                                input = input:sub(1,-2);
+                                self.objects.inputText.Text = input;
+                            elseif #inp.KeyCode.Name == 1 or table.find(whitelistedBoxKeys, inp.KeyCode) or inp.KeyCode.Name == 'Space' or inp.KeyCode.Name == 'Minus' or inp.KeyCode.Name == 'Equals' or inp.KeyCode.Name == 'Backquote' then
+                                local wlIdx = table.find(whitelistedBoxKeys, inp.KeyCode)
+                                local keyString = inp.KeyCode.Name == 'Space' and ' ' or inp.KeyCode.Name == 'Minus' and '_' or inp.KeyCode.Name == 'Equals' and '+' or inp.KeyCode.Name == 'Backquote' and '~' or wlIdx ~= nil and tostring(wlIdx-1) or inp.KeyCode.Name
+                                if not (inputservice:IsKeyDown(Enum.KeyCode.LeftShift) and not inputservice:IsKeyDown(Enum.KeyCode.RightShift)) then
+                                    keyString = keyString:lower();
+                                    if inp.KeyCode.Name == 'Minus' then
+                                        keyString = '-'
+                                    elseif inp.KeyCode.Name == 'Equals' then
+                                        keyString = '='
+                                    elseif inp.KeyCode.Name == 'Backquote' then
+                                        keyString = '`'
+                                    end
+                                else
+                                    if keyString == '1' then
+                                        keyString = '!'
+                                    elseif keyString == '2' then
+                                        keyString = '@'
+                                    elseif keyString == '3' then
+                                        keyString = '#'
+                                    elseif keyString == '4' then
+                                        keyString = '$'
+                                    elseif keyString == '5' then
+                                        keyString = '%'
+                                    elseif keyString == '6' then
+                                        keyString = '^'
+                                    elseif keyString == '7' then
+                                        keyString = '&'
+                                    elseif keyString == '8' then
+                                        keyString = '*'
+                                    elseif keyString == '9' then
+                                        keyString = '('
+                                    elseif keyString == '0' then
+                                        keyString = ')'
+                                    end
+                                end
+                                input = input..keyString;
+                                self.objects.inputText.Text = input;
+                            end
+                        end)
+
+                    end
+
+                    function box:ReleaseFocus(apply)
+                        box.focused = false;
+                        self.objects.inputText.ThemeColor = 'Option Text 2';
+                        if apply then
+                            box:SetInput(input);
+                        end
+                        c:Disconnect();
+                    end
+
+                    tooltip(box);
+                    box:SetText(box.text);
+                    box:SetInput(box.input, true);
+                    self:UpdateOptions();
+                    return box
+                end
+
+                -- // Keybind
+                function section:AddBind(data)
+                    local bind = {
+                        class = 'bind';
+                        flag = data.flag;
+                        text = '';
+                        tooltip = '';
+                        bind = 'none';
+                        mode = 'toggle';
+                        order = #self.options+1;
+                        callback = function() end;
+                        keycallback = function() end;
+                        indicatorValue = library.keyIndicator:AddValue({value = 'value', key = 'key', enabled = false});
+                        noindicator = false;
+                        state = false;
+                        nomouse = false;
+                        enabled = true;
+                        binding = false;
+                        risky = false;
+                        objects = {};
+                    };
+
+                    local blacklist = {'objects'};
+                    for i,v in next, data do
+                        if not table.find(blacklist, i) and bind[i] ~= nil then
+                            bind[i] = v
+                        end
+                    end
+                    
+                    table.insert(self.options, bind)
+
+                    if bind.flag then
+                        library.options[bind.flag] = bind;
+                    end
+
+                    --- Create Objects ---
+                    do
+                        local objs = bind.objects;
+                        local z = library.zindexOrder.window+25;
+
+                        objs.holder = utility:Draw('Square', {
+                            Size = newUDim2(1,0,0,19);
+                            Transparency = 0;
+                            ZIndex = z+5;
+                            Parent = section.objects.optionholder;
+                        })
+
+                        objs.text = utility:Draw('Text', {
+                            Position = newUDim2(0,2,0,2);
+                            ThemeColor = bind.risky and 'Risky Text' or 'Option Text 2';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+1;
+                            Outline = true;
+                            Parent = objs.holder;
+                        })
+
+                        objs.keyText = utility:Draw('Text', {
+                            ThemeColor = 'Option Text 3';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+1;
+                            Parent = objs.holder;
+                        })
+
+                        utility:Connection(objs.holder.MouseEnter, function()
+                            objs.keyText.ThemeColor = 'Accent';
+                        end)
+
+                        utility:Connection(objs.holder.MouseLeave, function()
+                            objs.keyText.ThemeColor = bind.binding and 'Accent' or 'Option Text 3';
+                        end)
+
+                        utility:Connection(objs.holder.MouseButton1Down, function()
+                            if not bind.binding then
+                                bind:SetKeyText('...');
+                                bind.binding = true;
+                            end
+                        end)
+
+                    end
+                    ----------------------
+
+                    local c
+
+                    function bind:SetText(str)
+                        if typeof(str) == 'string' then
+                            self.text = str;
+                            self.objects.text.Text = str;
+                            self.indicatorValue:SetKey(str);
+                        end
+                    end
+
+                    function bind:SetBind(keybind)
+                        if c then
+                            c:Disconnect();
+                            if bind.flag then
+                                library.flags[bind.flag] = false;
+                            end
+                            bind.callback(false);
+                        end
+                        local keyName = 'NONE'
+                        self.bind = (keybind and keybind) or keybind or self.bind
+                        if self.bind == Enum.KeyCode.Backspace then
+                            self.bind = 'none';
                         else
-                            keybind.active = true
-                            if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                            callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
+                            keyName = keyNames[keybind] or keybind.Name or keybind
                         end
+                        self.keycallback(self.bind);
+                        self:SetKeyText(keyName:upper());
+                        self.indicatorValue:SetKey((self.text == nil or self.text == '') and (self.flag == nil and 'unknown' or self.flag) or self.text); -- this is so dumb
+                        self.indicatorValue:SetValue('['..keyName:upper()..']');
+                        self.objects.keyText.ThemeColor = self.objects.holder.Hover and 'Accent' or 'Option Text 3';
                     end
-                end
-            end
-        end
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = keybind
-        end
-        --
-        section.currentAxis = section.currentAxis + 17 + 9
-        --
-        return keybind
-    end
-    --
-    function sections:Colorpicker(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "New Colorpicker"
-        local cpinfo = info.info or info.Info or name
-        local def = info.def or info.Def or info.default or info.Default or Color3.fromRGB(255, 0, 0)
-        local transp = info.transparency or info.Transparency or info.transp or info.Transp or info.alpha or info.Alpha or nil
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local hh, ss, vv = def:ToHSV()
-        local colorpicker = {axis = section.currentAxis, secondColorpicker = false, current = {hh, ss, vv , (transp or 0)}, holding = {picker = false, huepicker = false, transparency = false}, holder = {inline = nil, picker = nil, picker_cursor = nil, huepicker = nil, huepicker_cursor = {}, transparency = nil, transparencybg = nil, transparency_cursor = {}, drawings = {}}}
-        --
-        local colorpicker_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(30+4),colorpicker.axis), section.section_frame}, {
-            Size = utility:Size(0, 30, 0, 15),
-            Position = utility:Position(1, -(30+4), 0, colorpicker.axis, section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[colorpicker_outline] = {
-            Color = "outline"
-        }
-        --
-        local colorpicker_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_outline}, {
-            Size = utility:Size(1, -2, 1, -2, colorpicker_outline),
-            Position = utility:Position(0, 1, 0, 1, colorpicker_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[colorpicker_inline] = {
-            Color = "inline"
-        }
-        --
-        local colorpicker__transparency
-        if transp then
-            colorpicker__transparency = utility:Create("Image", {Vector2.new(1,1), colorpicker_inline}, {
-                Size = utility:Size(1, -2, 1, -2, colorpicker_inline),
-                Position = utility:Position(0, 1, 0 , 1, colorpicker_inline),
-                Visible = page.open
-            }, section.visibleContent)
-        end
-        --
-        local colorpicker_frame = utility:Create("Frame", {Vector2.new(1,1), colorpicker_inline}, {
-            Size = utility:Size(1, -2, 1, -2, colorpicker_inline),
-            Position = utility:Position(0, 1, 0, 1, colorpicker_inline),
-            Color = def,
-            Transparency = transp and (1 - transp) or 1,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local colorpicker__gradient = utility:Create("Image", {Vector2.new(0,0), colorpicker_frame}, {
-            Size = utility:Size(1, 0, 1, 0, colorpicker_frame),
-            Position = utility:Position(0, 0, 0 , 0, colorpicker_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local colorpicker_title = utility:Create("TextLabel", {Vector2.new(4,colorpicker.axis + (15/2) - (utility:GetTextBounds(name, theme.textsize, theme.font).Y/2)), section.section_frame}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 4, 0, colorpicker.axis + (15/2) - (utility:GetTextBounds(name, theme.textsize, theme.font).Y/2), section.section_frame),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[colorpicker_title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        if transp then
-            utility:LoadImage(colorpicker__transparency, "cptransp", "https://i.imgur.com/IIPee2A.png")
-        end
-        utility:LoadImage(colorpicker__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function colorpicker:Set(color, transp_val)
-            if typeof(color) == "table" then
-                if color.Color and color.Transparency ~= nil then
-                    local h, s, v = Unpack(color.Color)
-                    colorpicker.current = {h, s, v, color.Transparency}
-                else
-                    colorpicker.current = color
-                end
-            elseif typeof(color) == "Color3" then
-                local h, s, v = color:ToHSV()
-                colorpicker.current = {h, s, v, (transp_val or 0)}
-            end
-            --
-            if colorpicker.current[1] and colorpicker.current[2] and colorpicker.current[3] then
-                colorpicker_frame.Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
-                colorpicker_frame.Transparency = 1 - (colorpicker.current[4] or 0)
-                callback(Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3]), colorpicker.current[4] or 0)
-            end
-        end
-        --
-        function colorpicker:Refresh()
-            local mouseLocation = utility:MouseLocation()
-            if colorpicker.open and colorpicker.holder.picker and colorpicker.holding.picker then
-                colorpicker.current[2] = math.clamp(mouseLocation.X - colorpicker.holder.picker.Position.X, 0, colorpicker.holder.picker.Size.X) / colorpicker.holder.picker.Size.X
-                --
-                colorpicker.current[3] = 1-(math.clamp(mouseLocation.Y - colorpicker.holder.picker.Position.Y, 0, colorpicker.holder.picker.Size.Y) / colorpicker.holder.picker.Size.Y)
-                --
-                colorpicker.holder.picker_cursor.Position = utility:Position(colorpicker.current[2], -3, 1-colorpicker.current[3] , -3, colorpicker.holder.picker)
-                --
-                utility:UpdateOffset(colorpicker.holder.picker_cursor, {Vector2.new((colorpicker.holder.picker.Size.X*colorpicker.current[2])-3,(colorpicker.holder.picker.Size.Y*(1-colorpicker.current[3]))-3), colorpicker.holder.picker})
-                --
-                if colorpicker.holder.transparencybg then
-                    colorpicker.holder.transparencybg.Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
-                end
-            elseif colorpicker.open and colorpicker.holder.huepicker and colorpicker.holding.huepicker then
-                colorpicker.current[1] = (math.clamp(mouseLocation.Y - colorpicker.holder.huepicker.Position.Y, 0, colorpicker.holder.huepicker.Size.Y) / colorpicker.holder.huepicker.Size.Y)
-                --
-                colorpicker.holder.huepicker_cursor[1].Position = utility:Position(0, -3, colorpicker.current[1], -3, colorpicker.holder.huepicker)
-                colorpicker.holder.huepicker_cursor[2].Position = utility:Position(0, 1, 0, 1, colorpicker.holder.huepicker_cursor[1])
-                colorpicker.holder.huepicker_cursor[3].Position = utility:Position(0, 1, 0, 1, colorpicker.holder.huepicker_cursor[2])
-                colorpicker.holder.huepicker_cursor[3].Color = Color3.fromHSV(colorpicker.current[1], 1, 1)
-                --
-                utility:UpdateOffset(colorpicker.holder.huepicker_cursor[1], {Vector2.new(-3,(colorpicker.holder.huepicker.Size.Y*colorpicker.current[1])-3), colorpicker.holder.huepicker})
-                --
-                colorpicker.holder.background.Color = Color3.fromHSV(colorpicker.current[1], 1, 1)
-                --
-                if colorpicker.holder.transparency_cursor and colorpicker.holder.transparency_cursor[3] then
-                    colorpicker.holder.transparency_cursor[3].Color = Color3.fromHSV(0, 0, 1 - colorpicker.current[4])
-                end
-                --
-                if colorpicker.holder.transparencybg then
-                    colorpicker.holder.transparencybg.Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
-                end
-            elseif colorpicker.open and colorpicker.holder.transparency and colorpicker.holding.transparency then
-                colorpicker.current[4] = 1 - (math.clamp(mouseLocation.X - colorpicker.holder.transparency.Position.X, 0, colorpicker.holder.transparency.Size.X) / colorpicker.holder.transparency.Size.X)
-                --
-                colorpicker.holder.transparency_cursor[1].Position = utility:Position(1-colorpicker.current[4], -3, 0, -3, colorpicker.holder.transparency)
-                colorpicker.holder.transparency_cursor[2].Position = utility:Position(0, 1, 0, 1, colorpicker.holder.transparency_cursor[1])
-                colorpicker.holder.transparency_cursor[3].Position = utility:Position(0, 1, 0, 1, colorpicker.holder.transparency_cursor[2])
-                colorpicker.holder.transparency_cursor[3].Color = Color3.fromHSV(0, 0, 1 - colorpicker.current[4])
-                colorpicker_frame.Transparency = (1 - colorpicker.current[4])
-                --
-                utility:UpdateTransparency(colorpicker_frame, (1 - colorpicker.current[4]))
-                utility:UpdateOffset(colorpicker.holder.transparency_cursor[1], {Vector2.new((colorpicker.holder.transparency.Size.X*(1-colorpicker.current[4]))-3,-3), colorpicker.holder.transparency})
-                --
-                colorpicker.holder.background.Color = Color3.fromHSV(colorpicker.current[1], 1, 1)
-            end
-            --
-            colorpicker:Set(colorpicker.current)
-        end
-        --
-        function colorpicker:Get()
-            return {Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3]), Transparency = colorpicker.current[4]}
-        end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and colorpicker_outline.Visible then
-                if colorpicker.open and colorpicker.holder.inline and utility:MouseOverDrawing({colorpicker.holder.inline.Position.X, colorpicker.holder.inline.Position.Y, colorpicker.holder.inline.Position.X + colorpicker.holder.inline.Size.X, colorpicker.holder.inline.Position.Y + colorpicker.holder.inline.Size.Y}) then
-                    if colorpicker.holder.picker and utility:MouseOverDrawing({colorpicker.holder.picker.Position.X - 2, colorpicker.holder.picker.Position.Y - 2, colorpicker.holder.picker.Position.X - 2 + colorpicker.holder.picker.Size.X + 4, colorpicker.holder.picker.Position.Y - 2 + colorpicker.holder.picker.Size.Y + 4}) then
-                        colorpicker.holding.picker = true
-                        colorpicker:Refresh()
-                    elseif colorpicker.holder.huepicker and utility:MouseOverDrawing({colorpicker.holder.huepicker.Position.X - 2, colorpicker.holder.huepicker.Position.Y - 2, colorpicker.holder.huepicker.Position.X - 2 + colorpicker.holder.huepicker.Size.X + 4, colorpicker.holder.huepicker.Position.Y - 2 + colorpicker.holder.huepicker.Size.Y + 4}) then
-                        colorpicker.holding.huepicker = true
-                        colorpicker:Refresh()
-                    elseif colorpicker.holder.transparency and utility:MouseOverDrawing({colorpicker.holder.transparency.Position.X - 2, colorpicker.holder.transparency.Position.Y - 2, colorpicker.holder.transparency.Position.X - 2 + colorpicker.holder.transparency.Size.X + 4, colorpicker.holder.transparency.Position.Y - 2 + colorpicker.holder.transparency.Size.Y + 4}) then
-                        colorpicker.holding.transparency = true
-                        colorpicker:Refresh()
+
+                    function bind:SetKeyText(str)
+                        str = tostring(str);
+                        self.objects.keyText.Text = '['..str..']';
+                        self.objects.keyText.Position = newUDim2(1,-self.objects.keyText.TextBounds.X, 0, 2);
                     end
-                elseif utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + colorpicker.axis, section.section_frame.Position.X + section.section_frame.Size.X - (colorpicker.secondColorpicker and (30+4) or 0), section.section_frame.Position.Y + colorpicker.axis + 15}) and not window:IsOverContent() then
-                    if not colorpicker.open then
-                        window:CloseContent()
-                        colorpicker.open = not colorpicker.open
-                        --
-                        local colorpicker_open_outline = utility:Create("Frame", {Vector2.new(4,colorpicker.axis + 19), section.section_frame}, {
-                            Size = utility:Size(1, -8, 0, transp and 219 or 200, section.section_frame),
-                            Position = utility:Position(0, 4, 0, colorpicker.axis + 19, section.section_frame),
-                            Color = theme.outline
-                        }, colorpicker.holder.drawings);colorpicker.holder.inline = colorpicker_open_outline
-                        --
-                        library.colors[colorpicker_open_outline] = {
-                            Color = "outline"
-                        }
-                        --
-                        local colorpicker_open_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_outline}, {
-                            Size = utility:Size(1, -2, 1, -2, colorpicker_open_outline),
-                            Position = utility:Position(0, 1, 0, 1, colorpicker_open_outline),
-                            Color = theme.inline
-                        }, colorpicker.holder.drawings)
-                        --
-                        library.colors[colorpicker_open_inline] = {
-                            Color = "inline"
-                        }
-                        --
-                        local colorpicker_open_frame = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_inline}, {
-                            Size = utility:Size(1, -2, 1, -2, colorpicker_open_inline),
-                            Position = utility:Position(0, 1, 0, 1, colorpicker_open_inline),
-                            Color = theme.darkcontrast
-                        }, colorpicker.holder.drawings)
-                        --
-                        library.colors[colorpicker_open_frame] = {
-                            Color = "darkcontrast"
-                        }
-                        --
-                        local colorpicker_open_accent = utility:Create("Frame", {Vector2.new(0,0), colorpicker_open_frame}, {
-                            Size = utility:Size(1, 0, 0, 2, colorpicker_open_frame),
-                            Position = utility:Position(0, 0, 0, 0, colorpicker_open_frame),
-                            Color = theme.accent
-                        }, colorpicker.holder.drawings)
-                        --
-                        library.colors[colorpicker_open_accent] = {
-                            Color = "accent"
-                        }
-                        --
-                        local colorpicker_title = utility:Create("TextLabel", {Vector2.new(4,2), colorpicker_open_frame}, {
-                            Text = cpinfo,
-                            Size = theme.textsize,
-                            Font = theme.font,
-                            Color = theme.textcolor,
-                            OutlineColor = theme.textborder,
-                            Position = utility:Position(0, 4, 0, 2, colorpicker_open_frame),
-                        }, colorpicker.holder.drawings)
-                        --
-                        library.colors[colorpicker_title] = {
-                            OutlineColor = "textborder",
-                            Color = "textcolor"
-                        }
-                        --
-                        local colorpicker_open_picker_outline = utility:Create("Frame", {Vector2.new(4,17), colorpicker_open_frame}, {
-                            Size = utility:Size(1, -27, 1, transp and -40 or -21, colorpicker_open_frame),
-                            Position = utility:Position(0, 4, 0, 17, colorpicker_open_frame),
-                            Color = theme.outline
-                        }, colorpicker.holder.drawings)
-                        --
-                        library.colors[colorpicker_open_picker_outline] = {
-                            Color = "outline"
-                        }
-                        --
-                        local colorpicker_open_picker_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_picker_outline}, {
-                            Size = utility:Size(1, -2, 1, -2, colorpicker_open_picker_outline),
-                            Position = utility:Position(0, 1, 0, 1, colorpicker_open_picker_outline),
-                            Color = theme.inline
-                        }, colorpicker.holder.drawings)
-                        --
-                        library.colors[colorpicker_open_picker_inline] = {
-                            Color = "inline"
-                        }
-                        --
-                        local colorpicker_open_picker_bg = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_picker_inline}, {
-                            Size = utility:Size(1, -2, 1, -2, colorpicker_open_picker_inline),
-                            Position = utility:Position(0, 1, 0, 1, colorpicker_open_picker_inline),
-                            Color = Color3.fromHSV(colorpicker.current[1],1,1)
-                        }, colorpicker.holder.drawings);colorpicker.holder.background = colorpicker_open_picker_bg
-                        --
-                        local colorpicker_open_picker_image = utility:Create("Image", {Vector2.new(0,0), colorpicker_open_picker_bg}, {
-                            Size = utility:Size(1, 0, 1, 0, colorpicker_open_picker_bg),
-                            Position = utility:Position(0, 0, 0 , 0, colorpicker_open_picker_bg),
-                        }, colorpicker.holder.drawings);colorpicker.holder.picker = colorpicker_open_picker_image
-                        --
-                        local colorpicker_open_picker_cursor = utility:Create("Image", {Vector2.new((colorpicker_open_picker_image.Size.X*colorpicker.current[2])-3,(colorpicker_open_picker_image.Size.Y*(1-colorpicker.current[3]))-3), colorpicker_open_picker_image}, {
-                            Size = utility:Size(0, 6, 0, 6, colorpicker_open_picker_image),
-                            Position = utility:Position(colorpicker.current[2], -3, 1-colorpicker.current[3] , -3, colorpicker_open_picker_image),
-                        }, colorpicker.holder.drawings);colorpicker.holder.picker_cursor = colorpicker_open_picker_cursor
-                        --
-                        local colorpicker_open_huepicker_outline = utility:Create("Frame", {Vector2.new(colorpicker_open_frame.Size.X-19,17), colorpicker_open_frame}, {
-                            Size = utility:Size(0, 15, 1, transp and -40 or -21, colorpicker_open_frame),
-                            Position = utility:Position(1, -19, 0, 17, colorpicker_open_frame),
-                            Color = theme.outline
-                        }, colorpicker.holder.drawings)
-                        --
-                        library.colors[colorpicker_open_huepicker_outline] = {
-                            Color = "outline"
-                        }
-                        --
-                        local colorpicker_open_huepicker_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_huepicker_outline}, {
-                            Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_outline),
-                            Position = utility:Position(0, 1, 0, 1, colorpicker_open_huepicker_outline),
-                            Color = theme.inline
-                        }, colorpicker.holder.drawings)
-                        --
-                        library.colors[colorpicker_open_huepicker_inline] = {
-                            Color = "inline"
-                        }
-                        --
-                        local colorpicker_open_huepicker_image = utility:Create("Image", {Vector2.new(1,1), colorpicker_open_huepicker_inline}, {
-                            Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_inline),
-                            Position = utility:Position(0, 1, 0 , 1, colorpicker_open_huepicker_inline),
-                        }, colorpicker.holder.drawings);colorpicker.holder.huepicker = colorpicker_open_huepicker_image
-                        --
-                        local colorpicker_open_huepicker_cursor_outline = utility:Create("Frame", {Vector2.new(-3,(colorpicker_open_huepicker_image.Size.Y*colorpicker.current[1])-3), colorpicker_open_huepicker_image}, {
-                            Size = utility:Size(1, 6, 0, 6, colorpicker_open_huepicker_image),
-                            Position = utility:Position(0, -3, colorpicker.current[1], -3, colorpicker_open_huepicker_image),
-                            Color = theme.outline
-                        }, colorpicker.holder.drawings);colorpicker.holder.huepicker_cursor[1] = colorpicker_open_huepicker_cursor_outline
-                        --
-                        library.colors[colorpicker_open_huepicker_cursor_outline] = {
-                            Color = "outline"
-                        }
-                        --
-                        local colorpicker_open_huepicker_cursor_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_huepicker_cursor_outline}, {
-                            Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_cursor_outline),
-                            Position = utility:Position(0, 1, 0, 1, colorpicker_open_huepicker_cursor_outline),
-                            Color = theme.textcolor
-                        }, colorpicker.holder.drawings);colorpicker.holder.huepicker_cursor[2] = colorpicker_open_huepicker_cursor_inline
-                        --
-                        library.colors[colorpicker_open_huepicker_cursor_inline] = {
-                            Color = "textcolor"
-                        }
-                        --
-                        local colorpicker_open_huepicker_cursor_color = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_huepicker_cursor_inline}, {
-                            Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_cursor_inline),
-                            Position = utility:Position(0, 1, 0, 1, colorpicker_open_huepicker_cursor_inline),
-                            Color = Color3.fromHSV(colorpicker.current[1], 1, 1)
-                        }, colorpicker.holder.drawings);colorpicker.holder.huepicker_cursor[3] = colorpicker_open_huepicker_cursor_color
-                        --
-                        if transp then
-                            local colorpicker_open_transparency_outline = utility:Create("Frame", {Vector2.new(4,colorpicker_open_frame.Size.Y-19), colorpicker_open_frame}, {
-                                Size = utility:Size(1, -27, 0, 15, colorpicker_open_frame),
-                                Position = utility:Position(0, 4, 1, -19, colorpicker_open_frame),
-                                Color = theme.outline
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_transparency_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_transparency_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_outline),
-                                Color = theme.inline
-                            }, colorpicker.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_transparency_inline] = {
-                                Color = "inline"
-                            }
-                            --
-                            local colorpicker_open_transparency_bg = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_inline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_inline),
-                                Color = Color3.fromHSV(colorpicker.current[1], colorpicker.current[2], colorpicker.current[3])
-                            }, colorpicker.holder.drawings);colorpicker.holder.transparencybg = colorpicker_open_transparency_bg
-                            --
-                            local colorpicker_open_transparency_image = utility:Create("Image", {Vector2.new(1,1), colorpicker_open_transparency_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_inline),
-                                Position = utility:Position(0, 1, 0 , 1, colorpicker_open_transparency_inline),
-                            }, colorpicker.holder.drawings);colorpicker.holder.transparency = colorpicker_open_transparency_image
-                            --
-                            local colorpicker_open_transparency_cursor_outline = utility:Create("Frame", {Vector2.new((colorpicker_open_transparency_image.Size.X*(1-colorpicker.current[4]))-3,-3), colorpicker_open_transparency_image}, {
-                                Size = utility:Size(0, 6, 1, 6, colorpicker_open_transparency_image),
-                                Position = utility:Position(1-colorpicker.current[4], -3, 0, -3, colorpicker_open_transparency_image),
-                                Color = theme.outline
-                            }, colorpicker.holder.drawings);colorpicker.holder.transparency_cursor[1] = colorpicker_open_transparency_cursor_outline
-                            --
-                            library.colors[colorpicker_open_transparency_cursor_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_transparency_cursor_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_cursor_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_cursor_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_cursor_outline),
-                                Color = theme.textcolor
-                            }, colorpicker.holder.drawings);colorpicker.holder.transparency_cursor[2] = colorpicker_open_transparency_cursor_inline
-                            --
-                            library.colors[colorpicker_open_transparency_cursor_inline] = {
-                                Color = "textcolor"
-                            }
-                            --
-                            local colorpicker_open_transparency_cursor_color = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_cursor_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_cursor_inline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_cursor_inline),
-                                Color = Color3.fromHSV(0, 0, 1 - colorpicker.current[4]),
-                            }, colorpicker.holder.drawings);colorpicker.holder.transparency_cursor[3] = colorpicker_open_transparency_cursor_color
-                            --
-                            utility:LoadImage(colorpicker_open_transparency_image, "transp", "https://i.imgur.com/ncssKbH.png")
-                        end
-                        --
-                        utility:LoadImage(colorpicker_open_picker_image, "valsat", "https://i.imgur.com/wpDRqVH.png")
-                        utility:LoadImage(colorpicker_open_picker_cursor, "valsat_cursor", "https://raw.githubusercontent.com/mvonwalk/splix-assets/main/Images-cursor.png")
-                        utility:LoadImage(colorpicker_open_huepicker_image, "hue", "https://i.imgur.com/iEOsHFv.png")
-                        --
-                        window.currentContent.frame = colorpicker_open_inline
-                        window.currentContent.colorpicker = colorpicker
-                    else
-                        colorpicker.open = not colorpicker.open
-                        --
-                        for i,v in pairs(colorpicker.holder.drawings) do
-                            utility:Remove(v)
-                        end
-                        --
-                        colorpicker.holder.drawings = {}
-                        colorpicker.holder.inline = nil
-                        --
-                        window.currentContent.frame = nil
-                        window.currentContent.colorpicker = nil
-                    end
-                else
-                    if colorpicker.open then
-                        colorpicker.open = not colorpicker.open
-                        --
-                        for i,v in pairs(colorpicker.holder.drawings) do
-                            utility:Remove(v)
-                        end
-                        --
-                        colorpicker.holder.drawings = {}
-                        colorpicker.holder.inline = nil
-                        --
-                        window.currentContent.frame = nil
-                        window.currentContent.colorpicker = nil
-                    end
-                end
-            elseif Input.UserInputType == Enum.UserInputType.MouseButton1 and colorpicker.open then
-                colorpicker.open = not colorpicker.open
-                --
-                for i,v in pairs(colorpicker.holder.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                colorpicker.holder.drawings = {}
-                colorpicker.holder.inline = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.colorpicker = nil
-            end
-        end
-        --
-        library.ended[#library.ended + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                if colorpicker.holding.picker then
-                    colorpicker.holding.picker = not colorpicker.holding.picker
-                end
-                if colorpicker.holding.huepicker then
-                    colorpicker.holding.huepicker = not colorpicker.holding.huepicker
-                end
-                if colorpicker.holding.transparency then
-                    colorpicker.holding.transparency = not colorpicker.holding.transparency
-                end
-            end
-        end
-        --
-        library.changed[#library.changed + 1] = function()
-            if colorpicker.open and colorpicker.holding.picker or colorpicker.holding.huepicker or colorpicker.holding.transparency then
-                if window.isVisible then
-                    colorpicker:Refresh()
-                else
-                    if colorpicker.holding.picker then
-                        colorpicker.holding.picker = not colorpicker.holding.picker
-                    end
-                    if colorpicker.holding.huepicker then
-                        colorpicker.holding.huepicker = not colorpicker.holding.huepicker
-                    end
-                    if colorpicker.holding.transparency then
-                        colorpicker.holding.transparency = not colorpicker.holding.transparency
-                    end
-                end
-            end
-        end
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = colorpicker
-        end
-        --
-        section.currentAxis = section.currentAxis + 15 + 9
-        --
-        function colorpicker:Colorpicker(info)
-            local info = info or {}
-            local cpinfo = info.info or info.Info or name
-            local def = info.def or info.Def or info.default or info.Default or Color3.fromRGB(255, 0, 0)
-            local transp = info.transparency or info.Transparency or info.transp or info.Transp or info.alpha or info.Alpha or nil
-            local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-            local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-            --
-            colorpicker.secondColorpicker = true
-            --
-            colorpicker_outline.Position = utility:Position(1, -(60+8), 0, colorpicker.axis, section.section_frame)
-            utility:UpdateOffset(colorpicker_outline, {Vector2.new(section.section_frame.Size.X-(60+8),colorpicker.axis), section.section_frame})
-            --
-            local hh, ss, vv = def:ToHSV()
-            local inner = {axis = colorpicker.axis, current = {hh, ss, vv , (transp or 0)}, holding = {picker = false, huepicker = false, transparency = false}, holder = {inline = nil, picker = nil, picker_cursor = nil, huepicker = nil, huepicker_cursor = {}, transparency = nil, transparencybg = nil, transparency_cursor = {}, drawings = {}}}
-            --
-            local inner_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(30+4), inner.axis), section.section_frame}, {
-                Size = utility:Size(0, 30, 0, 15),
-                Position = utility:Position(1, -(30+4), 0, inner.axis, section.section_frame),
-                Color = theme.outline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[inner_outline] = {
-                Color = "outline"
-            }
-            --
-            local inner_inline = utility:Create("Frame", {Vector2.new(1,1), inner_outline}, {
-                Size = utility:Size(1, -2, 1, -2, inner_outline),
-                Position = utility:Position(0, 1, 0, 1, inner_outline),
-                Color = theme.inline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[inner_inline] = {
-                Color = "inline"
-            }
-            --
-            local inner__transparency
-            if transp then
-                inner__transparency = utility:Create("Image", {Vector2.new(1,1), inner_inline}, {
-                    Size = utility:Size(1, -2, 1, -2, inner_inline),
-                    Position = utility:Position(0, 1, 0 , 1, inner_inline),
-                    Visible = page.open
-                }, section.visibleContent)
-            end
-            --
-            local inner_frame = utility:Create("Frame", {Vector2.new(1,1), inner_inline}, {
-                Size = utility:Size(1, -2, 1, -2, inner_inline),
-                Position = utility:Position(0, 1, 0, 1, inner_inline),
-                Color = def,
-                Transparency = transp and (1 - transp) or 1,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            local inner__gradient = utility:Create("Image", {Vector2.new(0,0), inner_frame}, {
-                Size = utility:Size(1, 0, 1, 0, inner_frame),
-                Position = utility:Position(0, 0, 0 , 0, inner_frame),
-                Transparency = 0.5,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            if transp then
-                utility:LoadImage(inner__transparency, "cptransp", "https://i.imgur.com/IIPee2A.png")
-            end
-            utility:LoadImage(inner__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-            --
-            function inner:Set(color, transp_val)
-                if typeof(color) == "table" then
-                    if color.Color and color.Transparency ~= nil then
-                        local h, s, v = Unpack(color.Color)
-                        inner.current = {h, s, v, color.Transparency}
-                    else
-                        inner.current = color
-                    end
-                elseif typeof(color) == "Color3" then
-                    local h, s, v = color:ToHSV()
-                    inner.current = {h, s, v, (transp_val or 0)}
-                end
-                --
-                if inner.current[1] and inner.current[2] and inner.current[3] then
-                    inner_frame.Color = Color3.fromHSV(inner.current[1], inner.current[2], inner.current[3])
-                    inner_frame.Transparency = 1 - (inner.current[4] or 0)
-                    callback(Color3.fromHSV(inner.current[1], inner.current[2], inner.current[3]), inner.current[4] or 0)
-                end
-            end
-            --
-            function inner:Refresh()
-                local mouseLocation = utility:MouseLocation()
-                if inner.open and inner.holder.picker and inner.holding.picker then
-                    inner.current[2] = math.clamp(mouseLocation.X - inner.holder.picker.Position.X, 0, inner.holder.picker.Size.X) / inner.holder.picker.Size.X
-                    inner.current[3] = 1-(math.clamp(mouseLocation.Y - inner.holder.picker.Position.Y, 0, inner.holder.picker.Size.Y) / inner.holder.picker.Size.Y)
-                    inner.holder.picker_cursor.Position = utility:Position(inner.current[2], -3, 1-inner.current[3] , -3, inner.holder.picker)
-                    utility:UpdateOffset(inner.holder.picker_cursor, {Vector2.new((inner.holder.picker.Size.X*inner.current[2])-3,(inner.holder.picker.Size.Y*(1-inner.current[3]))-3), inner.holder.picker})
-                    if inner.holder.transparencybg then
-                        inner.holder.transparencybg.Color = Color3.fromHSV(inner.current[1], inner.current[2], inner.current[3])
-                    end
-                elseif inner.open and inner.holder.huepicker and inner.holding.huepicker then
-                    inner.current[1] = (math.clamp(mouseLocation.Y - inner.holder.huepicker.Position.Y, 0, inner.holder.huepicker.Size.Y) / inner.holder.huepicker.Size.Y)
-                    inner.holder.huepicker_cursor[1].Position = utility:Position(0, -3, inner.current[1], -3, inner.holder.huepicker)
-                    inner.holder.huepicker_cursor[2].Position = utility:Position(0, 1, 0, 1, inner.holder.huepicker_cursor[1])
-                    inner.holder.huepicker_cursor[3].Position = utility:Position(0, 1, 0, 1, inner.holder.huepicker_cursor[2])
-                    inner.holder.huepicker_cursor[3].Color = Color3.fromHSV(inner.current[1], 1, 1)
-                    utility:UpdateOffset(inner.holder.huepicker_cursor[1], {Vector2.new(-3,(inner.holder.huepicker.Size.Y*inner.current[1])-3), inner.holder.huepicker})
-                    inner.holder.background.Color = Color3.fromHSV(inner.current[1], 1, 1)
-                    if inner.holder.transparency_cursor and inner.holder.transparency_cursor[3] then
-                        inner.holder.transparency_cursor[3].Color = Color3.fromHSV(0, 0, 1 - inner.current[4])
-                    end
-                    if inner.holder.transparencybg then
-                        inner.holder.transparencybg.Color = Color3.fromHSV(inner.current[1], inner.current[2], inner.current[3])
-                    end
-                elseif inner.open and inner.holder.transparency and inner.holding.transparency then
-                    inner.current[4] = 1 - (math.clamp(mouseLocation.X - inner.holder.transparency.Position.X, 0, inner.holder.transparency.Size.X) / inner.holder.transparency.Size.X)
-                    inner.holder.transparency_cursor[1].Position = utility:Position(1-inner.current[4], -3, 0, -3, inner.holder.transparency)
-                    inner.holder.transparency_cursor[2].Position = utility:Position(0, 1, 0, 1, inner.holder.transparency_cursor[1])
-                    inner.holder.transparency_cursor[3].Position = utility:Position(0, 1, 0, 1, inner.holder.transparency_cursor[2])
-                    inner.holder.transparency_cursor[3].Color = Color3.fromHSV(0, 0, 1 - inner.current[4])
-                    inner_frame.Transparency = (1 - inner.current[4])
-                    utility:UpdateTransparency(inner_frame, (1 - inner.current[4]))
-                    utility:UpdateOffset(inner.holder.transparency_cursor[1], {Vector2.new((inner.holder.transparency.Size.X*(1-inner.current[4]))-3,-3), inner.holder.transparency})
-                    inner.holder.background.Color = Color3.fromHSV(inner.current[1], 1, 1)
-                end
-                inner:Set(inner.current)
-            end
-            --
-            function inner:Get()
-                return {Color = Color3.fromHSV(inner.current[1], inner.current[2], inner.current[3]), Transparency = inner.current[4]}
-            end
-            --
-            library.began[#library.began + 1] = function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and inner_outline.Visible then
-                    if inner.open and inner.holder.inline and utility:MouseOverDrawing({inner.holder.inline.Position.X, inner.holder.inline.Position.Y, inner.holder.inline.Position.X + inner.holder.inline.Size.X, inner.holder.inline.Position.Y + inner.holder.inline.Size.Y}) then
-                        if inner.holder.picker and utility:MouseOverDrawing({inner.holder.picker.Position.X - 2, inner.holder.picker.Position.Y - 2, inner.holder.picker.Position.X - 2 + inner.holder.picker.Size.X + 4, inner.holder.picker.Position.Y - 2 + inner.holder.picker.Size.Y + 4}) then
-                            inner.holding.picker = true
-                            inner:Refresh()
-                        elseif inner.holder.huepicker and utility:MouseOverDrawing({inner.holder.huepicker.Position.X - 2, inner.holder.huepicker.Position.Y - 2, inner.holder.huepicker.Position.X - 2 + inner.holder.huepicker.Size.X + 4, inner.holder.huepicker.Position.Y - 2 + inner.holder.huepicker.Size.Y + 4}) then
-                            inner.holding.huepicker = true
-                            inner:Refresh()
-                        elseif inner.holder.transparency and utility:MouseOverDrawing({inner.holder.transparency.Position.X - 2, inner.holder.transparency.Position.Y - 2, inner.holder.transparency.Position.X - 2 + inner.holder.transparency.Size.X + 4, inner.holder.transparency.Position.Y - 2 + inner.holder.transparency.Size.Y + 4}) then
-                            inner.holding.transparency = true
-                            inner:Refresh()
-                        end
-                    elseif utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (30 + 4 + 2)), section.section_frame.Position.Y + inner.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + inner.axis + 15}) and not window:IsOverContent() then
-                        if not inner.open then
-                            window:CloseContent()
-                            inner.open = not inner.open
-                            --
-                            local colorpicker_open_outline = utility:Create("Frame", {Vector2.new(4,inner.axis + 19), section.section_frame}, {
-                                Size = utility:Size(1, -8, 0, transp and 219 or 200, section.section_frame),
-                                Position = utility:Position(0, 4, 0, inner.axis + 19, section.section_frame),
-                                Color = theme.outline
-                            }, inner.holder.drawings);inner.holder.inline = colorpicker_open_outline
-                            --
-                            library.colors[colorpicker_open_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_outline),
-                                Color = theme.inline
-                            }, inner.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_inline] = {
-                                Color = "inline"
-                            }
-                            --
-                            local colorpicker_open_frame = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_inline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_inline),
-                                Color = theme.darkcontrast
-                            }, inner.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_frame] = {
-                                Color = "darkcontrast"
-                            }
-                            --
-                            local colorpicker_open_accent = utility:Create("Frame", {Vector2.new(0,0), colorpicker_open_frame}, {
-                                Size = utility:Size(1, 0, 0, 2, colorpicker_open_frame),
-                                Position = utility:Position(0, 0, 0, 0, colorpicker_open_frame),
-                                Color = theme.accent
-                            }, inner.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_accent] = {
-                                Color = "accent"
-                            }
-                            --
-                            local colorpicker_title = utility:Create("TextLabel", {Vector2.new(4,2), colorpicker_open_frame}, {
-                                Text = cpinfo,
-                                Size = theme.textsize,
-                                Font = theme.font,
-                                Color = theme.textcolor,
-                                OutlineColor = theme.textborder,
-                                Position = utility:Position(0, 4, 0, 2, colorpicker_open_frame),
-                            }, inner.holder.drawings)
-                            --
-                            library.colors[colorpicker_title] = {
-                                OutlineColor = "textborder",
-                                Color = "textcolor"
-                            }
-                            --
-                            local colorpicker_open_picker_outline = utility:Create("Frame", {Vector2.new(4,17), colorpicker_open_frame}, {
-                                Size = utility:Size(1, -27, 1, transp and -40 or -21, colorpicker_open_frame),
-                                Position = utility:Position(0, 4, 0, 17, colorpicker_open_frame),
-                                Color = theme.outline
-                            }, inner.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_picker_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_picker_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_picker_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_picker_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_picker_outline),
-                                Color = theme.inline
-                            }, inner.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_picker_inline] = {
-                                Color = "inline"
-                            }
-                            --
-                            local colorpicker_open_picker_bg = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_picker_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_picker_inline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_picker_inline),
-                                Color = Color3.fromHSV(inner.current[1],1,1)
-                            }, inner.holder.drawings);inner.holder.background = colorpicker_open_picker_bg
-                            --
-                            local colorpicker_open_picker_image = utility:Create("Image", {Vector2.new(0,0), colorpicker_open_picker_bg}, {
-                                Size = utility:Size(1, 0, 1, 0, colorpicker_open_picker_bg),
-                                Position = utility:Position(0, 0, 0 , 0, colorpicker_open_picker_bg),
-                            }, inner.holder.drawings);inner.holder.picker = colorpicker_open_picker_image
-                            --
-                            local colorpicker_open_picker_cursor = utility:Create("Image", {Vector2.new((colorpicker_open_picker_image.Size.X*inner.current[2])-3,(colorpicker_open_picker_image.Size.Y*(1-inner.current[3]))-3), colorpicker_open_picker_image}, {
-                                Size = utility:Size(0, 6, 0, 6, colorpicker_open_picker_image),
-                                Position = utility:Position(inner.current[2], -3, 1-inner.current[3] , -3, colorpicker_open_picker_image),
-                            }, inner.holder.drawings);inner.holder.picker_cursor = colorpicker_open_picker_cursor
-                            --
-                            local colorpicker_open_huepicker_outline = utility:Create("Frame", {Vector2.new(colorpicker_open_frame.Size.X-19,17), colorpicker_open_frame}, {
-                                Size = utility:Size(0, 15, 1, transp and -40 or -21, colorpicker_open_frame),
-                                Position = utility:Position(1, -19, 0, 17, colorpicker_open_frame),
-                                Color = theme.outline
-                            }, inner.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_huepicker_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_huepicker_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_huepicker_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_huepicker_outline),
-                                Color = theme.inline
-                            }, inner.holder.drawings)
-                            --
-                            library.colors[colorpicker_open_huepicker_inline] = {
-                                Color = "inline"
-                            }
-                            --
-                            local colorpicker_open_huepicker_image = utility:Create("Image", {Vector2.new(1,1), colorpicker_open_huepicker_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_inline),
-                                Position = utility:Position(0, 1, 0 , 1, colorpicker_open_huepicker_inline),
-                            }, inner.holder.drawings);inner.holder.huepicker = colorpicker_open_huepicker_image
-                            --
-                            local colorpicker_open_huepicker_cursor_outline = utility:Create("Frame", {Vector2.new(-3,(colorpicker_open_huepicker_image.Size.Y*inner.current[1])-3), colorpicker_open_huepicker_image}, {
-                                Size = utility:Size(1, 6, 0, 6, colorpicker_open_huepicker_image),
-                                Position = utility:Position(0, -3, inner.current[1], -3, colorpicker_open_huepicker_image),
-                                Color = theme.outline
-                            }, inner.holder.drawings);inner.holder.huepicker_cursor[1] = colorpicker_open_huepicker_cursor_outline
-                            --
-                            library.colors[colorpicker_open_huepicker_cursor_outline] = {
-                                Color = "outline"
-                            }
-                            --
-                            local colorpicker_open_huepicker_cursor_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_huepicker_cursor_outline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_cursor_outline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_huepicker_cursor_outline),
-                                Color = theme.textcolor
-                            }, inner.holder.drawings);inner.holder.huepicker_cursor[2] = colorpicker_open_huepicker_cursor_inline
-                            --
-                            library.colors[colorpicker_open_huepicker_cursor_inline] = {
-                                Color = "textcolor"
-                            }
-                            --
-                            local colorpicker_open_huepicker_cursor_color = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_huepicker_cursor_inline}, {
-                                Size = utility:Size(1, -2, 1, -2, colorpicker_open_huepicker_cursor_inline),
-                                Position = utility:Position(0, 1, 0, 1, colorpicker_open_huepicker_cursor_inline),
-                                Color = Color3.fromHSV(inner.current[1], 1, 1)
-                            }, inner.holder.drawings);inner.holder.huepicker_cursor[3] = colorpicker_open_huepicker_cursor_color
-                            --
-                            if transp then
-                                local colorpicker_open_transparency_outline = utility:Create("Frame", {Vector2.new(4,colorpicker_open_frame.Size.Y-19), colorpicker_open_frame}, {
-                                    Size = utility:Size(1, -27, 0, 15, colorpicker_open_frame),
-                                    Position = utility:Position(0, 4, 1, -19, colorpicker_open_frame),
-                                    Color = theme.outline
-                                }, inner.holder.drawings)
-                                --
-                                library.colors[colorpicker_open_transparency_outline] = {
-                                    Color = "outline"
-                                }
-                                --
-                                local colorpicker_open_transparency_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_outline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_outline),
-                                    Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_outline),
-                                    Color = theme.inline
-                                }, inner.holder.drawings)
-                                --
-                                library.colors[colorpicker_open_transparency_inline] = {
-                                    Color = "inline"
-                                }
-                                --
-                                local colorpicker_open_transparency_bg = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_inline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_inline),
-                                    Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_inline),
-                                    Color = Color3.fromHSV(inner.current[1], inner.current[2], inner.current[3])
-                                }, inner.holder.drawings);inner.holder.transparencybg = colorpicker_open_transparency_bg
-                                --
-                                local colorpicker_open_transparency_image = utility:Create("Image", {Vector2.new(1,1), colorpicker_open_transparency_inline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_inline),
-                                    Position = utility:Position(0, 1, 0 , 1, colorpicker_open_transparency_inline),
-                                }, inner.holder.drawings);inner.holder.transparency = colorpicker_open_transparency_image
-                                --
-                                local colorpicker_open_transparency_cursor_outline = utility:Create("Frame", {Vector2.new((colorpicker_open_transparency_image.Size.X*(1-inner.current[4]))-3,-3), colorpicker_open_transparency_image}, {
-                                    Size = utility:Size(0, 6, 1, 6, colorpicker_open_transparency_image),
-                                    Position = utility:Position(1-inner.current[4], -3, 0, -3, colorpicker_open_transparency_image),
-                                    Color = theme.outline
-                                }, inner.holder.drawings);inner.holder.transparency_cursor[1] = colorpicker_open_transparency_cursor_outline
-                                --
-                                library.colors[colorpicker_open_transparency_cursor_outline] = {
-                                    Color = "outline"
-                                }
-                                --
-                                local colorpicker_open_transparency_cursor_inline = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_cursor_outline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_cursor_outline),
-                                    Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_cursor_outline),
-                                    Color = theme.textcolor
-                                }, inner.holder.drawings);inner.holder.transparency_cursor[2] = colorpicker_open_transparency_cursor_inline
-                                --
-                                library.colors[colorpicker_open_transparency_cursor_inline] = {
-                                    Color = "textcolor"
-                                }
-                                --
-                                local colorpicker_open_transparency_cursor_color = utility:Create("Frame", {Vector2.new(1,1), colorpicker_open_transparency_cursor_inline}, {
-                                    Size = utility:Size(1, -2, 1, -2, colorpicker_open_transparency_cursor_inline),
-                                    Position = utility:Position(0, 1, 0, 1, colorpicker_open_transparency_cursor_inline),
-                                    Color = Color3.fromHSV(0, 0, 1 - inner.current[4]),
-                                }, inner.holder.drawings);inner.holder.transparency_cursor[3] = colorpicker_open_transparency_cursor_color
-                                --
-                                utility:LoadImage(colorpicker_open_transparency_image, "transp", "https://i.imgur.com/ncssKbH.png")
+
+                    utility:Connection(inputservice.InputBegan, function(inp)
+                        if inputservice:GetFocusedTextBox() then
+                            return
+                        elseif bind.binding then
+                            local key = (table.find({Enum.UserInputType.MouseButton1, Enum.UserInputType.MouseButton2, Enum.UserInputType.MouseButton3}, inp.UserInputType) and not bind.nomouse) and inp.UserInputType
+                            bind:SetBind(key or (not table.find(blacklistedKeys, inp.KeyCode)) and inp.KeyCode)
+                            bind.binding = false
+                        elseif not bind.binding and self.bind == 'none' then
+                            bind.state = true
+                            library.flags[bind.flag] = bind.state
+                        elseif (inp.KeyCode == bind.bind or inp.UserInputType == bind.bind) and not bind.binding then
+                            if bind.mode == 'toggle' then
+                                bind.state = not bind.state
+                                if bind.flag then
+                                    library.flags[bind.flag] = bind.state;
+                                end
+                                bind.callback(bind.state)
+                                bind.indicatorValue:SetEnabled(bind.state and not bind.noindicator);
+                            elseif bind.mode == 'hold' then
+                                if bind.flag then
+                                    library.flags[bind.flag] = true;
+                                end
+                                bind.indicatorValue:SetEnabled(true and not bind.noindicator);
+                                c = utility:Connection(runservice.RenderStepped, function()
+                                    bind.callback(true);
+                                end)
                             end
-                            --
-                            utility:LoadImage(colorpicker_open_picker_image, "valsat", "https://i.imgur.com/wpDRqVH.png")
-                            utility:LoadImage(colorpicker_open_picker_cursor, "valsat_cursor", "https://raw.githubusercontent.com/mvonwalk/splix-assets/main/Images-cursor.png")
-                            utility:LoadImage(colorpicker_open_huepicker_image, "hue", "https://i.imgur.com/iEOsHFv.png")
-                            --
-                            window.currentContent.frame = colorpicker_open_inline
-                            window.currentContent.colorpicker = inner
-                        else
-                            inner.open = not inner.open
-                            --
-                            for i,v in pairs(inner.holder.drawings) do
-                                utility:Remove(v)
+                        end
+                    end)
+
+                    utility:Connection(inputservice.InputEnded, function(inp)
+                        if bind.bind ~= 'none' then
+                            if inp.KeyCode == bind.bind or inp.UserInputType == bind.key then
+                                if c then
+                                    c:Disconnect();
+                                    if bind.flag then
+                                        library.flags[bind.flag] = false;
+                                    end
+                                    bind.callback(false);
+                                    bind.indicatorValue:SetEnabled(false);
+                                end
                             end
-                            --
-                            inner.holder.drawings = {}
-                            inner.holder.inline = nil
-                            --
-                            window.currentContent.frame = nil
-                            window.currentContent.colorpicker = nil
                         end
-                    else
-                        if inner.open then
-                            inner.open = not inner.open
-                            --
-                            for i,v in pairs(inner.holder.drawings) do
-                                utility:Remove(v)
+                    end)
+
+                    tooltip(bind);
+                    bind:SetBind(bind.bind);
+                    bind:SetText(bind.text);
+                    self:UpdateOptions();
+                    return bind
+                end
+
+                -- // Dropdown
+                function section:AddList(data)
+                    local list = {
+                        class = 'list';
+                        flag = data.flag;
+                        text = '';
+                        selected = '';
+                        tooltip = '';
+                        order = #self.options+1;
+                        callback = function() end;
+                        enabled = true;
+                        multi = false;
+                        open = false;
+                        risky = false;
+                        values = {};
+                        objects = {};
+                    }
+
+                    table.insert(self.options, list);
+
+                    local blacklist = {'objects'};
+                    for i,v in next, data do
+                        if not table.find(blacklist, i) ~= list[i] ~= nil then
+                            list[i] = v
+                        end
+                    end
+
+                    if list.flag then
+                        library.flags[list.flag] = list.selected;
+                        library.options[list.flag] = list;
+                    end
+
+                    -- Create Objects --
+                    do
+                        local objs = list.objects;
+                        local z = library.zindexOrder.window+25;
+
+                        objs.holder = utility:Draw('Square', {
+                            Size = newUDim2(1,0,0,40);
+                            Transparency = 0;
+                            ZIndex = z+4;
+                            Parent = section.objects.optionholder;
+                        })
+
+                        objs.background = utility:Draw('Square', {
+                            Size = newUDim2(1,-4,0,15);
+                            Position = newUDim2(0,2,1,-19);
+                            ThemeColor = 'Option Background';
+                            ZIndex = z+2;
+                            Parent = objs.holder;
+                        })
+
+                        objs.border1 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 1';
+                            ZIndex = z+1;
+                            Parent = objs.background;
+                        })
+
+                        objs.border2 = utility:Draw('Square', {
+                            Size = newUDim2(1,2,1,2);
+                            Position = newUDim2(0,-1,0,-1);
+                            ThemeColor = 'Option Border 2';
+                            ZIndex = z;
+                            Parent = objs.border1;
+                        })
+
+                        objs.gradient = utility:Draw('Image', {
+                            Size = newUDim2(1,0,1,0);
+                            Data = library.images.gradientp90;
+                            Transparency = .65;
+                            ZIndex = z+4;
+                            Parent = objs.background;
+                        })
+
+                        objs.text = utility:Draw('Text', {
+                            Position = newUDim2(0,2,0,2);
+                            ThemeColor = list.risky and 'Risky Text Enabled' or 'Option Text 2';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+1;
+                            Outline = true;
+                            Parent = objs.holder;
+                        })
+
+                        objs.inputText = utility:Draw('Text', {
+                            Position = newUDim2(0,4,0,0);
+                            ThemeColor = 'Option Text 2';
+                            Text = 'none',
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+5;
+                            Outline = true;
+                            Parent = objs.background;
+                        })
+
+                        objs.openText = utility:Draw('Text', {
+                            Position = newUDim2(1,-10,0,0);
+                            ThemeColor = 'Option Text 3';
+                            Text = '+';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+5;
+                            Outline = true;
+                            Parent = objs.background;
+                        })
+
+                        utility:Connection(objs.holder.MouseEnter, function()
+                            objs.border1.ThemeColor = 'Accent';
+                        end)
+
+                        utility:Connection(objs.holder.MouseLeave, function()
+                            objs.border1.ThemeColor = 'Option Border 1';
+                        end)
+
+                        utility:Connection(objs.holder.MouseButton1Down, function()
+                            if list.open then
+                                list.open = false;
+                                objs.openText.Text = '+';
+                                if window.dropdown.selected == list then
+                                    window.dropdown.selected = nil;
+                                    window.dropdown.objects.background.Visible = false;
+                                end
+                            else
+                                if window.dropdown.selected ~= nil then
+                                    window.dropdown.selected.open = false
+                                end
+                                list.open = true;
+                                objs.openText.Text = '-';
+                                window.dropdown.selected = list;
+                                window.dropdown.objects.background.Visible = true;
+                                window.dropdown.objects.background.Parent = objs.holder;
+                                window.dropdown:Refresh();
                             end
-                            --
-                            inner.holder.drawings = {}
-                            inner.holder.inline = nil
-                            --
-                            window.currentContent.frame = nil
-                            window.currentContent.colorpicker = nil
+                        end)
+
+
+                    end
+                    --------------------
+
+                    function list:SetText(str)
+                        if typeof(str) == 'string' then
+                            self.text = str;
+                            self.objects.text.Text = str;
                         end
                     end
-                elseif Input.UserInputType == Enum.UserInputType.MouseButton1 and inner.open then
-                    inner.open = not inner.open
-                    --
-                    for i,v in pairs(inner.holder.drawings) do
-                        utility:Remove(v)
+
+                    function list:Select(option, nocallback)
+                        option = typeof(option) == 'table' and (self.multi == true and option or (#option == 0 and nil or option[1])) or self.multi == true and {option} or option;
+                        if option ~= nil then
+                            self.selected = option;
+                            local text = typeof(option) == 'table' and (#option == 0 and "none" or table.concat(option, ', ')) or tostring(option);
+                            local label = self.objects.inputText
+                            label.Text = text;
+                            if label.TextBounds.X > self.objects.background.Object.Size.X - 10 then
+                                local split = text:split('');
+                                for i = 1,#split do
+                                    label.Text = table.concat(split, '', 1, i)
+                                    if label.TextBounds.X > self.objects.background.Object.Size.X - 10 then
+                                        label.Text = label.Text:sub(1,-6)..'...';
+                                        break
+                                    end
+                                end
+                            end
+                            if self.flag then
+                                library.flags[self.flag] = self.selected
+                            end
+                            if not nocallback then
+                                self.callback(self.selected);
+                            end
+                        end
                     end
-                    --
-                    inner.holder.drawings = {}
-                    inner.holder.inline = nil
-                    --
-                    window.currentContent.frame = nil
-                    window.currentContent.colorpicker = nil
+
+                    function list:AddValue(value)
+                        table.insert(list.values, tostring(value));
+                        if window.dropdown.selected == list then
+                            window.dropdown:Refresh()
+                        end
+                    end
+
+                    function list:RemoveValue(value)
+                        if table.find(list.values, value) then
+                            table.remove(list.values, table.find(list.values, value));
+                            if window.dropdown.selected == list then
+                                window.dropdown:Refresh()
+                            end
+                        end
+                    end
+
+                    function list:ClearValues()
+                        table.clear(list.values);
+                        if window.dropdown.selected == list then
+                            window.dropdown:Refresh()
+                        end
+                    end
+
+                    tooltip(list);
+                    list:Select((data.value or data.selected) or (list.multi and 'none' or list.values[1]), true);
+                    list:SetText(list.text);
+                    self:UpdateOptions();
+                    return list
+                end
+
+                -- Text
+                function section:AddText(data)
+                    local text = {
+                        class = 'text';
+                        flag = data.flag;
+                        text = '';
+                        tooltip = '';
+                        order = #self.options+1;
+                        enabled = true;
+                        risky = false;
+                        objects = {};
+                    };
+
+                    local blacklist = {'objects'};
+                    for i,v in next, data do
+                        if not table.find(blacklist, i) and text[i] ~= nil then
+                            text[i] = v
+                        end
+                    end
+
+                    if data.flag then
+                        library.options[data.flag] = text;
+                    end
+
+                    table.insert(self.options, text)
+
+                    --- Create Objects ---
+                    do
+                        local objs = text.objects;
+                        local z = library.zindexOrder.window+25;
+
+                        objs.holder = utility:Draw('Square', {
+                            Transparency = 0;
+                            ZIndex = z+5;
+                            Parent = section.objects.optionholder;
+                        })
+
+                        objs.text = utility:Draw('Text', {
+                            Position = newUDim2(0,2,0,2);
+                            ThemeColor = text.risky and 'Risky Text Enabled' or 'Option Text 2';
+                            Size = 13;
+                            Font = 2;
+                            ZIndex = z+1;
+                            Outline = true;
+                            Parent = objs.holder;
+                        })
+                    end
+                    ----------------------
+
+                    function text:SetText(str)
+                        if typeof(str) == 'string' then
+                            self.text = str;
+                            self.objects.text.Text = str;
+                            self.objects.holder.Size = newUDim2(1,0,0,self.objects.text.TextBounds.Y + 6);
+                            section:UpdateOptions();
+                        end
+                    end
+
+                    text:SetText(text.text);
+                    self:UpdateOptions();
+                    return text
+                end
+
+                -----------------------
+
+                section:UpdateOptions();
+                section:SetText(section.text);
+                self:UpdateSections();
+                return section;
+            end
+
+            function tab:UpdateSections()
+                table.sort(self.sections, function(a,b)
+                    return a.order < b.order
+                end)
+
+                local last1,last2;
+                local padding = 15;
+                for _,section in next, self.sections do
+
+                    if section.objects.background.Visible ~= (section.enabled and tab.selected) then
+                        section.objects.background.Visible = section.enabled and tab.selected
+                        section:UpdateOptions();
+                    end
+                    
+                    if section.enabled then
+                        if section.side == 1 then
+                            if last1 then
+                                section.objects.background.Position = last1.objects.background.Position + newUDim2(0,0,0,last1.objects.background.Object.Size.Y + padding);
+                            end
+                            last1 = section;
+                        elseif section.side == 2 then
+                            if last2 then
+                                section.objects.background.Position = last2.objects.background.Position + newUDim2(0,0,0,last2.objects.background.Object.Size.Y + padding);
+                            end
+                            last2 = section;
+                        end
+                    end
+
+                    section:SetText(section.text)
+                    
                 end
             end
-            --
-            library.ended[#library.ended + 1] = function(Input)
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                    if inner.holding.picker then
-                        inner.holding.picker = not inner.holding.picker
-                    end
-                    if inner.holding.huepicker then
-                        inner.holding.huepicker = not inner.holding.huepicker
-                    end
-                    if inner.holding.transparency then
-                        inner.holding.transparency = not inner.holding.transparency
+
+            function tab:SetText(str)
+                if typeof(str) == 'string' then
+                    self.text = str;
+                    self.objects.text.Text = str;
+                    window:UpdateTabs();
+                end
+            end
+
+            function tab:Select()
+                window.selectedTab = tab;
+                window:UpdateTabs();
+                for i,v in next, window.tabs do
+                    if v.callback then
+                        v.callback(v == tab)
                     end
                 end
             end
-            --
-            library.changed[#library.changed + 1] = function()
-                if inner.open and inner.holding.picker or inner.holding.huepicker or inner.holding.transparency then
-                    if window.isVisible then
-                        inner:Refresh()
-                    else
-                        if inner.holding.picker then
-                            inner.holding.picker = not inner.holding.picker
-                        end
-                        if inner.holding.huepicker then
-                            inner.holding.huepicker = not inner.holding.huepicker
-                        end
-                        if inner.holding.transparency then
-                            inner.holding.transparency = not inner.holding.transparency
-                        end
-                    end
-                end
+
+            if window.selectedTab == nil then
+                tab:Select();
             end
-            --
-            if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-                library.pointers[tostring(pointer)] = inner
-            end
-            --
-            return inner
+
+            tab:SetText(tab.text);
+            window:UpdateTabs();
+            return tab;
         end
-        --
-        return colorpicker
+
+        function window:UpdateTabs()
+            table.sort(self.tabs, function(a,b)
+                return a.order < b.order
+            end)
+            local pos = 0;
+            for i,v in next, self.tabs do
+                local objs = v.objects;
+                v.selected = v == self.selectedTab;
+                objs.background.ThemeColor = v.selected and 'Selected Tab Background' or 'Unselected Tab Background';
+                objs.background.Size = newUDim2(0, objs.text.TextBounds.X + 14, 1, v.selected and 1 or 0);
+                objs.background.Position = newUDim2(0, pos, 0, 0)
+
+                objs.text.ThemeColor = v.selected and 'Selected Tab Text' or 'Unselected Tab Text';
+                objs.text.Position = newUDim2(.5, 0, 0, 3);
+
+                objs.topBorder.ThemeColor = v.selected and 'Accent' or 'Unselected Tab Background';
+
+                pos += objs.background.Size.X.Offset + 1
+
+                v:UpdateSections();
+
+            end
+        end
+
+        window:SetOpen(true);
+        return window;
     end
-    --
-    function sections:List(info)
-        local info = info or {}
-        local max = info.max or info.Max or info.maximum or info.Maximum or 8
-        local current = info.def or info.Default or info.current or info.Current or 1
-        local options = info.options or info.Options or {"1", "2", "3"}
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        --
-        local list = {axis = section.currentAxis, options = options, max = max, current = current, scrollingindex = 0, scrolling = {false, nil}, buttons = {}}
-        --
-        local list_outline = utility:Create("Frame", {Vector2.new(4,list.axis), section.section_frame}, {
-            Size = utility:Size(1, -8, 0, ((list.max * 20) + 4), section.section_frame),
-            Position = utility:Position(0, 4, 0, list.axis, section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[list_outline] = {
-            Color = "outline"
-        }
-        --
-        local list_inline = utility:Create("Frame", {Vector2.new(1,1), list_outline}, {
-            Size = utility:Size(1, -2, 1, -2, list_outline),
-            Position = utility:Position(0, 1, 0, 1, list_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[list_inline] = {
-            Color = "inline"
-        }
-        --
-        local list_frame = utility:Create("Frame", {Vector2.new(1,1), list_inline}, {
-            Size = utility:Size(1, -2, 1, -2, list_inline),
-            Position = utility:Position(0, 1, 0, 1, list_inline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[list_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local list_scroll = utility:Create("Frame", {Vector2.new(list_frame.Size.X - 8,0), list_frame}, {
-            Size = utility:Size(0, 8, 1, 0, list_frame),
-            Position = utility:Position(1, -8, 0, 0, list_frame),
-            Color = theme.darkcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[list_scroll] = {
-            Color = "darkcontrast"
-        }
-        --
-        local list_bar = utility:Create("Frame", {Vector2.new(1,1), list_scroll}, {
-            Size = utility:Size(1, -2, (list.max / #list.options), -2, list_scroll),
-            Position = utility:Position(0, 1, 0, 1, list_scroll),
-            Color = theme.accent,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[list_bar] = {
-            Color = "accent"
-        }
-        --
-        local list_gradient = utility:Create("Image", {Vector2.new(0,0), list_frame}, {
-            Size = utility:Size(1, 0, 1, 0, list_frame),
-            Position = utility:Position(0, 0, 0 , 0, list_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        for i=1, list.max do
-            local config_title = utility:Create("TextLabel", {Vector2.new(list_frame.Size.X/2,2 + (20 * (i-1))), list_frame}, {
-                Text = list.options[i] or "",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = i == 1 and theme.accent or theme.textcolor,
-                OutlineColor = theme.textborder,
-                Center = true,
-                Position = utility:Position(0.5, 0, 0, 2 + (20 * (i-1)), list_frame),
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[config_title] = {
-                OutlineColor = "textborder",
-                Color = i == 1 and "accent" or "textcolor"
+
+    -- Tooltip
+    do
+        local z = library.zindexOrder.window + 2000;
+        tooltipObjects.background = utility:Draw('Square', {
+            ThemeColor = 'Group Background';
+            ZIndex = z;
+            Visible = false;
+        })
+
+        tooltipObjects.border1 = utility:Draw('Square', {
+            Size = UDim2.new(1,2,1,2);
+            Position = UDim2.new(0,-1,0,-1);
+            ThemeColor = 'Border 1';
+            ZIndex = z-1;
+            Parent = tooltipObjects.background;
+        })
+
+        tooltipObjects.border2 = utility:Draw('Square', {
+            Size = UDim2.new(1,4,1,4);
+            Position = UDim2.new(0,-2,0,-2);
+            ThemeColor = 'Border 3';
+            ZIndex = z-2;
+            Parent = tooltipObjects.background;
+        })
+
+        tooltipObjects.text = utility:Draw('Text', {
+            Position = UDim2.new(0,3,0,0);
+            ThemeColor = 'Primary Text';
+            Size = 13;
+            Font = 2;
+            ZIndex = z+1;
+            Outline = true;
+            Parent = tooltipObjects.background;
+        })
+
+        tooltipObjects.riskytext = utility:Draw('Text', {
+            Position = UDim2.new(0,3,0,0);
+            ThemeColor = 'Risky Text Enabled';
+            Text = '[RISKY]';
+            Size = 13;
+            Font = 2;
+            ZIndex = z+1;
+            Outline = true;
+            Parent = tooltipObjects.background;
+        })
+
+    end
+    
+    -- Watermark
+    do
+        if not IonHub_User then
+            getgenv().IonHub_User = {
+                UID = 0, 
+                User = "admin"
             }
-            --
-            list.buttons[i] = config_title
         end
-        --
-        utility:LoadImage(list_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function list:UpdateScroll()
-            if (#list.options - list.max) > 0 then
-                list.scrollingindex = math.clamp(list.scrollingindex, 0, #list.options - list.max)
-                list_bar.Size = utility:Size(1, -2, (list.max / #list.options), -2, list_scroll)
-                list_bar.Position = utility:Position(0, 1, 0, 1 + ((((list_scroll.Size.Y - 2) - list_bar.Size.Y) / (#list.options - list.max)) * list.scrollingindex), list_scroll)
-                list_bar.Transparency = 1
-                utility:UpdateTransparency(list_bar, 1)
-                utility:UpdateOffset(list_bar, {Vector2.new(1, 1 + ((((list_scroll.Size.Y - 2) - list_bar.Size.Y) / (#list.options - list.max)) * list.scrollingindex)), list_scroll})
-            else
-                list.scrollingindex = 0
-                list_bar.Transparency = 0
-                utility:UpdateTransparency(list_bar, 0)
-            end
-            --
-            list:Refresh()
-        end
-        --
-        function list:Refresh()
-            for Index, Value in pairs(list.buttons) do
-                Value.Text = list.options[Index + list.scrollingindex] or ""
-                Value.Color = (Index + list.scrollingindex) == list.current and theme.accent or theme.textcolor
-                --
-                library.colors[Value] = {
-                    OutlineColor = "textborder",
-                    Color = (Index + list.scrollingindex) == list.current and "accent" or "textcolor"
-                }
-            end
-        end
-        --
-        function list:Get()
-            return list.options[list.current]
-        end
-        --
-        function list:GetIndex()
-            return list.current
-        end
-        --
-        function list:Set(current)
-            if typeof(current) == "string" then
-                local found = Find(list.options, current)
-                if found then
-                    current = found
-                end
-            end
-            --
-            list.current = math.clamp(tonumber(current) or 1, 1, #list.options)
-            list.scrollingindex = math.clamp(list.current - 1, 0, math.max(0, #list.options - list.max))
-            --
-            list:UpdateScroll()
-            list:Refresh()
-        end
-        --
-        library.began[#library.began + 1] = function(Input)
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and list_outline.Visible and window.isVisible then
-                if utility:MouseOverDrawing({list_bar.Position.X, list_bar.Position.Y, list_bar.Position.X + list_bar.Size.X, list_bar.Position.Y + list_bar.Size.Y}) then
-                    list.scrolling = {true, (utility:MouseLocation().Y - list_bar.Position.Y)}
-                elseif utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + list.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + list.axis + ((list.max * 20) + 4)}) and not window:IsOverContent() then
-                    for i=1, list.max do
-                        if utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + list.axis + 2 + (20 * (i-1)), section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + list.axis + 2 + (20 * (i-1)) + 20}) then
-                            list.current = math.clamp(i + list.scrollingindex, 1, #list.options)
-                            list:Refresh()
-                        end
+        self.watermark = {
+            objects = {};
+            text = {
+                {self.cheatname, true},
+                {"Private", true},
+                {self.gamename, true},
+                {'0 fps', true},
+                {'0ms', true},
+                {'00:00:00', true},
+                {'M, D, Y', true},
+            };
+            lock = 'custom';
+            position = newUDim2(0,0,0,0);
+            refreshrate = 25;
+        }
+
+        function self.watermark:Update()
+            self.objects.background.Visible = library.flags.watermark_enabled
+            if library.flags.watermark_enabled then
+                local date = {os.date('%b',os.time()), os.date('%d',os.time()), os.date('%Y',os.time())}
+                local daySuffix = math.floor(date[2]%10)
+                date[2] = date[2]..(daySuffix == 1 and 'st' or daySuffix == 2 and 'nd' or daySuffix == 3 and 'rd' or 'th')
+
+                self.text[4][1] = library.stats.fps..' fps'
+                self.text[5][1] = floor(library.stats.ping)..'ms'
+                self.text[6][1] = os.date('%X', os.time())
+                self.text[7][1] = table.concat(date, ', ')
+
+                local text = {};
+                for _,v in next, self.text do
+                    if v[2] then
+                        table.insert(text, v[1]);
                     end
                 end
+
+                self.objects.text.Text = table.concat(text,' | ')
+                self.objects.background.Size = newUDim2(0, self.objects.text.TextBounds.X + 10, 0, 17)
+
+                local size = self.objects.background.Object.Size;
+                local screensize = workspace.CurrentCamera.ViewportSize;
+
+                self.position = (
+                    self.lock == 'Top Right' and newUDim2(0, screensize.X - size.X - 15, 0, 15) or
+                    self.lock == 'Top Left' and newUDim2(0, 15, 0, 15) or
+                    self.lock == 'Bottom Right' and newUDim2(0, screensize.X - size.X - 15, 0, screensize.Y - size.Y - 15) or
+                    self.lock == 'Bottom Left' and newUDim2(0, 15, 0, screensize.Y - size.Y - 15) or
+                    self.lock == 'Top' and newUDim2(0, screensize.X / 2 - size.X / 2, 0, 15) or
+                    newUDim2(library.flags.watermark_x / 100, 0, library.flags.watermark_y / 100, 0)
+                )
+
+                self.objects.background.Position = self.position
             end
         end
-        --
-        library.ended[#library.ended + 1] = function(Input)
-            if list.scrolling[1] and Input.UserInputType == Enum.UserInputType.MouseButton1 then
-                list.scrolling = {false, nil}
-            end
+
+        do
+            local objs = self.watermark.objects;
+            local z = self.zindexOrder.watermark;
+            
+            objs.background = utility:Draw('Square', {
+                Visible = false;
+                Size = newUDim2(0, 200, 0, 17);
+                Position = newUDim2(0,800,0,100);
+                ThemeColor = 'Background';
+                ZIndex = z;
+            })
+
+            objs.border1 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 2';
+                Parent = objs.background;
+                ZIndex = z-1;
+            })
+
+            objs.border2 = utility:Draw('Square', {
+                Size = newUDim2(1,2,1,2);
+                Position = newUDim2(0,-1,0,-1);
+                ThemeColor = 'Border 3';
+                Parent = objs.border1;
+                ZIndex = z-2;
+            })
+            
+            objs.topbar = utility:Draw('Square', {
+                Size = newUDim2(1,0,0,1);
+                ThemeColor = 'Accent';
+                ZIndex = z+1;
+                Parent = objs.background;
+            })
+
+            objs.text = utility:Draw('Text', {
+                Position = newUDim2(.5,0,0,2);
+                ThemeColor = 'Primary Text';
+                Text = 'Watermark Text';
+                Size = 13;
+                Font = 2;
+                ZIndex = z+1;
+                Outline = true;
+                Center = true;
+                Parent = objs.background;
+            })
+
         end
-        --
-        library.changed[#library.changed + 1] = function(Input)
-            if list.scrolling[1] then
-                local MouseLocation = utility:MouseLocation()
-                local Position = math.clamp((MouseLocation.Y - list_scroll.Position.Y - list.scrolling[2]), 0, ((list_scroll.Size.Y - list_bar.Size.Y)))
-                --
-                list.scrollingindex = math.clamp(math.round((((Position + list_scroll.Position.Y) - list_scroll.Position.Y) / ((list_scroll.Size.Y - list_bar.Size.Y))) * (#list.options - list.max)), 0, #list.options - list.max)
-                list:UpdateScroll()
-            end
-        end
-        --
-        utility:Connection(mouse.WheelForward,function()
-            if page.open and list_bar.Visible and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + list.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + list.axis + ((list.max * 20) + 4)}) and not window:IsOverContent() then
-                list.scrollingindex = math.clamp(list.scrollingindex - 1, 0, math.max(0, #list.options - list.max))
-                list:UpdateScroll()
-            end
-        end)
-        --
-        utility:Connection(mouse.WheelBackward,function()
-            if page.open and list_bar.Visible and utility:MouseOverDrawing({section.section_frame.Position.X, section.section_frame.Position.Y + list.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + list.axis + ((list.max * 20) + 4)}) and not window:IsOverContent() then
-                list.scrollingindex = math.clamp(list.scrollingindex + 1, 0, math.max(0, #list.options - list.max))
-                list:UpdateScroll()
-            end
-        end)
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = list
-        end
-        --
-        list:UpdateScroll()
-        --
-        section.currentAxis = section.currentAxis + ((list.max * 20) + 4) + 9
-        --
-        return list
     end
+
+    local lasttick = tick();
+    utility:Connection(runservice.RenderStepped, function(step)
+        library.stats.fps = floor(1/step)
+        library.stats.ping = stats.Network.ServerStatsItem["Data Ping"]:GetValue()
+        library.stats.sendkbps = stats.DataSendKbps
+        library.stats.receivekbps = stats.DataReceiveKbps
+
+        if (tick()-lasttick)*1000 > library.watermark.refreshrate then
+            lasttick = tick()
+            library.watermark:Update()
+        end
+    end)
+
+    self.keyIndicator = self.NewIndicator({title = 'Keybinds', pos = newUDim2(0,15,0,325), enabled = true});
+    
+    self.targetIndicator = self.NewIndicator({title = 'Target Info', pos = newUDim2(0,15,0,350), enabled = false});
+    self.targetName = self.targetIndicator:AddValue({key = 'Name     :', value = 'nil'})
+    self.targetDisplay = self.targetIndicator:AddValue({key = 'DName    :', value = 'nil'})
+    self.targetHealth = self.targetIndicator:AddValue({key = 'Health   :', value = '0'})
+    self.targetDistance = self.targetIndicator:AddValue({key = 'Distance :', value = '0m'})
+    self.targetTool = self.targetIndicator:AddValue({key = 'Weapon   :', value = 'nil'})
+
+    self:SetTheme(library.theme);
+    self:SetOpen(true);
+    self.hasInit = true
+
 end
---
-return library, utility, library.pointers, theme
+
+function library:CreateSettingsTab(menu)
+    local settingsTab = menu:AddTab('  Settings  ', 999);
+    local configSection = settingsTab:AddSection('Config', 1);
+    local mainSection = settingsTab:AddSection('Main', 1);
+
+    configSection:AddBox({text = 'Config Name', flag = 'configinput'})
+    configSection:AddList({text = 'Config', flag = 'selectedconfig'})
+
+    local function refreshConfigs()
+        library.options.selectedconfig:ClearValues();
+        for _,v in next, listfiles(self.cheatname..'/'..self.gamename..'/configs') do
+            local ext = '.'..v:split('.')[#v:split('.')];
+            if ext == self.fileext then
+                library.options.selectedconfig:AddValue(v:split('\\')[#v:split('\\')]:sub(1,-#ext-1))
+            end
+        end
+    end
+
+    configSection:AddButton({text = 'Load', confirm = true, callback = function()
+        library:LoadConfig(library.flags.selectedconfig);
+    end}):AddButton({text = 'Save', confirm = true, callback = function()
+        library:SaveConfig(library.flags.selectedconfig);
+    end})
+
+    configSection:AddButton({text = 'Create', confirm = true, callback = function()
+        if library:GetConfig(library.flags.configinput) then
+            library:SendNotification('Config \''..library.flags.configinput..'\' already exists.', 5, c3new(1,0,0));
+            return
+        end
+        writefile(self.cheatname..'/'..self.gamename..'/configs/'..library.flags.configinput.. self.fileext, http:JSONEncode({}));
+        refreshConfigs()
+    end}):AddButton({text = 'Delete', confirm = true, callback = function()
+        if library:GetConfig(library.flags.selectedconfig) then
+            delfile(self.cheatname..'/'..self.gamename..'/configs/'..library.flags.selectedconfig.. self.fileext);
+            refreshConfigs()
+        end
+    end})
+
+    refreshConfigs()
+
+    mainSection:AddBind({text = 'Open / Close', flag = 'togglebind', nomouse = true, noindicator = true, bind = Enum.KeyCode.End, callback = function()
+        library:SetOpen(not library.open)
+    end});
+
+    mainSection:AddButton({text = 'Join Discord', flag = 'joindiscord', confirm = true, callback = function()
+        local res = syn.request({
+            Url = 'https://discord.gg/rkRW5VrbWu',
+            Method = 'POST',
+            Headers = {
+                ['Content-Type'] = 'application/json',
+                Origin = 'https://discord.com'
+            },
+            Body = game:GetService('HttpService'):JSONEncode({
+                cmd = 'INVITE_BROWSER',
+                nonce = game:GetService('HttpService'):GenerateGUID(false),
+                args = {code = 'rkRW5VrbWu'}
+            })
+        })
+        if res.Success then
+            library:SendNotification(library.cheatname..' | Joined Discord', 3);
+        end
+    end})
+
+    mainSection:AddButton({text = 'Rejoin Server', confirm = true, callback = function()
+        game:GetService("TeleportService"):TeleportToPlaceInstance(game.PlaceId, game.JobId);
+    end})
+
+    mainSection:AddButton({text = 'Rejoin Game', confirm = true, callback = function()
+        game:GetService("TeleportService"):Teleport(game.PlaceId);
+    end})
+
+    mainSection:AddButton({text = 'Copy Join Script', callback = function()
+        setclipboard(([[game:GetService("TeleportService"):TeleportToPlaceInstance(%s, "%s")]]):format(game.PlaceId, game.JobId))
+    end})
+
+    mainSection:AddButton({text = "Unload", confirm = true,
+       callback = function(bool)
+           if bool then
+               library:Unload() 
+           else
+               library:Unload() 
+           end
+       end})
+
+    mainSection:AddSeparator({text = 'Indicators'});
+
+    mainSection:AddToggle({text = 'Watermark', flag = 'watermark_enabled', state = true,});
+
+    mainSection:AddSlider({text = 'Custom X', flag = 'watermark_x', suffix = '%', min = 0, max = 100, increment = .1, value = 6});
+    mainSection:AddSlider({text = 'Custom Y', flag = 'watermark_y', suffix = '%', min = 0, max = 100, increment = .1, value = 1});
+
+    mainSection:AddToggle({text = 'Keybinds', flag = 'keybind_indicator', state = true, callback = function(bool)
+        library.keyIndicator:SetEnabled(bool);
+    end})
+    mainSection:AddSlider({text = 'Position X', flag = 'keybind_indicator_x', min = 0, max = 100, increment = .1, value = .5, callback = function()
+        library.keyIndicator:SetPosition(newUDim2(library.flags.keybind_indicator_x / 100, 0, library.flags.keybind_indicator_y / 100, 0));    
+    end});
+    mainSection:AddSlider({text = 'Position Y', flag = 'keybind_indicator_y', min = 0, max = 100, increment = .1, value = 30, callback = function()
+        library.keyIndicator:SetPosition(newUDim2(library.flags.keybind_indicator_x / 100, 0, library.flags.keybind_indicator_y / 100, 0));    
+    end});
+
+
+
+    local themeStrings = {"Custom"};
+    for _,v in next, library.themes do
+        table.insert(themeStrings, v.name)
+    end
+    local themeSection = settingsTab:AddSection('Custom Theme', 2);
+    local setByPreset = false
+themeSection:AddList({text = 'Presets', flag = 'preset_theme', values = themeStrings, callback = function(newTheme)
+        if newTheme == "Custom" then return end
+        setByPreset = true
+        for _,v in next, library.themes do
+            if v.name == newTheme then
+                for x, d in pairs(library.options) do
+                    if v.theme[tostring(x)] ~= nil then
+                        d:SetColor(v.theme[tostring(x)])
+                    end
+                end
+                library:SetTheme(v.theme)
+                break
+            end
+        end
+        setByPreset = false
+    end}):Select('Default');
+
+    for i, v in pairs(library.theme) do
+        themeSection:AddColor({text = i, flag = i, color = library.theme[i], callback = function(c3)
+            library.theme[i] = c3
+            library:SetTheme(library.theme)
+            if not setByPreset and not setByConfig then 
+                library.options.preset_theme:Select('Custom')
+            end
+        end});
+    end
+
+    return settingsTab;
+end
+
+getgenv().library = library
+return library
