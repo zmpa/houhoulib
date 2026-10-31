@@ -256,22 +256,12 @@ do
     function utility:Remove(instance, hidden)
         library.colors[instance] = nil
         --
-        local ind = 0
+        local list = hidden and library.hidden or library.drawings
         --
-        for i,v in pairs(hidden and library.hidden or library.drawings) do
-            if v[1] == instance then
-                ind = i
-                if hidden then
-                    v[1] = nil
-                else
-                    v[2] = nil
-                    v[1] = nil
-                end
+        for i = #list, 1, -1 do
+            if list[i] and list[i][1] == instance then
+                Remove(list, i)
             end
-        end
-        --
-        if ind ~= 0 then
-            Remove(hidden and library.hidden or library.drawings, ind)
         end
         --
         if instance then
@@ -561,6 +551,19 @@ do
         end
     end
     --
+    function library:RemoveKeybind(name)
+        for index = #library.keybinds, 1, -1 do
+            local keybind = library.keybinds[index]
+            if keybind and (keybind.name == name or keybind.keybindname == name) then
+                keybind:Destroy()
+            end
+        end
+    end
+    --
+    function library:GetKeybinds()
+        return library.keybinds
+    end
+    --
     function library:Notification(info)
         local info = info or {}
         local text = info.text or info.Text or info.name or info.Name or ""
@@ -593,7 +596,7 @@ do
         --
         theme.accent = accent
         --
-        local window = {pages = {}, loader = true, isVisible = false, pageammount = pageammount, callback = callback, wminfo = "HouHou da hood || UID : %u || Ping : %s || Fps : %u", currentPage = nil, fading = false, dragging = false, drag = Vector2.new(0,0), currentContent = {frame = nil, dropdown = nil, multibox = nil, colorpicker = nil, keybind = nil, textbox = nil}}
+        local window = {pages = {}, loader = true, isVisible = false, pageammount = pageammount, callback = callback, wminfo = "HouHou da hood || UID : $UID || Ping : $PING || Fps : $FPS", currentPage = nil, fading = false, dragging = false, drag = Vector2.new(0,0), currentContent = {frame = nil, dropdown = nil, multibox = nil, colorpicker = nil, keybind = nil, textbox = nil}}
         --
         local main_frame = utility:Create("Frame", {Vector2.new(0,0)}, {
             Size = utility:Size(0, size.X, 0, size.Y),
@@ -801,6 +804,9 @@ do
             local top = tab.Position.Y
             local bottom = top + tab.Size.Y
             --
+            library.clipPage = page
+            library.clipContext = {Min = Vector2.new(tab.Position.X - 1, top - 2), Max = Vector2.new(tab.Position.X + tab.Size.X + 1, bottom)}
+            --
             for i,v in pairs(library.drawings) do
                 if v[1] then
                     if v[2][2] then
@@ -812,7 +818,7 @@ do
                     local owner = window:GetPageOf(v[1])
                     if owner then
                         local drawY = v[1].Position.Y
-                        v[1].Visible = page ~= nil and page.open and owner == page and drawY >= top - 2 and drawY <= bottom
+                        v[1].Visible = page ~= nil and page.open and owner == page and drawY >= library.clipContext.Min.Y and drawY <= library.clipContext.Max.Y
                     end
                 end
             end
@@ -924,6 +930,13 @@ do
             for i in pairs(library.pointers) do library.pointers[i] = nil end
             for i in pairs(library.colors) do library.colors[i] = nil end
             --
+            for i in pairs(library.parentOf) do library.parentOf[i] = nil end
+            for i in pairs(library.sectionOwner) do library.sectionOwner[i] = nil end
+            for i in pairs(library.Relations) do library.Relations[i] = nil end
+            for i in pairs(library.keybinds) do library.keybinds[i] = nil end
+            --
+            library.clipContext = false
+            library.clipPage = nil
             library.shared.initialized = false
             library.drawings = {}
             library.objects = {}
@@ -1076,6 +1089,8 @@ do
         end
         --
         library.began[#library.began + 1] = function(Input)
+            if window.currentContent.textbox then return end
+            --
             if Input.KeyCode == Enum.KeyCode.P then
                 if #plrs:GetPlayers() <= 1 then
                     localplayer:Kick("\nRejoining...")
@@ -1149,7 +1164,7 @@ do
         --
         theme.accent = accent
         --
-        local window = {pages = {}, loader = style == 2, init = false, pageammount = pageammount, isVisible = false, callback = callback, uibind = Enum.KeyCode.Z, wminfo = "HouHou da hood || UID : %u || Ping : %s || Fps : %u", currentPage = nil, fading = false, dragging = false, drag = Vector2.new(0,0), currentContent = {frame = nil, dropdown = nil, multibox = nil, colorpicker = nil, keybind = nil, textbox = nil}}
+        local window = {pages = {}, loader = style == 2, init = false, pageammount = pageammount, isVisible = false, callback = callback, uibind = Enum.KeyCode.Z, wminfo = "HouHou da hood || UID : $UID || Ping : $PING || Fps : $FPS", currentPage = nil, fading = false, dragging = false, drag = Vector2.new(0,0), currentContent = {frame = nil, dropdown = nil, multibox = nil, colorpicker = nil, keybind = nil, textbox = nil}}
         --
         function window:GetPageOf(drawing)
             local node = drawing
@@ -1279,6 +1294,7 @@ do
             Color = "lightcontrast"
         }
         --
+        if style ~= 2 then
         function ColorLerp(Value, MinColor, MaxColor)
             if Value <= 0 then return MaxColor end
             if Value >= 100 then return MinColor end
@@ -1804,6 +1820,7 @@ do
                 window.VisualPreview.Drawings = NewDrawings
             end
         end
+        end
         --
         function window:SetName(Name)
             title.Text = Name
@@ -1832,6 +1849,9 @@ do
             local top = tab.Position.Y
             local bottom = top + tab.Size.Y
             --
+            library.clipPage = page
+            library.clipContext = {Min = Vector2.new(tab.Position.X - 1, top - 2), Max = Vector2.new(tab.Position.X + tab.Size.X + 1, bottom)}
+            --
             for i,v in pairs(library.drawings) do
                 if v[1] then
                     if v[2][2] then
@@ -1843,7 +1863,7 @@ do
                     local owner = window:GetPageOf(v[1])
                     if owner then
                         local drawY = v[1].Position.Y
-                        v[1].Visible = page ~= nil and page.open and owner == page and drawY >= top - 2 and drawY <= bottom
+                        v[1].Visible = page ~= nil and page.open and owner == page and drawY >= library.clipContext.Min.Y and drawY <= library.clipContext.Max.Y
                     end
                 end
             end
@@ -1961,6 +1981,13 @@ do
             for i in pairs(library.pointers) do library.pointers[i] = nil end
             for i in pairs(library.colors) do library.colors[i] = nil end
             --
+            for i in pairs(library.parentOf) do library.parentOf[i] = nil end
+            for i in pairs(library.sectionOwner) do library.sectionOwner[i] = nil end
+            for i in pairs(library.Relations) do library.Relations[i] = nil end
+            for i in pairs(library.keybinds) do library.keybinds[i] = nil end
+            --
+            library.clipContext = false
+            library.clipPage = nil
             library.shared.initialized = false
             library.drawings = {}
             library.objects = {}
@@ -2031,7 +2058,7 @@ do
             }
             --
             local watermark_title = utility:Create("TextLabel", {Vector2.new(2 + 6,4), watermark_outline}, {
-                Text = "Failed Loading Watermark.",
+                Text = watermark_name,
                 Size = theme.textsize,
                 Font = theme.font,
                 Color = theme.textcolor,
@@ -2081,7 +2108,7 @@ do
                 --
                 task.spawn(function()
                     if (tick() - Tick) > 0.15 then
-                        watermark_title.Text = window.wminfo:gsub("$PING", library.shared.ping):gsub("$FPS", library.shared.fps)
+                        watermark_title.Text = window.wminfo:gsub("$UID", tostring(localplayer.UserId)):gsub("$PING", tostring(library.shared.ping)):gsub("$FPS", tostring(library.shared.fps))
                         window.watermark:UpdateSize()
                         --
                         Tick = tick()
@@ -2270,7 +2297,6 @@ do
                         utility:Remove(keybind_value, true)
                         --
                         window.keybindslist.keybinds[keybindname] = nil
-                        keybindTable = nil
                     end
                     --
                     function keybindTable:Visibility()
@@ -2744,7 +2770,7 @@ do
         --
         local window = self
         --
-        local page = {open = false, sections = {}, sectionOffset = {left = 0, right = 0}, scroll = 0, scrollMax = 0, window = window}
+        local page = {open = false, sections = {}, sectionOffset = {left = 0, right = 0}, scroll = 0, scrollMax = 0, scrollDrag = {false, nil}, window = window}
         --
         local position = 4
         --
@@ -2799,6 +2825,28 @@ do
             Color = "textdark"
         }
         --
+        local scroll_outline = utility:Create("Frame", {Vector2.new(window.tab_frame.Size.X - 7, 5), window.tab_frame}, {
+            Size = utility:Size(0, 6, 1, -10, window.tab_frame),
+            Position = utility:Position(1, -7, 0, 5, window.tab_frame),
+            Color = theme.darkcontrast,
+            Visible = false
+        })
+        --
+        library.colors[scroll_outline] = {
+            Color = "darkcontrast"
+        }
+        --
+        local scroll_bar = utility:Create("Frame", {Vector2.new(1,1), scroll_outline}, {
+            Size = utility:Size(1, -2, 0.5, -2, scroll_outline),
+            Position = utility:Position(0, 1, 0, 1, scroll_outline),
+            Color = theme.accent,
+            Visible = false
+        })
+        --
+        library.colors[scroll_bar] = {
+            Color = "accent"
+        }
+        --
         window.pages[#window.pages + 1] = page
         --
         function page:GetTotalYSize(Side)
@@ -2811,6 +2859,32 @@ do
             end
             --
             return TotalYSize
+        end
+        --
+        function page:UpdateScrollBar()
+            local needed = page.open and window.currentPage == page and page.scrollMax > 0
+            scroll_outline.Visible = needed
+            scroll_bar.Visible = needed
+            --
+            if not needed then return end
+            --
+            scroll_outline.Size = utility:Size(0, 6, 1, -10, window.tab_frame)
+            local height = math.max(16, (scroll_outline.Size.Y - 2) * math.clamp(window.tab_frame.Size.Y / (window.tab_frame.Size.Y + page.scrollMax), 0.08, 1))
+            local travel = math.max(0, (scroll_outline.Size.Y - 2) - height)
+            local progress = page.scrollMax > 0 and (page.scroll / page.scrollMax) or 0
+            --
+            scroll_bar.Size = utility:Size(1, -2, 0, height, scroll_outline)
+            scroll_bar.Position = utility:Position(0, 1, 0, 1 + (travel * progress), scroll_outline)
+            utility:UpdateOffset(scroll_bar, {Vector2.new(1, 1 + (travel * progress)), scroll_outline})
+        end
+        --
+        function page:ScrollTo(value)
+            page.scroll = math.clamp(value, 0, page.scrollMax)
+            page:Update()
+        end
+        --
+        function page:ScrollBy(value)
+            page:ScrollTo(page.scroll + value)
         end
         --
         function page:Update()
@@ -2843,6 +2917,7 @@ do
                 end
             end
             --
+            page:UpdateScrollBar()
             window:Move(window.main_frame.Position)
         end
         --
@@ -2852,6 +2927,7 @@ do
                 window.currentPage.page_button_color.Color = theme.darkcontrast
                 window.currentPage.page_button_title.Color = theme.textdark
                 window.currentPage.open = false
+                window.currentPage.scrollDrag = {false, nil}
                 --
                 library.colors[window.currentPage.page_button_color] = {
                     Color = "darkcontrast"
@@ -2868,6 +2944,7 @@ do
                     end
                 end
                 --
+                window.currentPage:UpdateScrollBar()
                 window:CloseContent()
             end
             --
@@ -2903,6 +2980,35 @@ do
             end
         end
         --
+        library.began[#library.began + 1] = function(Input)
+            if Input.UserInputType ~= Enum.UserInputType.MouseButton1 or not window.isVisible or not page.open or window.currentPage ~= page then return end
+            if not scroll_bar.Visible or window:IsOverContent() then return end
+            --
+            if utility:MouseOverDrawing({scroll_outline.Position.X, scroll_outline.Position.Y, scroll_outline.Position.X + scroll_outline.Size.X, scroll_outline.Position.Y + scroll_outline.Size.Y}) then
+                page.scrollDrag = {true, utility:MouseLocation().Y - scroll_bar.Position.Y}
+            end
+        end
+        --
+        library.ended[#library.ended + 1] = function(Input)
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 and page.scrollDrag[1] then
+                page.scrollDrag = {false, nil}
+            end
+        end
+        --
+        library.changed[#library.changed + 1] = function()
+            if not page.scrollDrag[1] then return end
+            --
+            if not window.isVisible or not page.open or window.currentPage ~= page then
+                page.scrollDrag = {false, nil}
+                return
+            end
+            --
+            local track = (scroll_outline.Size.Y - 2) - scroll_bar.Size.Y
+            local y = math.clamp(utility:MouseLocation().Y - scroll_outline.Position.Y - page.scrollDrag[2], 0, math.max(0, track))
+            --
+            page:ScrollTo(track > 0 and (y / track) * page.scrollMax or 0)
+        end
+        --
         utility:Connection(mouse.WheelForward, function()
             if not window.isVisible or window.currentPage ~= page or not page.open or page.scrollMax <= 0 or window.dragging then return end
             if window:IsOverContent() then return end
@@ -2910,8 +3016,7 @@ do
             local tab = window.tab_frame
             --
             if utility:MouseOverDrawing({tab.Position.X, tab.Position.Y, tab.Position.X + tab.Size.X, tab.Position.Y + tab.Size.Y}) then
-                page.scroll = math.clamp(page.scroll - 24, 0, page.scrollMax)
-                page:Update()
+                page:ScrollBy(-48)
             end
         end)
         --
@@ -2922,8 +3027,7 @@ do
             local tab = window.tab_frame
             --
             if utility:MouseOverDrawing({tab.Position.X, tab.Position.Y, tab.Position.X + tab.Size.X, tab.Position.Y + tab.Size.Y}) then
-                page.scroll = math.clamp(page.scroll + 24, 0, page.scrollMax)
-                page:Update()
+                page:ScrollBy(48)
             end
         end)
         --
@@ -3008,7 +3112,8 @@ do
             section_frame.Size = utility:Size(1, -2, 1, -2, section_outline)
         end
         --
-        page.sectionOffset[side] = page.sectionOffset[side] + 100 + 5
+        section:Update(0)
+        page.sectionOffset[side] = page.sectionOffset[side] + section_inline.Size.Y + 5
         page.sections[#page.sections + 1] = section
         --
         return setmetatable(section, sections)
@@ -3221,7 +3326,8 @@ do
             multiSection.backup[z] = x
         end
         --
-        page.sectionOffset[side] = page.sectionOffset[side] + 100 + 5
+        multiSection:Update(0)
+        page.sectionOffset[side] = page.sectionOffset[side] + multiSection_inline.Size.Y + 5
         page.sections[#page.sections + 1] = multiSection
         --
         return Unpack(multiSection.sections)
@@ -3994,6 +4100,435 @@ do
         return playerList
     end
     --
+    -- // Keybinds
+    local KEYBIND_MODES = { "Always", "Toggle", "On Hold", "Off Hold", "Remove" }
+
+    local ALLOWED_KEYCODES = {
+        "Q","W","E","R","T","Y","U","I","O","P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N","M",
+        "One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Zero","Minus","Equals","Space",
+        "F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12",
+        "Insert","Tab","Home","End","Delete","PageUp","PageDown","Up","Down","Left","Right",
+        "LeftAlt","LeftControl","LeftShift","RightAlt","RightControl","RightShift","CapsLock"
+    }
+
+    local ALLOWED_INPUTTYPES = { "MouseButton1", "MouseButton2", "MouseButton3" }
+
+    local SHORTENED_INPUTS = {
+        ["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3",
+        ["Insert"] = "Ins", ["Delete"] = "Del", ["PageUp"] = "PgUp", ["PageDown"] = "PgDn",
+        ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC",
+        ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC",
+        ["RightShift"] = "RS", ["CapsLock"] = "Caps"
+    }
+
+    local function buildKeybind(section, page, window, info, parentToggle)
+        local info = info or {}
+        local name = info.name or info.Name or info.title or info.Title or "New Keybind"
+        local def = info.def or info.Def or info.default or info.Default or nil
+        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
+        local mode = info.mode or info.Mode or "Always"
+        local keybindname = info.keybindname or info.keybindName or info.Keybindname or info.KeybindName or (parentToggle and parentToggle.name) or name
+        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function() end
+
+        local keybind = {
+            name = name, keybindname = keybindname, section = section, page = page, window = window,
+            toggle = parentToggle, axis = parentToggle and parentToggle.axis or section.currentAxis,
+            current = {}, selecting = false, mode = mode, open = false, active = false, destroyed = false,
+            modemenu = { buttons = {}, drawings = {}, frame = nil }
+        }
+
+        local owned = {}
+
+        local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X - 58, keybind.axis), section.section_frame}, {
+            Size = utility:Size(0, 54, 0, 17),
+            Position = utility:Position(1, -58, 0, keybind.axis, section.section_frame),
+            Color = theme.outline,
+            Visible = page.open
+        }, section.visibleContent)
+        owned[keybind_outline] = true
+
+        local keybind_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_outline}, {
+            Size = utility:Size(1, -2, 1, -2, keybind_outline),
+            Position = utility:Position(0, 1, 0, 1, keybind_outline),
+            Color = theme.inline,
+            Visible = page.open
+        }, section.visibleContent)
+        owned[keybind_inline] = true
+
+        local keybind_frame = utility:Create("Frame", {Vector2.new(1,1), keybind_inline}, {
+            Size = utility:Size(1, -2, 1, -2, keybind_inline),
+            Position = utility:Position(0, 1, 0, 1, keybind_inline),
+            Color = theme.lightcontrast,
+            Visible = page.open
+        }, section.visibleContent)
+        owned[keybind_frame] = true
+
+        local keybind_gradient = utility:Create("Image", {Vector2.new(0,0), keybind_frame}, {
+            Size = utility:Size(1, 0, 1, 0, keybind_frame),
+            Position = utility:Position(0, 0, 0, 0, keybind_frame),
+            Transparency = 0.5,
+            Visible = page.open
+        }, section.visibleContent)
+        owned[keybind_gradient] = true
+
+        local keybind_value = utility:Create("TextLabel", {Vector2.new(24, 3), keybind_outline}, {
+            Text = "...",
+            Size = theme.textsize,
+            Font = theme.font,
+            Color = theme.textcolor,
+            OutlineColor = theme.textborder,
+            Center = true,
+            Position = utility:Position(0.5, 0, 0, 3, keybind_outline),
+            Visible = page.open
+        }, section.visibleContent)
+        owned[keybind_value] = true
+        keybind.keybind_value = keybind_value
+
+        -- X button, vertically centred, glyph pinned to its top edge
+        local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_inline.Size.X - 14, 2), keybind_inline}, {
+            Size = utility:Size(0, 12, 0, 12, keybind_inline),
+            Position = utility:Position(1, -14, 0.5, -6, keybind_inline),
+            Color = theme.outline,
+            Visible = page.open
+        }, section.visibleContent)
+        owned[keybind_clear] = true
+
+        local keybind_clear_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_clear}, {
+            Size = utility:Size(1, -2, 1, -2, keybind_clear),
+            Position = utility:Position(0, 1, 0, 1, keybind_clear),
+            Color = theme.darkcontrast,
+            Visible = page.open
+        }, section.visibleContent)
+        owned[keybind_clear_inline] = true
+
+        local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(4, 0), keybind_clear_inline}, {
+            Text = "x",
+            Size = 10,
+            Font = theme.font,
+            Color = theme.textdark,
+            OutlineColor = theme.textborder,
+            Center = true,
+            Position = utility:Position(0.5, 0, 0, 0, keybind_clear_inline),
+            Visible = page.open
+        }, section.visibleContent)
+        owned[keybind_clear_title] = true
+
+        if not parentToggle then
+            local keybind_title = utility:Create("TextLabel", {Vector2.new(4, keybind.axis + 2), section.section_frame}, {
+                Text = name,
+                Size = theme.textsize,
+                Font = theme.font,
+                Color = theme.textcolor,
+                OutlineColor = theme.textborder,
+                Position = utility:Position(0, 4, 0, keybind.axis + 2, section.section_frame),
+                Visible = page.open
+            }, section.visibleContent)
+            owned[keybind_title] = true
+        end
+
+        if parentToggle then
+            for drawing in pairs(owned) do
+                local found = Find(section.visibleContent, drawing)
+                if found then Remove(section.visibleContent, found) end
+            end
+        end
+
+        utility:LoadImage(keybind_gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
+
+        library.keybinds[#library.keybinds + 1] = keybind
+        if parentToggle then parentToggle.keybind = keybind end
+
+        local function listAdd()
+            if window.keybindslist then window.keybindslist:Add(keybindname, keybind_value.Text) end
+        end
+        local function listRemove()
+            if window.keybindslist then window.keybindslist:Remove(keybindname) end
+        end
+        local function fire()
+            if keybind.current[1] and keybind.current[2] and not keybind.destroyed then
+                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
+            end
+        end
+        local function setActive(state)
+            if keybind.destroyed or keybind.active == state then return end
+            keybind.active = state
+            if state then listAdd() else listRemove() end
+            fire()
+        end
+
+        function keybind:Sync()
+            if keybind.destroyed then return end
+
+            if parentToggle then
+                keybind.active = parentToggle:Get()
+            else
+                keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold")
+            end
+
+            if keybind.active then listAdd() else listRemove() end
+            fire()
+        end
+
+        function keybind:Shorten(str)
+            for pattern, replacement in pairs(SHORTENED_INPUTS) do
+                str = str:gsub(pattern, replacement)
+            end
+            return str
+        end
+
+        function keybind:Change(input)
+            if not input then return false end
+            local enumType = input.EnumType
+            if enumType ~= Enum.KeyCode and enumType ~= Enum.UserInputType then return false end
+
+            local allowed = enumType == Enum.KeyCode and Find(ALLOWED_KEYCODES, input.Name) or Find(ALLOWED_INPUTTYPES, input.Name)
+            if not allowed then return false end
+
+            keybind.current = { enumType == Enum.KeyCode and "KeyCode" or "UserInputType", input.Name }
+            keybind_value.Text = keybind:Shorten(input.Name)
+            return true
+        end
+
+        function keybind:Get()
+            return keybind.current
+        end
+
+        function keybind:Set(tbl)
+            if type(tbl) ~= "table" or not tbl[1] or not tbl[2] then return end
+            keybind.current = { tbl[1], tbl[2] }
+            keybind_value.Text = keybind:Shorten(tostring(tbl[2]))
+            if tbl[3] and Find(KEYBIND_MODES, tbl[3]) then keybind.mode = tbl[3] end
+            keybind:Sync()
+        end
+
+        function keybind:Active()
+            return keybind.active
+        end
+
+        function keybind:Callback()
+            fire()
+        end
+
+        function keybind:Reset()
+            for _, button in pairs(keybind.modemenu.buttons) do
+                button.Color = button.Text == keybind.mode and theme.accent or theme.textcolor
+                library.colors[button] = {
+                    Color = button.Text == keybind.mode and "accent" or "textcolor"
+                }
+            end
+            keybind:Sync()
+        end
+
+        function keybind:Clear()
+            local previous = { keybind.current[1], keybind.current[2] }
+            keybind.current = {}
+            keybind.active = false
+            keybind.selecting = false
+            keybind_value.Text = "..."
+            keybind_frame.Color = theme.lightcontrast
+            library.colors[keybind_frame] = {
+                Color = "lightcontrast"
+            }
+            listRemove()
+            if previous[1] and previous[2] then
+                pcall(callback, Enum[previous[1]][previous[2]], false)
+            end
+        end
+
+        function keybind:Destroy()
+            if keybind.destroyed then return end
+            keybind.destroyed = true
+            keybind.selecting = false
+
+            listRemove()
+            if pointer and library.pointers[tostring(pointer)] == keybind then
+                library.pointers[tostring(pointer)] = nil
+            end
+
+            for drawing in pairs(owned) do
+                local found = Find(section.visibleContent, drawing)
+                if found then Remove(section.visibleContent, found) end
+                pcall(utility.Remove, utility, drawing)
+            end
+
+            for _, drawing in pairs(keybind.modemenu.drawings) do
+                pcall(utility.Remove, utility, drawing)
+            end
+
+            for index = #library.keybinds, 1, -1 do
+                if library.keybinds[index] == keybind then Remove(library.keybinds, index) end
+            end
+
+            if parentToggle then
+                if parentToggle.keybind == keybind then parentToggle.keybind = nil end
+                parentToggle.addedAxis = math.max(0, parentToggle.addedAxis - 58)
+            end
+            if window.currentContent.keybind == keybind then
+                window.currentContent.frame = nil
+                window.currentContent.keybind = nil
+            end
+        end
+
+        keybind:Change(def)
+
+        library.began[#library.began + 1] = function(Input)
+            if keybind.destroyed then return end
+
+            if not window.isVisible then
+                if keybind.selecting then
+                    keybind.selecting = false
+                    keybind_frame.Color = theme.lightcontrast
+                    library.colors[keybind_frame] = { Color = "lightcontrast" }
+                end
+                return
+            end
+
+            -- capture first, so the click that starts selection cannot also fire the bind
+            if keybind.selecting then
+                if Input.KeyCode == Enum.KeyCode.Escape then
+                    keybind.selecting = false
+                    keybind_frame.Color = theme.lightcontrast
+                    library.colors[keybind_frame] = { Color = "lightcontrast" }
+                    return
+                end
+
+                local captured = keybind:Change(Input.KeyCode ~= Enum.KeyCode.Unknown and Input.KeyCode or Input.UserInputType)
+                if captured then
+                    keybind.selecting = false
+                    keybind_frame.Color = theme.lightcontrast
+                    library.colors[keybind_frame] = { Color = "lightcontrast" }
+                    keybind:Sync()
+                end
+                return
+            end
+
+            -- activation
+            if keybind.current[1] and keybind.current[2] then
+                local bound = Enum[keybind.current[1]][keybind.current[2]]
+                if (Input.KeyCode == bound or Input.UserInputType == bound) and not window:IsMouseBlocked(Input) then
+                    if parentToggle then
+                        if keybind.mode == "Toggle" then
+                            parentToggle:Set(not parentToggle:Get())
+                        elseif keybind.mode == "On Hold" then
+                            parentToggle:Set(true)
+                        elseif keybind.mode == "Off Hold" then
+                            parentToggle:Set(false)
+                        else
+                            parentToggle:Set(true)
+                        end
+                    else
+                        if keybind.mode == "Toggle" then
+                            setActive(not keybind.active)
+                        elseif keybind.mode == "On Hold" then
+                            setActive(true)
+                        elseif keybind.mode == "Off Hold" then
+                            setActive(false)
+                        else
+                            setActive(true)
+                        end
+                    end
+                    return
+                end
+            end
+
+            -- left click: clear button, then select target
+            if Input.UserInputType == Enum.UserInputType.MouseButton1 and keybind_outline.Visible then
+                if utility:MouseOverDrawing({keybind_clear.Position.X - 2, keybind_clear.Position.Y - 2, keybind_clear.Position.X + keybind_clear.Size.X + 2, keybind_clear.Position.Y + keybind_clear.Size.Y + 2}) then
+                    keybind:Clear()
+                    return
+                end
+
+                if keybind.open and keybind.modemenu.frame then
+                    if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y, keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + keybind.modemenu.frame.Size.Y}) then
+                        for index, button in pairs(keybind.modemenu.buttons) do
+                            local top = keybind.modemenu.frame.Position.Y + (15 * (index - 1))
+                            if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, top, keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, top + 15}) then
+                                if button.Text == "Remove" then
+                                    keybind:Destroy()
+                                else
+                                    keybind.mode = button.Text
+                                    keybind:Reset()
+                                end
+                                return
+                            end
+                        end
+                    end
+                end
+
+                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - 60), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() then
+                    keybind.selecting = true
+                    keybind_frame.Color = theme.darkcontrast
+                    library.colors[keybind_frame] = { Color = "darkcontrast" }
+                end
+            end
+
+            if Input.UserInputType == Enum.UserInputType.MouseButton2 and keybind_outline.Visible then
+                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - 60), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() then
+                    window:CloseContent()
+                    keybind.open = true
+
+                    local modemenu = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X + 2, 0), keybind_outline}, {
+                        Size = utility:Size(0, 68, 0, 79),
+                        Position = utility:Position(1, 2, 0, 0, keybind_outline),
+                        Color = theme.outline,
+                        Visible = page.open
+                    }, keybind.modemenu.drawings);keybind.modemenu.frame = modemenu
+
+                    local modemenu_inline = utility:Create("Frame", {Vector2.new(1,1), modemenu}, {
+                        Size = utility:Size(1, -2, 1, -2, modemenu),
+                        Position = utility:Position(0, 1, 0, 1, modemenu),
+                        Color = theme.inline,
+                        Visible = page.open
+                    }, keybind.modemenu.drawings)
+
+                    local modemenu_frame = utility:Create("Frame", {Vector2.new(1,1), modemenu_inline}, {
+                        Size = utility:Size(1, -2, 1, -2, modemenu_inline),
+                        Position = utility:Position(0, 1, 0, 1, modemenu_inline),
+                        Color = theme.lightcontrast,
+                        Visible = page.open
+                    }, keybind.modemenu.drawings)
+
+                    for index, entry in pairs(KEYBIND_MODES) do
+                        local button = utility:Create("TextLabel", {Vector2.new(modemenu_frame.Size.X / 2, 15 * (index - 1)), modemenu_frame}, {
+                            Text = entry,
+                            Size = theme.textsize,
+                            Font = theme.font,
+                            Color = entry == keybind.mode and theme.accent or theme.textcolor,
+                            Center = true,
+                            OutlineColor = theme.textborder,
+                            Position = utility:Position(0.5, 0, 0, 15 * (index - 1), modemenu_frame),
+                            Visible = page.open
+                        }, keybind.modemenu.drawings);keybind.modemenu.buttons[#keybind.modemenu.buttons + 1] = button
+                    end
+
+                    window.currentContent.frame = modemenu
+                    window.currentContent.keybind = keybind
+                end
+            end
+        end
+
+        library.ended[#library.ended + 1] = function(Input)
+            if keybind.destroyed then return end
+            if keybind.mode ~= "On Hold" and keybind.mode ~= "Off Hold" then return end
+            if not (keybind.current[1] and keybind.current[2]) then return end
+
+            local bound = Enum[keybind.current[1]][keybind.current[2]]
+            if Input.KeyCode ~= bound and Input.UserInputType ~= bound then return end
+
+            if parentToggle then
+                parentToggle:Set(keybind.mode == "Off Hold")
+            else
+                setActive(keybind.mode == "Off Hold")
+            end
+        end
+
+        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
+            library.pointers[tostring(pointer)] = keybind
+        end
+
+        return keybind
+    end
+    --
     function sections:Label(info)
         local info = info or {}
         local name = info.name or info.Name or info.title or info.Title or "New Label"
@@ -4042,7 +4577,7 @@ do
         local page = self.page
         local section = self
         --
-        local toggle = {axis = section.currentAxis, current = def, addedAxis = 0, addedKeybind = nil, colorpickers = 0, keybind = nil}
+        local toggle = {axis = section.currentAxis, current = def, name = name, addedAxis = 0, addedKeybind = nil, colorpickers = 0, keybind = nil}
         --
         local toggle_outline = utility:Create("Frame", {Vector2.new(4,toggle.axis), section.section_frame}, {
             Size = utility:Size(0, 15, 0, 15),
@@ -4116,16 +4651,7 @@ do
                 --
                 callback(toggle.current)
                 --
-                if toggle.keybind then
-                    toggle.keybind.active = (bool and (toggle.keybind.mode == "Always" or toggle.keybind.mode == "Off Hold") or false)
-                    toggle.keybind:Callback()
-                    --
-                    if toggle.keybind.mode == "Off Hold" and toggle.current then
-                        window.keybindslist:Add(toggle.keybind.keybindname, toggle.keybind.keybind_value.Text)
-                    else
-                        window.keybindslist:Remove(toggle.keybind.keybindname)
-                    end
-                end
+                if toggle.keybind then toggle.keybind:Sync() end
             end
         end
         --
@@ -4144,15 +4670,7 @@ do
                 --
                 callback(toggle.current)
                 --
-                if toggle.keybind then
-                    toggle.keybind.active = (toggle.current and (toggle.keybind.mode == "Always" or toggle.keybind.mode == "Off Hold") or false)
-                    toggle.keybind:Callback()
-                    if toggle.keybind.mode == "Off Hold" and toggle.current then
-                        window.keybindslist:Add(toggle.keybind.keybindname, toggle.keybind.keybind_value.Text)
-                    else
-                        window.keybindslist:Remove(toggle.keybind.keybindname)
-                    end
-                end
+                if toggle.keybind then toggle.keybind:Sync() end
             end
         end
         --
@@ -4611,407 +5129,8 @@ do
         end
         --
         function toggle:Keybind(info)
-            local info = info or {}
-            local def = info.def or info.Def or info.default or info.Default or nil
-            local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-            local mode = info.mode or info.Mode or "Always"
-            local keybindname = info.keybindname or info.keybindName or info.KeybindName or info.Keybindname or nil
-            local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-            --
-            toggle.addedAxis = toggle.addedAxis + 54 + 4 + 2
-            --
-            local keybind = {keybindname = keybindname or name, axis = toggle.axis, current = {}, selecting = false, mode = mode, open = false, modemenu = {buttons = {}, drawings = {}}, active = false}
-            --
-            toggle.keybind = keybind
-            --
-            local allowedKeyCodes = {"Q","W","E","R","T","Y","U","I","O","P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N","M","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Zero", "Minus", "Equals","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","Insert","Tab","Home","End","LeftAlt","LeftControl","LeftShift","RightAlt","RightControl","RightShift","CapsLock"}
-            local allowedInputTypes = {"MouseButton1","MouseButton2","MouseButton3"}
-            local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
-            --
-            local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(54+4),keybind.axis), section.section_frame}, {
-                Size = utility:Size(0, 54, 0, 17),
-                Position = utility:Position(1, -(54+4), 0, keybind.axis, section.section_frame),
-                Color = theme.outline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_outline] = {
-                Color = "outline"
-            }
-            --
-            local keybind_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_outline}, {
-                Size = utility:Size(1, -2, 1, -2, keybind_outline),
-                Position = utility:Position(0, 1, 0, 1, keybind_outline),
-                Color = theme.inline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_inline] = {
-                Color = "inline"
-            }
-            --
-            local keybind_frame = utility:Create("Frame", {Vector2.new(1,1), keybind_inline}, {
-                Size = utility:Size(1, -2, 1, -2, keybind_inline),
-                Position = utility:Position(0, 1, 0, 1, keybind_inline),
-                Color = theme.lightcontrast,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_frame] = {
-                Color = "lightcontrast"
-            }
-            --
-            local keybind__gradient = utility:Create("Image", {Vector2.new(0,0), keybind_frame}, {
-                Size = utility:Size(1, 0, 1, 0, keybind_frame),
-                Position = utility:Position(0, 0, 0 , 0, keybind_frame),
-                Transparency = 0.5,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            local keybind_value = utility:Create("TextLabel", {Vector2.new(20,1), keybind_outline}, {
-                Text = "...",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textcolor,
-                OutlineColor = theme.textborder, 
-                Center = true,
-                Position = utility:Position(0, 20, 0, 1, keybind_outline),
-                Visible = page.open
-            }, section.visibleContent);keybind["keybind_value"] = keybind_value
-            --
-            local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X - 13, 2), keybind_inline}, {
-                Size = utility:Size(0, 11, 0, 13, keybind_inline),
-                Position = utility:Position(1, -13, 0, 2, keybind_inline),
-                Color = theme.outline,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_clear] = {
-                Color = "outline"
-            }
-            --
-            local keybind_clear_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_clear}, {
-                Size = utility:Size(1, -2, 1, -2, keybind_clear),
-                Position = utility:Position(0, 1, 0, 1, keybind_clear),
-                Color = theme.darkcontrast,
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_clear_inline] = {
-                Color = "darkcontrast"
-            }
-            --
-            local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(5, 6), keybind_clear_inline}, {
-                Text = "x",
-                Size = theme.textsize,
-                Font = theme.font,
-                Color = theme.textdark,
-                OutlineColor = theme.textborder,
-                Center = true,
-                Position = utility:Position(0.5, 0, 0.5, 0, keybind_clear_inline),
-                Visible = page.open
-            }, section.visibleContent)
-            --
-            library.colors[keybind_clear_title] = {
-                OutlineColor = "textborder",
-                Color = "textdark"
-            }
-            --
-            library.colors[keybind_value] = {
-                OutlineColor = "textborder",
-                Color = "textcolor"
-            }
-            --
-            utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-            --
-            function keybind:Shorten(str)
-                for i,v in pairs(shortenedInputs) do
-                    str = str:gsub(i, v)
-                end
-                return str
-            end
-            --
-            function keybind:Change(input)
-                input = input or "..."
-                local inputTable = {}
-                --
-                if input.EnumType then
-                    if input.EnumType == Enum.KeyCode or input.EnumType == Enum.UserInputType then
-                        if Find(allowedKeyCodes, input.Name) or Find(allowedInputTypes, input.Name) then
-                            inputTable = {input.EnumType == Enum.KeyCode and "KeyCode" or "UserInputType", input.Name}
-                            --
-                            keybind.current = inputTable
-                            keybind_value.Text = #keybind.current > 0 and keybind:Shorten(keybind.current[2]) or "..."
-                            --
-                            return true
-                        end
-                    end
-                end
-                --
-                return false
-            end
-            --
-            function keybind:Get()
-                return keybind.current
-            end
-            --
-            function keybind:Set(tbl)
-                if type(tbl) ~= "table" then return end
-                --
-                keybind.current = {tbl[1], tbl[2]}
-                keybind_value.Text = #keybind.current > 0 and keybind:Shorten(tostring(keybind.current[2])) or "..."
-                --
-                if tbl[3] then
-                    keybind.mode = tbl[3]
-                    keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and (toggle.current) or false
-                    --
-                    if keybind.mode == "Off Hold" then
-                        window.keybindslist:Add(keybindname or name, keybind_value.Text)
-                    else
-                        window.keybindslist:Remove(keybindname or name)
-                    end
-                end
-                --
-                if keybind.current[1] and keybind.current[2] then
-                    callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                end
-            end
-            --
-            function keybind:Active()
-                return keybind.active
-            end
-            --
-            function keybind:Reset()
-                for i,v in pairs(keybind.modemenu.buttons) do
-                    v.Color = v.Text == keybind.mode and theme.accent or theme.textcolor
-                    --
-                    library.colors[v] = {
-                        Color = v.Text == keybind.mode and "accent" or "textcolor"
-                    }
-                end
-                --
-                keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold")
-                --
-                if keybind.mode == "Off Hold" then
-                    window.keybindslist:Add(keybindname or name, keybind_value.Text)
-                else
-                    window.keybindslist:Remove(keybindname or name)
-                end
-                --
-                if keybind.current[1] and keybind.current[2] then
-                    callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                end
-            end
-            --
-            function keybind:Callback()
-                if keybind.current[1] and keybind.current[2] then
-                    callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                end
-            end
-            --
-            function keybind:Clear()
-                local old = {keybind.current[1], keybind.current[2]}
-                --
-                keybind.current = {}
-                keybind.active = false
-                keybind.selecting = false
-                keybind_value.Text = "..."
-                keybind_frame.Color = theme.lightcontrast
-                --
-                library.colors[keybind_frame] = {
-                    Color = "lightcontrast"
-                }
-                --
-                window.keybindslist:Remove(keybindname or name)
-                --
-                if old[1] and old[2] then
-                    pcall(callback, Enum[old[1]][old[2]], false)
-                end
-            end
-            --
-            keybind:Change(def)
-            --
-            library.began[#library.began + 1] = function(Input)
-                if keybind.current[1] and keybind.current[2] then
-                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not window:IsMouseBlocked(Input) then
-                        if keybind.mode == "On Hold" then
-                            local old = keybind.active
-                            keybind.active = toggle:Get()
-                            if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                            if keybind.active ~= old then callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active) end
-                        elseif keybind.mode == "Off Hold" then
-                            local old = keybind.active
-                            keybind.active = false
-                            if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                            if keybind.active ~= old then callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active) end
-                        elseif keybind.mode == "Toggle" then
-                            local old = keybind.active
-                            keybind.active = (not keybind.active) and toggle:Get() or false
-                            if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                            if keybind.active ~= old then callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active) end
-                        end
-                    end
-                end
-                --
-                if keybind.selecting and window.isVisible then
-                    local done = keybind:Change(Input.KeyCode.Name ~= "Unknown" and Input.KeyCode or Input.UserInputType)
-                    if done then
-                        keybind.selecting = false
-                        keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and true or false
-                        keybind_frame.Color = theme.lightcontrast
-                        --
-                        library.colors[keybind_frame] = {
-                            Color = "lightcontrast"
-                        }
-                        --
-                        window.keybindslist:Remove(keybindname or name)
-                        if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                        callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                    end
-                end
-                --
-                if not window.isVisible and keybind.selecting then
-                    keybind.selecting = false
-                    keybind_frame.Color = theme.lightcontrast
-                    --
-                    library.colors[keybind_frame] = {
-                        Color = "lightcontrast"
-                    }
-                end
-                --
-                if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and keybind_outline.Visible then
-                    if utility:MouseOverDrawing({keybind_clear.Position.X - 1, keybind_clear.Position.Y - 1, keybind_clear.Position.X + keybind_clear.Size.X + 1, keybind_clear.Position.Y + keybind_clear.Size.Y + 1}) then
-                        keybind:Clear()
-                    elseif utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                        keybind.selecting = true
-                        keybind_frame.Color = theme.darkcontrast
-                        --
-                        library.colors[keybind_frame] = {
-                            Color = "darkcontrast"
-                        }
-                    end
-                    if keybind.open and keybind.modemenu.frame then
-                        if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y, keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + keybind.modemenu.frame.Size.Y}) then
-                            local changed = false
-                            --
-                            for i,v in pairs(keybind.modemenu.buttons) do
-                                if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)), keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)) + 15}) then
-                                    keybind.mode = v.Text
-                                    changed = true
-                                end
-                            end
-                            --
-                            if changed then keybind:Reset() end
-                        else
-                            keybind.open = not keybind.open
-                            --
-                            for i,v in pairs(keybind.modemenu.drawings) do
-                                utility:Remove(v)
-                            end
-                            --
-                            keybind.modemenu.drawings = {}
-                            keybind.modemenu.buttons = {}
-                            keybind.modemenu.frame = nil
-                            --
-                            window.currentContent.frame = nil
-                            window.currentContent.keybind = nil
-                        end
-                    end
-                end
-                --
-                if Input.UserInputType == Enum.UserInputType.MouseButton2 and window.isVisible and keybind_outline.Visible then
-                    if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                        window:CloseContent()
-                        keybind.open = not keybind.open
-                        --
-                        local modemenu = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X + 2,0), keybind_outline}, {
-                            Size = utility:Size(0, 68, 0, 79),
-                            Position = utility:Position(1, 2, 0, 0, keybind_outline),
-                            Color = theme.outline,
-                            Visible = page.open
-                        }, keybind.modemenu.drawings);keybind.modemenu.frame = modemenu
-                        --
-                        library.colors[modemenu] = {
-                            Color = "outline"
-                        }
-                        --
-                        local modemenu_inline = utility:Create("Frame", {Vector2.new(1,1), modemenu}, {
-                            Size = utility:Size(1, -2, 1, -2, modemenu),
-                            Position = utility:Position(0, 1, 0, 1, modemenu),
-                            Color = theme.inline,
-                            Visible = page.open
-                        }, keybind.modemenu.drawings)
-                        --
-                        library.colors[modemenu_inline] = {
-                            Color = "inline"
-                        }
-                        --
-                        local modemenu_frame = utility:Create("Frame", {Vector2.new(1,1), modemenu_inline}, {
-                            Size = utility:Size(1, -2, 1, -2, modemenu_inline),
-                            Position = utility:Position(0, 1, 0, 1, modemenu_inline),
-                            Color = theme.lightcontrast,
-                            Visible = page.open
-                        }, keybind.modemenu.drawings)
-                        --
-                        library.colors[modemenu_frame] = {
-                            Color = "lightcontrast"
-                        }
-                        --
-                        local keybind__gradient = utility:Create("Image", {Vector2.new(0,0), modemenu_frame}, {
-                            Size = utility:Size(1, 0, 1, 0, modemenu_frame),
-                            Position = utility:Position(0, 0, 0 , 0, modemenu_frame),
-                            Transparency = 0.5,
-                            Visible = page.open
-                        }, keybind.modemenu.drawings)
-                        --
-                        utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-                        --
-                        for i,v in pairs({"Always", "Toggle", "On Hold", "Off Hold", "Clear"}) do
-                            local button_title = utility:Create("TextLabel", {Vector2.new(modemenu_frame.Size.X/2,15 * (i-1)), modemenu_frame}, {
-                                Text = v,
-                                Size = theme.textsize,
-                                Font = theme.font,
-                                Color = v == keybind.mode and theme.accent or theme.textcolor,
-                                Center = true,
-                                OutlineColor = theme.textborder,
-                                Position = utility:Position(0.5, 0, 0, 15 * (i-1), modemenu_frame),
-                                Visible = page.open
-                            }, keybind.modemenu.drawings);keybind.modemenu.buttons[#keybind.modemenu.buttons + 1] = button_title
-                            --
-                            library.colors[button_title] = {
-                                OutlineColor = "textborder",
-                                Color = v == keybind.mode and "accent" or "textcolor"
-                            }
-                        end
-                        --
-                        window.currentContent.frame = modemenu
-                        window.currentContent.keybind = keybind
-                    end
-                end
-            end
-            --
-            library.ended[#library.ended + 1] = function(Input)
-                if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
-                    if keybind.current[1] and keybind.current[2] then
-                        if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) then
-                            if keybind.mode == "On Hold" and keybind.active then
-                                keybind.active = false
-                                window.keybindslist:Remove(keybindname or name)
-                                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                            elseif keybind.mode == "Off Hold" and not keybind.active then
-                                keybind.active = toggle:Get()
-                                if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                            end
-                        end
-                    end
-                end
-            end
-            --
-            if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-                library.pointers[tostring(pointer)] = keybind
-            end
-            --
+            local keybind = buildKeybind(section, page, window, info, toggle)
+            toggle.addedAxis = toggle.addedAxis + 58
             return keybind
         end
         --
@@ -5037,7 +5156,7 @@ do
         local page = self.page
         local section = self
         --
-        local slider = {min = min, max = max, Disabled = false, sub = sub, decimals = decimals, axis = section.currentAxis, current = -99999, holding = false}
+        local slider = {min = min, max = max, Disabled = false, sub = sub, decimals = decimals, axis = section.currentAxis, current = def, holding = false}
         --
         if name then
             local slider_title = utility:Create("TextLabel", {Vector2.new(4,slider.axis), section.section_frame}, {
@@ -5107,7 +5226,7 @@ do
             Visible = page.open
         }, section.visibleContent)
         --
-        local textBounds = utility:GetTextBounds(name, theme.textsize, theme.font)
+        local textBounds = utility:GetTextBounds(name or "", theme.textsize, theme.font)
         local slider_value = utility:Create("TextLabel", {Vector2.new(slider_outline.Size.X/2,(slider_outline.Size.Y/2) - (textBounds.Y/2)), slider_outline}, {
             Text = tostring(slider.current)..slider.sub.."/"..tostring(maxtext)..slider.sub,
             Size = theme.textsize,
@@ -5131,12 +5250,13 @@ do
             --
             slider.current = math.clamp(math.round(value * slider.decimals) / slider.decimals, slider.min, slider.max)
             --
+            local disabledtext = disable and ((slider.current <= disable[2] or slider.current >= disable[3]) and disable[1])
+            local percent = 1 - ((slider.max - slider.current) / (slider.max - slider.min))
+            slider_value.Text = disabledtext or (tostring(slider.current)..slider.sub.."/"..tostring(maxtext)..slider.sub)
+            slider_slide.Size = utility:Size(0, percent * slider_frame.Size.X, 1, -2, slider_inline)
+            slider.Disabled = disabledtext ~= nil and disabledtext ~= false
+            --
             if slider.current ~= oldval then
-                local disabledtext = disable and ((slider.current <= disable[2] or slider.current >= disable[3]) and disable[1])
-                local percent = 1 - ((slider.max - slider.current) / (slider.max - slider.min))
-                slider_value.Text = disabledtext or (tostring(slider.current)..slider.sub.."/"..tostring(maxtext)..slider.sub)
-                slider_slide.Size = utility:Size(0, percent * slider_frame.Size.X, 1, -2, slider_inline)
-                slider.Disabled = disabledtext ~= nil and disabledtext ~= false
                 callback(slider.current)
             end
         end
@@ -5574,6 +5694,8 @@ do
         end
         --
         section.currentAxis = section.currentAxis + 20 + 4
+        --
+        return buttonHolder
     end
     --
     function sections:Dropdown(info)
@@ -5673,7 +5795,7 @@ do
         utility:LoadImage(dropdown__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
         --
         if max then
-            local lastupdate = dropdown.scrollindex
+            local lastupdate
             --
             function dropdown:UpdateScroll()
                 if dropdown.scrollindex ~= lastupdate then
@@ -5754,6 +5876,7 @@ do
                     if not dropdown.open then
                         window:CloseContent()
                         dropdown.open = not dropdown.open
+                        dropdown.scrollindex = math.clamp(dropdown.scrollindex or 0, 0, math.max(0, #dropdown.options - max))
                         utility:LoadImage(dropdown_image, "arrow_up", "https://i.imgur.com/SL9cbQp.png")
                         --
                         local dropdown_open_outline = utility:Create("Frame", {Vector2.new(0,19), dropdown_outline}, {
@@ -5792,7 +5915,7 @@ do
                             --
                             local dropdown_open_bar = utility:Create("Frame", {Vector2.new(0, (((dropdown_open_scroll.Size.Y - ((max / #dropdown.options) * dropdown_open_scroll.Size.Y)) / (#dropdown.options - max)) * dropdown.scrollindex)), dropdown_open_scroll}, {
                                 Size = utility:Size(1, 0, (max / #dropdown.options), 0, dropdown_open_scroll),
-                                Position = utility:Position(0, 0, 0, (((dropdown_open_scroll.Size.Y - ((max / #dropdown.options) * dropdown_open_scroll.Size.Y)) / (#dropdown.options - max)) * dropdown.scrollindex), dropdown_open_scroll),
+                                Position = utility:Position(0, 0, 0, (((dropdown_open_scroll.Size.Y - ((max / #dropdown.options) * dropdown_open_scroll.Size.Y)) / (math.max(1, #dropdown.options - max))) * dropdown.scrollindex), dropdown_open_scroll),
                                 Color = theme.accent,
                                 Visible = page.open
                             }, dropdown.holder.drawings);dropdown.bar = dropdown_open_bar
@@ -6219,454 +6342,8 @@ do
     end
     --
     function sections:Keybind(info)
-        local info = info or {}
-        local name = info.name or info.Name or info.title or info.Title or "New Keybind"
-        local def = info.def or info.Def or info.default or info.Default or nil
-        local pointer = info.pointer or info.Pointer or info.flag or info.Flag or nil
-        local mode = info.mode or info.Mode or "Always"
-        local keybindname = info.keybindname or info.keybindName or info.Keybindname or info.KeybindName or nil
-        local callback = info.callback or info.callBack or info.Callback or info.CallBack or function()end
-        --
-        local window = self.window
-        local page = self.page
-        local section = self
-        --
-        local keybind = {keybindname = keybindname or name, axis = section.currentAxis, current = {}, selecting = false, mode = mode, open = false, modemenu = {buttons = {}, drawings = {}}, active = false}
-        --
-        local allowedKeyCodes = {"Q","W","E","R","T","Y","U","I","O","P","A","S","D","F","G","H","J","K","L","Z","X","C","V","B","N","M","One","Two","Three","Four","Five","Six","Seven","Eight","Nine","Zero", "Minus", "Equals","F1","F2","F3","F4","F5","F6","F7","F8","F9","F10","F11","F12","Insert","Tab","Home","End","LeftAlt","LeftControl","LeftShift","RightAlt","RightControl","RightShift","CapsLock"}
-        local allowedInputTypes = {"MouseButton1","MouseButton2","MouseButton3"}
-        local shortenedInputs = {["MouseButton1"] = "MB1", ["MouseButton2"] = "MB2", ["MouseButton3"] = "MB3", ["Insert"] = "Ins", ["Minus"] = "-", ["Equals"] = "=", ["LeftAlt"] = "LAlt", ["LeftControl"] = "LC", ["LeftShift"] = "LS", ["RightAlt"] = "RAlt", ["RightControl"] = "RC", ["RightShift"] = "RS", ["CapsLock"] = "Caps"}
-        --
-        local keybind_outline = utility:Create("Frame", {Vector2.new(section.section_frame.Size.X-(54+4),keybind.axis), section.section_frame}, {
-            Size = utility:Size(0, 54, 0, 17),
-            Position = utility:Position(1, -(54+4), 0, keybind.axis, section.section_frame),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_outline] = {
-            Color = "outline"
-        }
-        --
-        local keybind_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_outline}, {
-            Size = utility:Size(1, -2, 1, -2, keybind_outline),
-            Position = utility:Position(0, 1, 0, 1, keybind_outline),
-            Color = theme.inline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_inline] = {
-            Color = "inline"
-        }
-        --
-        local keybind_frame = utility:Create("Frame", {Vector2.new(1,1), keybind_inline}, {
-            Size = utility:Size(1, -2, 1, -2, keybind_inline),
-            Position = utility:Position(0, 1, 0, 1, keybind_inline),
-            Color = theme.lightcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_frame] = {
-            Color = "lightcontrast"
-        }
-        --
-        local keybind_title = utility:Create("TextLabel", {Vector2.new(4,keybind.axis + (17/2) - (utility:GetTextBounds(name, theme.textsize, theme.font).Y/2)), section.section_frame}, {
-            Text = name,
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder,
-            Position = utility:Position(0, 4, 0, keybind.axis + (17/2) - (utility:GetTextBounds(name, theme.textsize, theme.font).Y/2), section.section_frame),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_title] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        local keybind__gradient = utility:Create("Image", {Vector2.new(0,0), keybind_frame}, {
-            Size = utility:Size(1, 0, 1, 0, keybind_frame),
-            Position = utility:Position(0, 0, 0 , 0, keybind_frame),
-            Transparency = 0.5,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        local keybind_value = utility:Create("TextLabel", {Vector2.new(20,1), keybind_outline}, {
-            Text = "...",
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textcolor,
-            OutlineColor = theme.textborder, 
-            Center = true,
-            Position = utility:Position(0, 20, 0, 1, keybind_outline),
-            Visible = page.open
-        }, section.visibleContent);keybind["keybind_value"] = keybind_value
-        --
-        local keybind_clear = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X - 13, 2), keybind_inline}, {
-            Size = utility:Size(0, 11, 0, 13, keybind_inline),
-            Position = utility:Position(1, -13, 0, 2, keybind_inline),
-            Color = theme.outline,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_clear] = {
-            Color = "outline"
-        }
-        --
-        local keybind_clear_inline = utility:Create("Frame", {Vector2.new(1,1), keybind_clear}, {
-            Size = utility:Size(1, -2, 1, -2, keybind_clear),
-            Position = utility:Position(0, 1, 0, 1, keybind_clear),
-            Color = theme.darkcontrast,
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_clear_inline] = {
-            Color = "darkcontrast"
-        }
-        --
-        local keybind_clear_title = utility:Create("TextLabel", {Vector2.new(5, 6), keybind_clear_inline}, {
-            Text = "x",
-            Size = theme.textsize,
-            Font = theme.font,
-            Color = theme.textdark,
-            OutlineColor = theme.textborder,
-            Center = true,
-            Position = utility:Position(0.5, 0, 0.5, 0, keybind_clear_inline),
-            Visible = page.open
-        }, section.visibleContent)
-        --
-        library.colors[keybind_clear_title] = {
-            OutlineColor = "textborder",
-            Color = "textdark"
-        }
-        --
-        library.colors[keybind_value] = {
-            OutlineColor = "textborder",
-            Color = "textcolor"
-        }
-        --
-        utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-        --
-        function keybind:Shorten(str)
-            for i,v in pairs(shortenedInputs) do
-                str = str:gsub(i, v)
-            end
-            return str
-        end
-        --
-        function keybind:Change(input)
-            input = input or "..."
-            local inputTable = {}
-            --
-            if input.EnumType then
-                if input.EnumType == Enum.KeyCode or input.EnumType == Enum.UserInputType then
-                    if Find(allowedKeyCodes, input.Name) or Find(allowedInputTypes, input.Name) then
-                        inputTable = {input.EnumType == Enum.KeyCode and "KeyCode" or "UserInputType", input.Name}
-                        --
-                        keybind.current = inputTable
-                        keybind_value.Text = #keybind.current > 0 and keybind:Shorten(keybind.current[2]) or "..."
-                        --
-                        return true
-                    end
-                end
-            end
-            --
-            return false
-        end
-        --
-        function keybind:Get()
-            return keybind.current
-        end
-        --
-        function keybind:Set(tbl)
-            if type(tbl) ~= "table" then return end
-            --
-            keybind.current = {tbl[1], tbl[2]}
-            keybind_value.Text = #keybind.current > 0 and keybind:Shorten(tostring(keybind.current[2])) or "..."
-            --
-            if tbl[3] then
-                keybind.mode = tbl[3]
-            end
-            --
-            keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and true or false
-            --
-            if keybind.mode == "Off Hold" then
-                window.keybindslist:Add(keybindname or name, keybind_value.Text)
-            else
-                window.keybindslist:Remove(keybindname or name)
-            end
-            --
-            if keybind.current[1] and keybind.current[2] then
-                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-            end
-        end
-        --
-        function keybind:Active()
-            return keybind.active
-        end
-        --
-        function keybind:Reset()
-            for i,v in pairs(keybind.modemenu.buttons) do
-                v.Color = v.Text == keybind.mode and theme.accent or theme.textcolor
-                --
-                library.colors[v] = {
-                    Color = v.Text == keybind.mode and "accent" or "textcolor"
-                }
-            end
-            --
-            keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and true or false
-            --
-            if keybind.mode == "Off Hold" then
-                window.keybindslist:Add(keybindname or name, keybind_value.Text)
-            else
-                window.keybindslist:Remove(keybindname or name)
-            end
-            --
-            if keybind.current[1] and keybind.current[2] then
-                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-            end
-        end
-        --
-        function keybind:Callback()
-            if keybind.current[1] and keybind.current[2] then
-                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-            end
-        end
-        --
-        function keybind:Clear()
-            local old = {keybind.current[1], keybind.current[2]}
-            --
-            keybind.current = {}
-            keybind.active = false
-            keybind.selecting = false
-            keybind_value.Text = "..."
-            keybind_frame.Color = theme.lightcontrast
-            --
-            library.colors[keybind_frame] = {
-                Color = "lightcontrast"
-            }
-            --
-            if keybind.open then
-                keybind.open = false
-                --
-                for i,v in pairs(keybind.modemenu.drawings) do
-                    utility:Remove(v)
-                end
-                --
-                keybind.modemenu.drawings = {}
-                keybind.modemenu.buttons = {}
-                keybind.modemenu.frame = nil
-                --
-                window.currentContent.frame = nil
-                window.currentContent.keybind = nil
-            end
-            --
-            window.keybindslist:Remove(keybindname or name)
-            --
-            if old[1] and old[2] then
-                pcall(callback, Enum[old[1]][old[2]], false)
-            end
-        end
-        --
-        keybind:Change(def)
-        --
-        library.began[#library.began + 1] = function(Input)
-            if keybind.current[1] and keybind.current[2] then
-                if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) and not window:IsMouseBlocked(Input) then
-                    if keybind.mode == "On Hold" then
-                        keybind.active = true
-                        if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                        callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                    elseif keybind.mode == "Off Hold" then
-                        keybind.active = false
-                        if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                        callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                    elseif keybind.mode == "Toggle" then
-                        keybind.active = not keybind.active
-                        if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                        callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                    end
-                end
-            end
-            --
-            if keybind.selecting and window.isVisible then
-                local done = keybind:Change(Input.KeyCode.Name ~= "Unknown" and Input.KeyCode or Input.UserInputType)
-                if done then
-                    keybind.selecting = false
-                    keybind.active = (keybind.mode == "Always" or keybind.mode == "Off Hold") and true or false
-                    keybind_frame.Color = theme.lightcontrast
-                    --
-                    library.colors[keybind_frame] = {
-                        Color = "lightcontrast"
-                    }
-                    --
-                    if keybind.mode == "Off Hold" then
-                        window.keybindslist:Add(keybindname or name, keybind_value.Text)
-                    else
-                        window.keybindslist:Remove(keybindname or name)
-                    end
-                    --
-                    callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                end
-            end
-            --
-            if not window.isVisible and keybind.selecting then
-                keybind.selecting = false
-                keybind_frame.Color = theme.lightcontrast
-                --
-                library.colors[keybind_frame] = {
-                    Color = "lightcontrast"
-                }
-            end
-            --
-            if Input.UserInputType == Enum.UserInputType.MouseButton1 and window.isVisible and keybind_outline.Visible then
-                if utility:MouseOverDrawing({keybind_clear.Position.X - 1, keybind_clear.Position.Y - 1, keybind_clear.Position.X + keybind_clear.Size.X + 1, keybind_clear.Position.Y + keybind_clear.Size.Y + 1}) then
-                    keybind:Clear()
-                elseif utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                    keybind.selecting = true
-                    keybind_frame.Color = theme.darkcontrast
-                    --
-                    library.colors[keybind_frame] = {
-                        Color = "darkcontrast"
-                    }
-                end
-                if keybind.open and keybind.modemenu.frame then
-                    if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y, keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + keybind.modemenu.frame.Size.Y}) then
-                        local changed = false
-                        local cleared = false
-                        --
-                        for i,v in pairs(keybind.modemenu.buttons) do
-                            if utility:MouseOverDrawing({keybind.modemenu.frame.Position.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)), keybind.modemenu.frame.Position.X + keybind.modemenu.frame.Size.X, keybind.modemenu.frame.Position.Y + (15 * (i - 1)) + 15}) then
-                                if v.Text == "Clear" then
-                                    cleared = true
-                                else
-                                    keybind.mode = v.Text
-                                    changed = true
-                                end
-                            end
-                        end
-                        --
-                        if cleared then
-                            keybind:Clear()
-                            window:CloseContent()
-                        elseif changed then
-                            keybind:Reset()
-                        end
-                    else
-                        keybind.open = not keybind.open
-                        --
-                        for i,v in pairs(keybind.modemenu.drawings) do
-                            utility:Remove(v)
-                        end
-                        --
-                        keybind.modemenu.drawings = {}
-                        keybind.modemenu.buttons = {}
-                        keybind.modemenu.frame = nil
-                        --
-                        window.currentContent.frame = nil
-                        window.currentContent.keybind = nil
-                    end
-                end
-            end
-            --
-            if Input.UserInputType == Enum.UserInputType.MouseButton2 and window.isVisible and keybind_outline.Visible then
-                if utility:MouseOverDrawing({section.section_frame.Position.X + (section.section_frame.Size.X - (54+4+2)), section.section_frame.Position.Y + keybind.axis, section.section_frame.Position.X + section.section_frame.Size.X, section.section_frame.Position.Y + keybind.axis + 17}) and not window:IsOverContent() and not keybind.selecting then
-                    window:CloseContent()
-                    keybind.open = not keybind.open
-                    --
-                    local modemenu = utility:Create("Frame", {Vector2.new(keybind_outline.Size.X + 2,0), keybind_outline}, {
-                        Size = utility:Size(0, 68, 0, 79),
-                        Position = utility:Position(1, 2, 0, 0, keybind_outline),
-                        Color = theme.outline,
-                        Visible = page.open
-                    }, keybind.modemenu.drawings);keybind.modemenu.frame = modemenu
-                    --
-                    library.colors[modemenu] = {
-                        Color = "outline"
-                    }
-                    --
-                    local modemenu_inline = utility:Create("Frame", {Vector2.new(1,1), modemenu}, {
-                        Size = utility:Size(1, -2, 1, -2, modemenu),
-                        Position = utility:Position(0, 1, 0, 1, modemenu),
-                        Color = theme.inline,
-                        Visible = page.open
-                    }, keybind.modemenu.drawings)
-                    --
-                    library.colors[modemenu_inline] = {
-                        Color = "inline"
-                    }
-                    --
-                    local modemenu_frame = utility:Create("Frame", {Vector2.new(1,1), modemenu_inline}, {
-                        Size = utility:Size(1, -2, 1, -2, modemenu_inline),
-                        Position = utility:Position(0, 1, 0, 1, modemenu_inline),
-                        Color = theme.lightcontrast,
-                        Visible = page.open
-                    }, keybind.modemenu.drawings)
-                    --
-                    library.colors[modemenu_frame] = {
-                        Color = "lightcontrast"
-                    }
-                    --
-                    local keybind__gradient = utility:Create("Image", {Vector2.new(0,0), modemenu_frame}, {
-                        Size = utility:Size(1, 0, 1, 0, modemenu_frame),
-                        Position = utility:Position(0, 0, 0 , 0, modemenu_frame),
-                        Transparency = 0.5,
-                        Visible = page.open
-                    }, keybind.modemenu.drawings)
-                    --
-                    utility:LoadImage(keybind__gradient, "gradient", "https://i.imgur.com/5hmlrjX.png")
-                    --
-                    for i,v in pairs({"Always", "Toggle", "On Hold", "Off Hold", "Clear"}) do
-                        local button_title = utility:Create("TextLabel", {Vector2.new(modemenu_frame.Size.X/2,15 * (i-1)), modemenu_frame}, {
-                            Text = v,
-                            Size = theme.textsize,
-                            Font = theme.font,
-                            Color = v == keybind.mode and theme.accent or theme.textcolor,
-                            Center = true,
-                            OutlineColor = theme.textborder,
-                            Position = utility:Position(0.5, 0, 0, 15 * (i-1), modemenu_frame),
-                            Visible = page.open
-                        }, keybind.modemenu.drawings);keybind.modemenu.buttons[#keybind.modemenu.buttons + 1] = button_title
-                        --
-                        library.colors[button_title] = {
-                            OutlineColor = "textborder",
-                            Color = v == keybind.mode and "accent" or "textcolor"
-                        }
-                    end
-                    --
-                    window.currentContent.frame = modemenu
-                    window.currentContent.keybind = keybind
-                end
-            end
-        end
-        --
-        library.ended[#library.ended + 1] = function(Input)
-            if keybind.mode == "On Hold" or keybind.mode == "Off Hold" then
-                if keybind.current[1] and keybind.current[2] then
-                    if (Input.KeyCode == Enum[keybind.current[1]][keybind.current[2]] or Input.UserInputType == Enum[keybind.current[1]][keybind.current[2]]) then
-                        if keybind.mode == "On Hold" then
-                            if keybind.active then
-                                keybind.active = false
-                                window.keybindslist:Remove(keybindname or name)
-                                callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                            end
-                        else
-                            keybind.active = true
-                            if keybind.active then window.keybindslist:Add(keybindname or name, keybind_value.Text) else window.keybindslist:Remove(keybindname or name) end
-                            callback(Enum[keybind.current[1]][keybind.current[2]], keybind.active)
-                        end
-                    end
-                end
-            end
-        end
-        --
-        if pointer and tostring(pointer) ~= "" and tostring(pointer) ~= " " and not library.pointers[tostring(pointer)] then
-            library.pointers[tostring(pointer)] = keybind
-        end
-        --
-        section.currentAxis = section.currentAxis + 17 + 4
-        --
+        local keybind = buildKeybind(self, self.page, self.window, info, nil)
+        self.currentAxis = self.currentAxis + 17 + 4
         return keybind
     end
     --
