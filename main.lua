@@ -22,6 +22,8 @@ local library = {
     mouseBindsOpen = false,
     clipContext = false,
     clipPage = nil,
+    parentOf = {},
+    sectionOwner = {},
     began = {},
     ended = {},
     changed = {},
@@ -204,7 +206,8 @@ do
             end
             --
             if not instanceHidden then
-                library.drawings[#library.drawings + 1] = {instance, instanceOffset, instanceProperties["Transparency"] or 1, library.clipContext or false, library.clipPage}
+                library.drawings[#library.drawings + 1] = {instance, instanceOffset, instanceProperties["Transparency"] or 1}
+                library.parentOf[instance] = instanceOffset[2]
             else
                 library.hidden[#library.hidden + 1] = {instance}
             end
@@ -272,6 +275,7 @@ do
         end
         --
         if instance then
+            library.parentOf[instance] = nil
             instance:Remove()
         end
     end
@@ -777,6 +781,20 @@ do
             end
         end
         --
+        function window:GetPageOf(drawing)
+            local node = drawing
+            local depth = 0
+            --
+            while node and depth < 10 do
+                local owner = library.sectionOwner[node]
+                if owner then return owner end
+                node = library.parentOf[node]
+                depth = depth + 1
+            end
+            --
+            return nil
+        end
+        --
         function window:Move(vector)
             local tab = window.tab_frame
             local page = window.currentPage
@@ -791,9 +809,10 @@ do
                         v[1].Position = utility:Position(0, vector.X, 0, vector.Y)
                     end
                     --
-                    if v[4] then
+                    local owner = window:GetPageOf(v[1])
+                    if owner then
                         local drawY = v[1].Position.Y
-                        v[1].Visible = page ~= nil and page.open and v[5] == page and drawY >= top - 2 and drawY <= bottom
+                        v[1].Visible = page ~= nil and page.open and owner == page and drawY >= top - 2 and drawY <= bottom
                     end
                 end
             end
@@ -991,9 +1010,6 @@ do
             end
             --
             library.shared.initialized = true
-            --
-            library.clipContext = false
-            library.clipPage = nil
             --
             window:Cursor()
             --
@@ -1810,9 +1826,10 @@ do
                         v[1].Position = utility:Position(0, vector.X, 0, vector.Y)
                     end
                     --
-                    if v[4] then
+                    local owner = window:GetPageOf(v[1])
+                    if owner then
                         local drawY = v[1].Position.Y
-                        v[1].Visible = page ~= nil and page.open and v[5] == page and drawY >= top - 2 and drawY <= bottom
+                        v[1].Visible = page ~= nil and page.open and owner == page and drawY >= top - 2 and drawY <= bottom
                     end
                 end
             end
@@ -2583,9 +2600,6 @@ do
             --
             library.shared.initialized = true
             --
-            library.clipContext = false
-            library.clipPage = nil
-            --
             window:Watermark()
             window:KeybindsList()
             window:StatusList()
@@ -2717,9 +2731,6 @@ do
         local window = self
         --
         local page = {open = false, sections = {}, sectionOffset = {left = 0, right = 0}, scroll = 0, scrollMax = 0, window = window}
-        --
-        library.clipContext = true
-        library.clipPage = page
         --
         local position = 4
         --
@@ -2923,6 +2934,8 @@ do
             Visible = page.open
         }, section.visibleContent);section["section_inline"] = section_inline
         --
+        library.sectionOwner[section_inline] = page
+        --
         library.colors[section_inline] = {
             Color = "inline"
         }
@@ -3005,6 +3018,8 @@ do
             Color = theme.inline,
             Visible = page.open
         }, multiSection.visibleContent);multiSection["section_inline"] = multiSection_inline
+        --
+        library.sectionOwner[multiSection_inline] = page
         --
         library.colors[multiSection_inline] = {
             Color = "inline"
@@ -3212,6 +3227,8 @@ do
             Color = theme.inline,
             Visible = page.open
         }, playerList.visibleContent);playerList["playerList_inline"] = playerList_inline
+        --
+        library.sectionOwner[playerList_inline] = page
         --
         library.colors[playerList_inline] = {
             Color = "inline"
